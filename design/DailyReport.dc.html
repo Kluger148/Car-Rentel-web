@@ -1,0 +1,148 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+  <style>
+    body { margin: 0; font-family: 'Inter', -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background: #f1f3f6; color: #111c2d; }
+    a { color: #0770e3; text-decoration: none; }
+    a:hover { color: #0059c1; text-decoration: underline; }
+    * { box-sizing: border-box; }
+  </style>
+</helmet>
+
+<div style="width: 760px; min-height: 1180px; background: #f1f3f6; padding: 24px 20px 40px;">
+
+  <!-- mail client frame -->
+  <div style="display: flex; align-items: center; gap: 10px; padding: 0 4px 14px; font-size: 13px; color: #5a6779;">
+    <div style="width: 30px; height: 30px; border-radius: 8px; background: #05203c; display: grid; place-items: center;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17V8a1 1 0 0 1 1-1h9l4 4h3a1 1 0 0 1 1 1v5"></path><circle cx="7" cy="17.5" r="2"></circle><circle cx="17" cy="17.5" r="2"></circle></svg>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 1px;">
+      <div style="font-size: 14px; font-weight: 600; color: #111c2d;">Daily van &amp; SUV scan — 3 under target</div>
+      <div>VanScan &lt;scanner@vanscan.app&gt; · today 06:07</div>
+    </div>
+  </div>
+
+  <div style="background: #ffffff; border: 1px solid #dfe4ec; border-radius: 16px; overflow: hidden;">
+
+    <!-- header -->
+    <div style="background: #05203c; color: #ffffff; padding: 22px 26px;">
+      <div style="font-size: 20px; font-weight: 800; letter-spacing: -0.02em;">Daily scan — 7 September 2026</div>
+      <div style="margin-top: 4px; font-size: 13.5px; color: rgba(255,255,255,0.78);">10 locations · 307 offers · 8 qualifying deals · 3 changes since yesterday</div>
+    </div>
+
+    <!-- 1. highlighted -->
+    <div style="padding: 22px 26px 6px;">
+      <div style="font-size: 15px; font-weight: 700; margin-bottom: 3px;">1 · Under your target</div>
+      <div style="font-size: 13px; color: #5a6779; margin-bottom: 12px;">New or cheaper, at or below $1,100 per month.</div>
+
+      <div style="border: 1px solid #128a5a; border-radius: 10px; padding: 14px 16px; background: #ffffff;">
+        <div style="display: flex; justify-content: space-between; gap: 16px; align-items: flex-start;">
+          <div style="min-width: 0;">
+            <div style="display: flex; gap: 6px; margin-bottom: 7px;">
+              <div style="padding: 3px 9px; border-radius: 999px; font-size: 11.5px; font-weight: 700; background: #e3f0ff; color: #0059c1;">Large SUV</div>
+              <div style="padding: 3px 9px; border-radius: 999px; font-size: 11.5px; font-weight: 700; background: #e2f5ec; color: #128a5a;">Price drop</div>
+            </div>
+            <div style="font-size: 16px; font-weight: 700;">Nissan Pathfinder (Full-size SUV)</div>
+            <div style="margin-top: 2px; font-size: 13px; color: #5a6779;">Dollar · ATL, Atlanta GA · 10 Sep – 10 Oct · 7 seats · unlimited miles</div>
+          </div>
+          <div style="text-align: right; white-space: nowrap;">
+            <div style="font-size: 22px; font-weight: 800; letter-spacing: -0.02em;">$1,178</div>
+            <div style="font-size: 12px; color: #5a6779;">$1,178 total</div>
+            <div style="font-size: 12px; font-weight: 700; color: #128a5a;">↓ $86</div>
+          </div>
+        </div>
+        <div style="margin-top: 12px; display: inline-flex; padding: 8px 16px; border-radius: 8px; background: #0770e3; color: #ffffff; font-size: 13.5px; font-weight: 600;">Book on Priceline</div>
+      </div>
+    </div>
+
+    <!-- 2. cheapest per class -->
+    <div style="padding: 22px 26px 6px;">
+      <div style="font-size: 15px; font-weight: 700; margin-bottom: 3px;">2 · Cheapest per vehicle type</div>
+      <div style="font-size: 13px; color: #5a6779; margin-bottom: 12px;">Always included, so the report is never empty.</div>
+
+      <div style="border: 1px solid #dfe4ec; border-radius: 10px; overflow: hidden;">
+        <div style="display: grid; grid-template-columns: 1.5fr 1.1fr 0.7fr 0.8fr; gap: 0; background: #f7f9fc; padding: 9px 14px; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #8b95a6;">
+          <div>Vehicle</div><div>Company · location</div><div style="text-align: right;">Monthly</div><div style="text-align: right;">Programme</div>
+        </div>
+        <div style="display: grid; grid-template-columns: 1.5fr 1.1fr 0.7fr 0.8fr; padding: 11px 14px; font-size: 13.5px; border-top: 1px solid #dfe4ec;">
+          <div><strong>Nissan Pathfinder</strong><div style="color: #8b95a6; font-size: 12.5px;">Large SUV · 7 seats</div></div>
+          <div style="color: #5a6779;">Dollar<div style="color: #8b95a6; font-size: 12.5px;">ATL</div></div>
+          <div style="text-align: right; font-weight: 700;">$1,178</div>
+          <div style="text-align: right; color: #8b95a6; font-size: 12.5px;">None</div>
+        </div>
+        <div style="display: grid; grid-template-columns: 1.5fr 1.1fr 0.7fr 0.8fr; padding: 11px 14px; font-size: 13.5px; border-top: 1px solid #dfe4ec;">
+          <div><strong>Chrysler Pacifica</strong><div style="color: #8b95a6; font-size: 12.5px;">Minivan · 7 seats</div></div>
+          <div style="color: #5a6779;">Enterprise<div style="color: #8b95a6; font-size: 12.5px;">ATL</div></div>
+          <div style="text-align: right; font-weight: 700;">$1,493</div>
+          <div style="text-align: right; color: #a86500; font-size: 12.5px;">Month-or-More</div>
+        </div>
+        <div style="display: grid; grid-template-columns: 1.5fr 1.1fr 0.7fr 0.8fr; padding: 11px 14px; font-size: 13.5px; border-top: 1px solid #dfe4ec;">
+          <div><strong>Honda Odyssey</strong><div style="color: #8b95a6; font-size: 12.5px;">12-passenger van · 8 seats</div></div>
+          <div style="color: #5a6779;">Enterprise<div style="color: #8b95a6; font-size: 12.5px;">ATL</div></div>
+          <div style="text-align: right; font-weight: 700;">$1,651</div>
+          <div style="text-align: right; color: #a86500; font-size: 12.5px;">Month-or-More</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. changes -->
+    <div style="padding: 22px 26px 6px;">
+      <div style="font-size: 15px; font-weight: 700; margin-bottom: 12px;">3 · Changes since yesterday</div>
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="display: flex; align-items: center; gap: 12px; padding: 11px 14px; border: 1px solid #dfe4ec; border-radius: 10px; font-size: 13.5px;">
+          <div style="padding: 3px 9px; border-radius: 999px; font-size: 11.5px; font-weight: 700; background: #e2f5ec; color: #128a5a; white-space: nowrap;">Price drop</div>
+          <div style="flex-grow: 1;">Nissan Pathfinder · Dollar · ATL</div>
+          <div style="white-space: nowrap; color: #8b95a6; text-decoration: line-through;">$1,264</div>
+          <div style="white-space: nowrap; font-weight: 700; color: #128a5a;">$1,178</div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 12px; padding: 11px 14px; border: 1px solid #dfe4ec; border-radius: 10px; font-size: 13.5px;">
+          <div style="padding: 3px 9px; border-radius: 999px; font-size: 11.5px; font-weight: 700; background: #e2f5ec; color: #128a5a; white-space: nowrap;">New</div>
+          <div style="flex-grow: 1;">Chrysler Pacifica · Avis · ATL</div>
+          <div style="white-space: nowrap; font-weight: 700;">$1,501</div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 12px; padding: 11px 14px; border: 1px solid #dfe4ec; border-radius: 10px; font-size: 13.5px;">
+          <div style="padding: 3px 9px; border-radius: 999px; font-size: 11.5px; font-weight: 700; background: #fdeaed; color: #c8102e; white-space: nowrap;">Price up</div>
+          <div style="flex-grow: 1;">Honda Odyssey · Enterprise · ATL</div>
+          <div style="white-space: nowrap; color: #8b95a6; text-decoration: line-through;">$1,590</div>
+          <div style="white-space: nowrap; font-weight: 700; color: #c8102e;">$1,651</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. run health -->
+    <div style="padding: 22px 26px 26px;">
+      <div style="font-size: 15px; font-weight: 700; margin-bottom: 12px;">4 · Scan health</div>
+      <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px;">
+        <div style="padding: 12px 14px; border: 1px solid #dfe4ec; border-radius: 10px;">
+          <div style="font-size: 11px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: #8b95a6;">Searches</div>
+          <div style="margin-top: 3px; font-size: 19px; font-weight: 800;">20 / 20</div>
+        </div>
+        <div style="padding: 12px 14px; border: 1px solid #dfe4ec; border-radius: 10px;">
+          <div style="font-size: 11px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: #8b95a6;">Offers</div>
+          <div style="margin-top: 3px; font-size: 19px; font-weight: 800;">307</div>
+        </div>
+        <div style="padding: 12px 14px; border: 1px solid #dfe4ec; border-radius: 10px;">
+          <div style="font-size: 11px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: #8b95a6;">Runtime</div>
+          <div style="margin-top: 3px; font-size: 19px; font-weight: 800;">5 min</div>
+        </div>
+        <div style="padding: 12px 14px; border: 1px solid #dfe4ec; border-radius: 10px;">
+          <div style="font-size: 11px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: #8b95a6;">Cost</div>
+          <div style="margin-top: 3px; font-size: 19px; font-weight: 800;">$4.70</div>
+        </div>
+      </div>
+      <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #dfe4ec; font-size: 12.5px; color: #8b95a6; line-height: 1.6;">
+        Prices are quotes captured this morning, not reservations. Monthly figures are a 30-day rental total; confirm long-term programme terms with the supplier before booking.
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

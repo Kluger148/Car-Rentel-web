@@ -1,0 +1,212 @@
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Link } from '@tanstack/react-router';
+import { useState, type FormEvent } from 'react';
+import { ErrorState } from '../components/States';
+import { api, type SearchInput, type SearchPreview } from '../lib/api';
+import { STATUS_LABEL, fullDate, relativeTime } from '../lib/format';
+
+function tomorrowIso(): string {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function NewSearchForm({ onCreated }: { onCreated: (id: number) => void }) {
+  const [zip, setZip] = useState('');
+  const [radius, setRadius] = useState('50');
+  const [states, setStates] = useState('');
+  const [pickup, setPickup] = useState(tomorrowIso());
+  const [name, setName] = useState('');
+  const [notes, setNotes] = useState('');
+  const [preview, setPreview] = useState<SearchPreview | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const input = (): SearchInput => ({
+    zip: zip.trim(),
+    radiusMiles: Number.parseInt(radius, 10),
+    states: states
+      .split(/[,\s]+/)
+      .map((s) => s.trim().toUpperCase())
+      .filter(Boolean),
+    pickupDate: pickup,
+    name: name.trim() || undefined,
+    notes: notes.trim() || undefined,
+  });
+
+  const previewMutation = useMutation({
+    mutationFn: () => api.previewSearch(input()),
+    onSuccess: (p) => {
+      setPreview(p);
+      setError(null);
+    },
+    onError: (e) => {
+      setPreview(null);
+      setError(e.message);
+    },
+  });
+  const createMutation = useMutation({
+    mutationFn: () => api.createSearch(input()),
+    onSuccess: (d) => onCreated(d.search.id),
+    onError: (e) => setError(e.message),
+  });
+
+  const submit = (e: FormEvent) => {
+    e.preventDefault();
+    previewMutation.mutate();
+  };
+  const changed = () => setPreview(null);
+
+  return (
+    <form className="card section search-form" onSubmit={submit}>
+      <h2>New search</h2>
+      <p className="muted">
+        Enter the customer's requirements. The return date is set to 330 days after pickup, at the same location.
+      </p>
+      <div className="form-grid">
+        <label className="field">
+          <span className="field__label">Starting ZIP</span>
+          <input id="ns-zip" inputMode="numeric" required value={zip} onChange={(e) => { setZip(e.target.value); changed(); }} placeholder="30303" />
+        </label>
+        <label className="field">
+          <span className="field__label">Max distance (miles)</span>
+          <input id="ns-radius" type="number" min={1} required value={radius} onChange={(e) => { setRadius(e.target.value); changed(); }} />
+        </label>
+        <label className="field">
+          <span className="field__label">States (optional)</span>
+          <input id="ns-states" value={states} onChange={(e) => { setStates(e.target.value); changed(); }} placeholder="GA, AL" />
+        </label>
+        <label className="field">
+          <span className="field__label">Pickup date</span>
+          <input id="ns-pickup" type="date" required min={tomorrowIso()} value={pickup} onChange={(e) => { setPickup(e.target.value); changed(); }} />
+        </label>
+        <label className="field">
+          <span className="field__label">Name (optional)</span>
+          <input id="ns-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Customer or request" />
+        </label>
+        <label className="field">
+          <span className="field__label">Notes (optional)</span>
+          <input id="ns-notes" value={notes} onChange={(e) => setNotes(e.target.value)} />
+        </label>
+      </div>
+
+      {error && (
+        <p className="form-error" role="alert">
+          {error}
+        </p>
+      )}
+
+      {preview && (
+        <div className="preview">
+          <p>
+            <strong>
+              {preview.zip.city}, {preview.zip.state} {preview.zip.zip}
+            </strong>{' '}
+            · pickup {fullDate(preview.pickupDate)} → return {fullDate(preview.returnDate)} ({preview.rentalDays} days)
+          </p>
+          <p className="muted">
+            {preview.searched.length} of {preview.placesInRange} places within {preview.radiusMiles} miles will be
+            searched daily (largest first, limit {preview.maxLocationsPerSearch}):
+          </p>
+          <p className="preview__places">
+            {preview.searched.map((s) => `${s.location.query} (${Math.round(s.distanceMiles)} mi)`).join(' · ')}
+          </p>
+        </div>
+      )}
+
+      <div className="form-actions">
+        <button type="submit" className="btn btn--ghost" disabled={previewMutation.isPending}>
+          {previewMutation.isPending ? 'Checking…' : 'Preview places'}
+        </button>
+        <button
+          type="button"
+          className="btn btn--primary"
+          disabled={createMutation.isPending}
+          onClick={() => createMutation.mutate()}
+        >
+          {createMutation.isPending ? 'Saving…' : 'Save search'}
+        </button>
+      </div>
+    </form>
+  );
+}
+
+export function SearchesPage() {
+  const queryClient = useQueryClient();
+  const [showForm, setShowForm] = useState(false);
+  const searchesQuery = useQuery({ queryKey: ['searches'], queryFn: () => api.searches(), staleTime: 30_000 });
+  const searches = searchesQuery.data ?? [];
+
+  return (
+    <div className="container">
+      <div className="page-head page-head--row">
+        <div>
+          <h1>Saved searches</h1>
+          <p>Each search looks for complete 330-day rentals on Skyscanner and re-runs every day.</p>
+        </div>
+        <button type="button" className="btn btn--primary" onClick={() => setShowForm((v) => !v)}>
+          {showForm ? 'Close' : 'New search'}
+        </button>
+      </div>
+
+      {(showForm || (searchesQuery.isSuccess && searches.length === 0)) && (
+        <NewSearchForm
+          onCreated={() => {
+            setShowForm(false);
+            void queryClient.invalidateQueries({ queryKey: ['searches'] });
+          }}
+        />
+      )}
+
+      {searchesQuery.isError && <ErrorState error={searchesQuery.error} onRetry={() => void searchesQuery.refetch()} />}
+
+      {searches.length > 0 && (
+        <div className="card table-wrap">
+          <table className="data">
+            <thead>
+              <tr>
+                <th>Search</th>
+                <th>Area</th>
+                <th>Pickup → return</th>
+                <th>Last scan</th>
+                <th>Status</th>
+                <th />
+              </tr>
+            </thead>
+            <tbody>
+              {searches.map((s) => (
+                <tr key={s.id} style={{ opacity: s.active ? 1 : 0.55 }}>
+                  <td>
+                    <strong>{s.name}</strong>
+                    {s.notes && <div className="muted">{s.notes}</div>}
+                  </td>
+                  <td>
+                    ZIP {s.zip} · {s.radiusMiles} mi{s.states.length > 0 && ` · ${s.states.join(', ')}`}
+                  </td>
+                  <td>
+                    {fullDate(s.pickupDate)} → {fullDate(s.returnDate)}
+                  </td>
+                  <td>
+                    {s.lastRun ? (
+                      <>
+                        {STATUS_LABEL[s.lastRun.status]} · {relativeTime(s.lastRun.startedAt)}
+                        <div className="muted">{s.lastRun.quotesCount} offers</div>
+                      </>
+                    ) : (
+                      <span className="muted">Not scanned yet</span>
+                    )}
+                  </td>
+                  <td>{s.active ? 'Active (daily)' : 'Off'}</td>
+                  <td>
+                    <Link to="/search/$id" params={{ id: String(s.id) }}>
+                      Open deals
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}

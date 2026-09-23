@@ -1,0 +1,655 @@
+<title>Daily Scan Reference</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+
+<style>
+  :root {
+    --ground: #eef2f1;
+    --surface: #ffffff;
+    --surface-sunk: #e7edec;
+    --border: #d2dcda;
+
+    --ink: #0d2426;
+    --ink-soft: #46595a;
+    --ink-faint: #6f8180;
+
+    --accent: #0a6b73;
+    --accent-deep: #084f55;
+
+    --good: #2f6b3f;
+    --good-wash: #e2efe4;
+    --warn: #90600d;
+    --warn-wash: #f7eddb;
+    --stop: #8d3520;
+    --stop-wash: #f6e5e1;
+
+    --code-bg: #0d2426;
+    --code-fg: #d6e2e0;
+    --code-key: #7fd0d6;
+    --code-str: #b9d4a4;
+    --code-dim: #7d9291;
+
+    --display: 'Archivo', 'Helvetica Neue', Arial, sans-serif;
+    --body: 'Source Serif 4', Georgia, serif;
+    --mono: 'JetBrains Mono', Consolas, monospace;
+
+    color-scheme: light;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #0a1516;
+      --surface: #10201f;
+      --surface-sunk: #16292a;
+      --border: #24403f;
+
+      --ink: #e6efed;
+      --ink-soft: #a6bab8;
+      --ink-faint: #7d9291;
+
+      --accent: #52b6bd;
+      --accent-deep: #7ccdd2;
+
+      --good: #74c58a;
+      --good-wash: #14301d;
+      --warn: #dda94b;
+      --warn-wash: #33260c;
+      --stop: #e2947f;
+      --stop-wash: #351a13;
+
+      --code-bg: #071011;
+      --code-fg: #cfdedc;
+
+      color-scheme: dark;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground: #0a1516;
+    --surface: #10201f;
+    --surface-sunk: #16292a;
+    --border: #24403f;
+
+    --ink: #e6efed;
+    --ink-soft: #a6bab8;
+    --ink-faint: #7d9291;
+
+    --accent: #52b6bd;
+    --accent-deep: #7ccdd2;
+
+    --good: #74c58a;
+    --good-wash: #14301d;
+    --warn: #dda94b;
+    --warn-wash: #33260c;
+    --stop: #e2947f;
+    --stop-wash: #351a13;
+
+    --code-bg: #071011;
+    --code-fg: #cfdedc;
+
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 17px;
+    line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { max-width: 1020px; margin: 0 auto; padding: 0 28px 88px; }
+  .col { max-width: 66ch; }
+
+  .masthead { border-bottom: 2px solid var(--ink); padding: 48px 0 20px; margin-bottom: 34px; }
+  .eyebrow {
+    font-family: var(--display); font-size: 12px; font-weight: 600;
+    letter-spacing: 0.13em; text-transform: uppercase; color: var(--accent); margin: 0 0 12px;
+  }
+  h1 {
+    font-family: var(--display); font-weight: 700;
+    font-size: clamp(31px, 5vw, 44px); line-height: 1.05;
+    letter-spacing: -0.02em; margin: 0; text-wrap: balance;
+  }
+  .standfirst { max-width: 60ch; margin: 16px 0 0; font-size: 19px; line-height: 1.5; color: var(--ink-soft); }
+
+  section { margin-bottom: 50px; }
+  h2 {
+    font-family: var(--display); font-weight: 700; font-size: 25px;
+    letter-spacing: -0.015em; margin: 0 0 8px; text-wrap: balance;
+  }
+  h2 .num { font-family: var(--mono); font-size: 13px; font-weight: 500; color: var(--accent); margin-right: 11px; vertical-align: 3px; }
+  h3 { font-family: var(--display); font-weight: 600; font-size: 17px; margin: 30px 0 8px; }
+
+  p { margin: 0 0 16px; }
+  ul.plain { margin: 0 0 16px; padding-left: 21px; }
+  ul.plain li { margin-bottom: 7px; }
+  strong { font-weight: 600; }
+  a { color: var(--accent); }
+
+  code {
+    font-family: var(--mono); font-size: 0.85em;
+    background: var(--surface-sunk); padding: 1px 5px; border-radius: 3px;
+  }
+
+  pre {
+    font-family: var(--mono); font-size: 12.5px; line-height: 1.7;
+    background: var(--code-bg); color: var(--code-fg);
+    padding: 18px 20px; border-radius: 4px; overflow-x: auto; margin: 0 0 8px;
+    tab-size: 2;
+  }
+  pre code { background: none; padding: 0; font-size: inherit; color: inherit; }
+  .k { color: var(--code-key); }
+  .s { color: var(--code-str); }
+  .d { color: var(--code-dim); }
+
+  .code-note { margin: 0 0 20px; font-size: 13.5px; color: var(--ink-faint); max-width: 66ch; }
+
+  .scroller { overflow-x: auto; margin: 0 0 18px; border: 1px solid var(--border); background: var(--surface); }
+  table { width: 100%; border-collapse: collapse; font-size: 14.5px; }
+  caption {
+    caption-side: bottom; text-align: left; padding: 11px 15px;
+    font-size: 13.5px; line-height: 1.45; color: var(--ink-faint); border-top: 1px solid var(--border);
+  }
+  th, td { padding: 9px 15px; text-align: left; border-bottom: 1px solid var(--border); vertical-align: top; }
+  thead th {
+    font-family: var(--display); font-size: 11px; font-weight: 600;
+    letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-faint);
+    background: var(--surface-sunk); white-space: nowrap;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  td.mono, .mono { font-family: var(--mono); font-size: 12.5px; }
+
+  .callout { border-left: 3px solid var(--accent); background: var(--surface); padding: 17px 21px; margin: 0 0 20px; }
+  .callout.is-flag { border-left-color: var(--stop); }
+  .callout.is-warn { border-left-color: var(--warn); }
+  .callout h3 { margin: 0 0 6px; font-size: 16px; }
+  .callout p:last-child { margin-bottom: 0; }
+
+  .tag {
+    display: inline-block; font-family: var(--display); font-size: 10.5px; font-weight: 600;
+    letter-spacing: 0.05em; text-transform: uppercase; padding: 2px 8px; border-radius: 2px; white-space: nowrap;
+  }
+  .tag--keep { background: var(--good-wash); color: var(--good); }
+  .tag--calc { background: var(--warn-wash); color: var(--warn); }
+  .tag--skip { background: var(--surface-sunk); color: var(--ink-faint); }
+
+  /* timeline */
+  .timeline { list-style: none; margin: 0 0 20px; padding: 0; border-left: 2px solid var(--border); }
+  .timeline li { position: relative; padding: 0 0 22px 24px; }
+  .timeline li::before {
+    content: ''; position: absolute; left: -7px; top: 7px;
+    width: 12px; height: 12px; border-radius: 50%;
+    background: var(--surface); border: 2px solid var(--accent);
+  }
+  .timeline h4 { font-family: var(--display); font-size: 15.5px; font-weight: 600; margin: 0 0 3px; }
+  .timeline p { margin: 0; font-size: 15px; color: var(--ink-soft); }
+  .timeline .t {
+    font-family: var(--mono); font-size: 11.5px; color: var(--accent);
+    display: block; margin-bottom: 2px;
+  }
+
+  footer { border-top: 1px solid var(--border); padding-top: 18px; font-size: 14px; color: var(--ink-faint); max-width: 66ch; }
+
+  @media (max-width: 620px) {
+    body { font-size: 16px; }
+    .wrap { padding: 0 18px 60px; }
+    pre { font-size: 11.5px; }
+  }
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <p class="eyebrow">Technical reference</p>
+    <h1>The daily scan, step by step</h1>
+    <p class="standfirst">
+      Which website the data is taken from, when the scheduled job runs, exactly what we ask Apify for, and every
+      field that comes back. All examples are real, captured from a live run on 7 September 2026.
+    </p>
+  </header>
+
+  <section>
+    <div class="col">
+      <h2><span class="num">01</span>Where the data comes from</h2>
+      <p>
+        We scrape <strong>one website: Kayak.com</strong>. Every one of the 1,047 offers currently in the database
+        came from there, collected by the Apify actor <code>solidcode/kayak-scraper</code>.
+      </p>
+      <p>
+        A second actor, <code>scrapeunblocker/skyscanner-car-hire-scraper</code>, is configured against Skyscanner but
+        has never run. It only activates if the Kayak actor fails twice on the same search, which has not yet
+        happened.
+      </p>
+    </div>
+
+    <div class="scroller">
+      <table>
+        <caption>The two configured sources. Only the first has ever been used.</caption>
+        <thead>
+          <tr><th>Role</th><th>Apify actor</th><th>Scrapes</th><th class="num">Rows so far</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Primary</td><td class="mono">solidcode/kayak-scraper</td><td>www.kayak.com</td><td class="num">1,047</td></tr>
+          <tr><td>Fallback</td><td class="mono">scrapeunblocker/skyscanner-car-hire-scraper</td><td>www.skyscanner.net</td><td class="num">0</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="col">
+      <h3>Kayak is a comparison site, so one scrape reaches the whole market</h3>
+      <p>
+        This is why scraping a single site is worth the money. Kayak does not own any cars. It aggregates offers from
+        booking sites and from the rental companies directly, and all of that arrives in our results.
+      </p>
+    </div>
+
+    <figure>
+      <div class="diagram-frame">
+        <svg viewBox="0 0 880 300" role="img" aria-label="The data supply chain. Our scanner calls an Apify actor, which scrapes only kayak.com. Everything beyond that point is Kayak's own aggregation: 17 booking sites selling cars from 11 rental companies. We never contact those sites ourselves.">
+          <defs>
+            <marker id="dsa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"></path>
+            </marker>
+          </defs>
+
+          <g stroke="currentColor" stroke-width="1.5" fill="none">
+            <rect x="12" y="112" width="112" height="52" rx="2"></rect>
+            <rect x="168" y="112" width="126" height="52" rx="2"></rect>
+          </g>
+          <rect x="338" y="112" width="118" height="52" rx="2" fill="none" stroke-width="2.5" style="stroke:var(--accent)"></rect>
+          <g stroke="currentColor" stroke-width="1.5" fill="none" opacity="0.55">
+            <rect x="524" y="46" width="150" height="188" rx="2"></rect>
+            <rect x="712" y="46" width="152" height="188" rx="2"></rect>
+          </g>
+
+          <g fill="none" stroke="currentColor" stroke-width="1.4" marker-end="url(#dsa)" opacity="0.75">
+            <line x1="124" y1="138" x2="164" y2="138"></line>
+            <line x1="294" y1="138" x2="334" y2="138"></line>
+            <line x1="456" y1="138" x2="520" y2="138"></line>
+            <line x1="674" y1="138" x2="708" y2="138"></line>
+          </g>
+
+          <line x1="490" y1="30" x2="490" y2="256" stroke-width="1.5" stroke-dasharray="5 5" style="stroke:var(--warn)"></line>
+          <text x="498" y="272" font-family="Archivo, sans-serif" font-size="11.5" font-weight="600" style="fill:var(--warn)">we never contact anything to the right of this line</text>
+
+          <g font-family="Archivo, sans-serif" fill="currentColor">
+            <text x="26" y="133" font-size="13" font-weight="600">Our scanner</text>
+            <text x="26" y="150" font-size="11" opacity="0.7">runs at 06:00</text>
+
+            <text x="182" y="133" font-size="13" font-weight="600">Apify actor</text>
+            <text x="182" y="150" font-size="11" opacity="0.7">kayak-scraper</text>
+
+            <text x="352" y="133" font-size="13.5" font-weight="700" style="fill:var(--accent)">kayak.com</text>
+            <text x="352" y="150" font-size="11" opacity="0.7">the only site scraped</text>
+
+            <text x="538" y="34" font-size="12" font-weight="600">17 booking sites</text>
+            <text x="538" y="70" font-size="11.5" opacity="0.82">Priceline &middot; 69</text>
+            <text x="538" y="90" font-size="11.5" opacity="0.82">Expedia &middot; 57</text>
+            <text x="538" y="110" font-size="11.5" opacity="0.82">Booking.com &middot; 37</text>
+            <text x="538" y="130" font-size="11.5" opacity="0.82">DiscoverCars &middot; 11</text>
+            <text x="538" y="150" font-size="11.5" opacity="0.82">Auto Europe &middot; 4</text>
+            <text x="538" y="170" font-size="11.5" opacity="0.82">Wisecars &middot; 6</text>
+            <text x="538" y="190" font-size="11.5" opacity="0.82">EconomyBookings &middot; 6</text>
+            <text x="538" y="212" font-size="11.5" opacity="0.6">and 10 more</text>
+
+            <text x="726" y="34" font-size="12" font-weight="600">11 rental companies</text>
+            <text x="726" y="70" font-size="11.5" opacity="0.82">Enterprise &middot; 67</text>
+            <text x="726" y="90" font-size="11.5" opacity="0.82">Sixt &middot; 54</text>
+            <text x="726" y="110" font-size="11.5" opacity="0.82">Avis &middot; 32</text>
+            <text x="726" y="130" font-size="11.5" opacity="0.82">Payless &middot; 8</text>
+            <text x="726" y="150" font-size="11.5" opacity="0.82">Hertz &middot; 6</text>
+            <text x="726" y="170" font-size="11.5" opacity="0.82">Budget &middot; 5</text>
+            <text x="726" y="190" font-size="11.5" opacity="0.82">Thrifty &middot; 4</text>
+            <text x="726" y="212" font-size="11.5" opacity="0.6">and Dollar, Europcar, Turo</text>
+          </g>
+        </svg>
+      </div>
+      <figcaption>
+        <strong>Where our scraping stops.</strong> We take data from Kayak alone. The booking sites and rental
+        companies beyond it are Kayak's own aggregation, reached through it rather than by us. Counts are offers from
+        the last full scan of Atlanta.
+      </figcaption>
+    </figure>
+
+    <div class="col">
+      <p>
+        This distinction matters when the question is “which sites are we scraping?”. Technically and legally the
+        answer is one site. Commercially, we can see almost the whole US rental market through it, including the
+        suppliers that run the monthly programmes we care about.
+      </p>
+
+      <div class="callout is-warn">
+        <h3>Booking.com is already reaching us secondhand</h3>
+        <p>
+          Thirty-seven offers in the last scan arrived through Booking.com, which draws on the same inventory pool as
+          the official Booking.com cars API named in the feasibility study as the ideal long-term source. We are
+          getting that data indirectly through a scraper today, where an approved affiliate account would supply it
+          directly, reliably and within terms.
+        </p>
+      </div>
+
+      <div class="callout is-flag">
+        <h3>What scraping Kayak means</h3>
+        <p>
+          Kayak's terms of use do not permit automated access. The Apify actor is operated by a third party who
+          breaches those terms; we are the beneficiary. The realistic consequence is that the actor stops working one
+          day, not legal action, but it is not a clean position and it is why the system was built so the data source
+          can be replaced without touching anything else.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2><span class="num">02</span>When it runs</h2>
+      <p>
+        The schedule is set by one line in <code>backend/.env</code>. It is currently:
+      </p>
+    </div>
+
+    <pre><code><span class="d"># minute hour day month weekday</span>
+SCAN_CRON=<span class="s">0 6 * * *</span>   <span class="d">→ 06:00 every day, server local time</span></code></pre>
+    <p class="code-note">
+      Leave the value empty to disable scheduling entirely. The scanner can still be run by hand at any time.
+    </p>
+
+    <div class="col">
+      <div class="callout is-warn">
+        <h3>The clock only ticks while the API is running</h3>
+        <p>
+          The scheduler lives inside the API process. If that process is not running at 06:00, the scan does not
+          happen and nothing is queued for later. For unattended daily operation the process needs a supervisor,
+          such as a Windows scheduled task or a service wrapper. This is not set up yet.
+        </p>
+      </div>
+
+      <p>
+        If a previous scan is somehow still running when the clock strikes, the new one is skipped rather than
+        started alongside it, and a warning is logged. Two scans can never overlap.
+      </p>
+
+      <h3>What happens on one tick</h3>
+    </div>
+
+    <ol class="timeline">
+      <li>
+        <span class="t">00:00</span>
+        <h4>Build the job list</h4>
+        <p>Active locations are multiplied by pickup dates and durations. Ten locations at three pickup dates gives 30 jobs. Nothing is fetched yet, so this step is free.</p>
+      </li>
+      <li>
+        <span class="t">00:01</span>
+        <h4>Search, five jobs at a time</h4>
+        <p>Each job triggers two Apify runs, one for vans and one for SUVs. Failures retry twice with a growing delay, and a circuit breaker halts a provider after five consecutive failures.</p>
+      </li>
+      <li>
+        <span class="t">~01:05 per job</span>
+        <h4>Convert every offer</h4>
+        <p>Vehicle class, monthly rate and deal fingerprint are computed. Excluded suppliers are dropped here.</p>
+      </li>
+      <li>
+        <span class="t">then</span>
+        <h4>Store everything</h4>
+        <p>Every surviving offer is written to PostgreSQL along with the untouched original payload.</p>
+      </li>
+      <li>
+        <span class="t">then</span>
+        <h4>Compare with yesterday</h4>
+        <p>Each deal is matched to the previous run by fingerprint and marked new, cheaper, dearer or gone.</p>
+      </li>
+      <li>
+        <span class="t">finish</span>
+        <h4>Write and send the report</h4>
+        <p>HTML and CSV land in <code>backend/reports/</code>. Email and Slack go out if configured. The dashboard updates on its next load.</p>
+      </li>
+    </ol>
+
+    <div class="scroller">
+      <table>
+        <caption>Measured from real runs on 7 September 2026. Jobs run five at a time, so wall-clock time grows far more slowly than job count.</caption>
+        <thead>
+          <tr><th>Run</th><th class="num">Jobs</th><th class="num">Rows stored</th><th class="num">Duration</th><th class="num">Per job</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Two searches, capped</td><td class="num">2</td><td class="num">135</td><td class="num">34s</td><td class="num">17s</td></tr>
+          <tr><td>One search, uncapped</td><td class="num">1</td><td class="num">425</td><td class="num">42s</td><td class="num">42s</td></tr>
+          <tr><td>Per-class, first try</td><td class="num">1</td><td class="num">180</td><td class="num">49s</td><td class="num">49s</td></tr>
+          <tr><td>Per-class, final settings</td><td class="num">1</td><td class="num">307</td><td class="num">65s</td><td class="num">65s</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="col">
+      <p>
+        At the current settings a full daily scan of 10 locations across 3 pickup dates is 30 jobs, five at a time,
+        which works out at roughly <strong>six to seven minutes</strong> end to end.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2><span class="num">03</span>What we ask Apify for</h2>
+      <p>
+        Each job sends two requests to the actor <code>solidcode/kayak-scraper</code>, one per vehicle class. This is
+        the exact input for a van search at Atlanta:
+      </p>
+    </div>
+
+    <pre><code>{
+  <span class="k">"pickupLocation"</span>: <span class="s">"ATL"</span>,
+  <span class="k">"pickupDate"</span>:     <span class="s">"2026-09-10"</span>,
+  <span class="k">"returnDate"</span>:     <span class="s">"2026-10-10"</span>,   <span class="d">// exactly 30 days later</span>
+  <span class="k">"pickupTime"</span>:     <span class="s">"10:00"</span>,
+  <span class="k">"returnTime"</span>:     <span class="s">"10:00"</span>,
+  <span class="k">"driverAge"</span>:      30,
+  <span class="k">"sortBy"</span>:         <span class="s">"cheapest"</span>,
+  <span class="k">"carType"</span>:        [<span class="s">"VAN"</span>],       <span class="d">// second request sends ["SUV"]</span>
+  <span class="k">"currency"</span>:       <span class="s">"USD"</span>,
+  <span class="k">"maxResults"</span>:     80             <span class="d">// SUV requests use 220</span>
+}</code></pre>
+    <p class="code-note">
+      No drop-off location is sent, which is what makes it a same-location return. Every value here comes from
+      <code>backend/config/scanner.yaml</code>, so changing what the scanner looks for needs no code change.
+    </p>
+
+    <div class="col">
+      <div class="callout">
+        <h3>Why two requests instead of one</h3>
+        <p>
+          Kayak sorts the whole result set by price. Asking for vans and SUVs together meant the cheapest rows were
+          all small SUVs, and the vans were never reached. Splitting the request gives each class its own
+          cheapest-first list. The SUV budget is larger because Kayak's SUV category runs from compact to full-size
+          and the large ones sit deep in the list.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2><span class="num">04</span>What Apify sends back</h2>
+      <p>
+        One row per offer. Below is a real row, trimmed only where a nested block is long. This is the cheapest
+        12-passenger van found at Atlanta.
+      </p>
+    </div>
+
+    <pre><code>{
+  <span class="k">"agencyName"</span>:   <span class="s">"Enterprise Rent-A-Car"</span>,   <span class="d">// who rents the car</span>
+  <span class="k">"providerName"</span>: <span class="s">"Expedia"</span>,                 <span class="d">// who sells the booking</span>
+  <span class="k">"carType"</span>:      <span class="s">"Honda Odyssey (Passenger van)"</span>,
+  <span class="k">"carTypeGroups"</span>: [<span class="s">"van"</span>],
+
+  <span class="k">"priceTotal"</span>:   { <span class="k">"price"</span>: 1651, <span class="k">"currency"</span>: <span class="s">"USD"</span>, <span class="k">"localizedPrice"</span>: <span class="s">"$1,651"</span> },
+  <span class="k">"pricePerDay"</span>:  { <span class="k">"price"</span>: 56,   <span class="k">"currency"</span>: <span class="s">"USD"</span> },
+  <span class="k">"currencyCode"</span>: <span class="s">"USD"</span>,
+
+  <span class="k">"pickupDate"</span>:   <span class="s">"2026-09-10"</span>,
+  <span class="k">"returnDate"</span>:   <span class="s">"2026-10-10"</span>,
+  <span class="k">"pickupLocation"</span>: <span class="s">"ATL"</span>,
+
+  <span class="k">"vehicleDetail"</span>: {
+    <span class="k">"brand"</span>:      <span class="s">"Honda Odyssey"</span>,
+    <span class="k">"sipCode"</span>:    <span class="s">"FVAR"</span>,          <span class="d">// industry ACRISS code</span>
+    <span class="k">"adultCount"</span>: 8,               <span class="d">// seats</span>
+    <span class="k">"bagCount"</span>:   5,
+    <span class="k">"doorCount"</span>:  5,
+    <span class="k">"isAutomatic"</span>: true,
+    <span class="k">"localizedCarClassName"</span>: <span class="s">"Passenger van"</span>
+  },
+
+  <span class="k">"mileagePolicyType"</span>: <span class="s">"unlimited"</span>,
+  <span class="k">"mileageTotalLimit"</span>: <span class="s">"Unlimited miles"</span>,
+  <span class="k">"fuelPolicy"</span>: { <span class="k">"code"</span>: <span class="s">"FULL_TO_FULL"</span>, <span class="k">"name"</span>: <span class="s">"full-to-full"</span>, <span class="k">"description"</span>: <span class="s">"…"</span> },
+  <span class="k">"paymentType"</span>: <span class="s">"PAY_AT_PICKUP"</span>,
+  <span class="k">"knownFees"</span>:   [{ <span class="k">"feeType"</span>: <span class="s">"securityDeposit"</span>, <span class="k">"isIncludedInTotal"</span>: false }],
+  <span class="k">"freeCancellationPolicy"</span>: { <span class="k">"isFreeCancellationPossible"</span>: false },
+
+  <span class="k">"bookingUrl"</span>: <span class="s">"https://www.kayak.com/book/car?code=…"</span>,
+  <span class="k">"siteUrl"</span>:    <span class="s">"https://expedia.com"</span>,
+  <span class="k">"sourceUrl"</span>:  <span class="s">"https://www.kayak.com/cars/Atlanta…?carclass=VAN"</span>,
+  <span class="k">"image"</span>:      <span class="s">"https://content.r9cdn.net/rimg/car-images/…"</span>,
+
+  <span class="k">"pickupLocationDetails"</span>: {
+    <span class="k">"address"</span>: <span class="s">"1475 Carroll Dr Nw"</span>, <span class="k">"city"</span>: <span class="s">"Atlanta"</span>,
+    <span class="k">"isAirport"</span>: false, <span class="k">"displayDistance"</span>: <span class="s">"4.2 mi"</span>,
+    <span class="k">"geoPoint"</span>: { <span class="k">"lat"</span>: 33.8029, <span class="k">"lng"</span>: -84.436 },
+    <span class="k">"review"</span>: { <span class="k">"score"</span>: 9, <span class="k">"count"</span>: 2, … },
+    <span class="k">"operatingHours"</span>: { … }
+  },
+
+  <span class="k">"resultId"</span>: <span class="s">"148ac2f025ffa7011fc1ed334adcf81a"</span>,
+  <span class="k">"searchId"</span>: <span class="s">"1LDmTT2MaU"</span>,
+  <span class="k">"sourceType"</span>: <span class="s">"bestAvailable"</span>
+}</code></pre>
+    <p class="code-note">
+      Every offer carries all 26 core fields. Three are sometimes absent: <code>mileageTotalLimit</code> appeared on
+      300 of 307 rows, <code>freeCancellationPolicy</code> on 255, and <code>fuelPolicy</code> on 248.
+    </p>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2><span class="num">05</span>What we keep from it</h2>
+      <p>
+        Fields marked <span class="tag tag--keep">stored</span> become database columns.
+        Those marked <span class="tag tag--calc">derived</span> are worked out by us, not supplied by Apify.
+        Everything else stays inside the saved payload for auditing but drives nothing.
+      </p>
+    </div>
+
+    <div class="scroller">
+      <table>
+        <caption>The mapping from one Apify offer to one database row. The complete original payload is always kept in the <code>raw</code> column, so nothing is lost even when it is unused.</caption>
+        <thead>
+          <tr><th>From Apify</th><th>Becomes</th><th></th><th>Note</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="mono">agencyName</td><td class="mono">supplier</td><td><span class="tag tag--keep">stored</span></td><td>The company you actually rent from</td></tr>
+          <tr><td class="mono">providerName</td><td class="mono">booking_provider</td><td><span class="tag tag--keep">stored</span></td><td>The site selling it; excluded from deal identity</td></tr>
+          <tr><td class="mono">carType</td><td class="mono">vehicle_name</td><td><span class="tag tag--keep">stored</span></td><td></td></tr>
+          <tr><td class="mono">carTypeGroups</td><td class="mono">vehicle_groups</td><td><span class="tag tag--keep">stored</span></td><td>Feeds classification</td></tr>
+          <tr><td class="mono">vehicleDetail.sipCode</td><td class="mono">sipp</td><td><span class="tag tag--keep">stored</span></td><td>ACRISS code; most reliable class signal</td></tr>
+          <tr><td class="mono">vehicleDetail.adultCount</td><td class="mono">seats</td><td><span class="tag tag--keep">stored</span></td><td></td></tr>
+          <tr><td class="mono">priceTotal.price</td><td class="mono">total_price</td><td><span class="tag tag--keep">stored</span></td><td>Exact decimal, never a float</td></tr>
+          <tr><td class="mono">currencyCode</td><td class="mono">currency</td><td><span class="tag tag--keep">stored</span></td><td></td></tr>
+          <tr><td class="mono">mileagePolicyType + mileageTotalLimit</td><td class="mono">mileage_policy</td><td><span class="tag tag--keep">stored</span></td><td>Joined into one readable line</td></tr>
+          <tr><td class="mono">fuelPolicy.name</td><td class="mono">fuel_policy</td><td><span class="tag tag--keep">stored</span></td><td></td></tr>
+          <tr><td class="mono">bookingUrl</td><td class="mono">deeplink</td><td><span class="tag tag--keep">stored</span></td><td>The Book button in the report</td></tr>
+          <tr><td class="mono">pickupDate, returnDate</td><td class="mono">pickup_date, dropoff_date</td><td><span class="tag tag--keep">stored</span></td><td></td></tr>
+          <tr><td class="d">—</td><td class="mono">vehicle_class</td><td><span class="tag tag--calc">derived</span></td><td>From ACRISS code, then seats, then model name</td></tr>
+          <tr><td class="d">—</td><td class="mono">monthly_rate</td><td><span class="tag tag--calc">derived</span></td><td>Total ÷ days × 30, in whole cents</td></tr>
+          <tr><td class="d">—</td><td class="mono">fingerprint</td><td><span class="tag tag--calc">derived</span></td><td>Identity used to spot the same deal tomorrow</td></tr>
+          <tr><td class="d">—</td><td class="mono">duration_days</td><td><span class="tag tag--calc">derived</span></td><td>From our own request, not the response</td></tr>
+          <tr><td class="mono">pricePerDay</td><td class="d">—</td><td><span class="tag tag--skip">unused</span></td><td>We compute a monthly figure instead</td></tr>
+          <tr><td class="mono">knownFees, paymentType, freeCancellationPolicy</td><td class="d">—</td><td><span class="tag tag--skip">unused</span></td><td>Useful later for true all-in pricing</td></tr>
+          <tr><td class="mono">pickupLocationDetails</td><td class="d">—</td><td><span class="tag tag--skip">unused</span></td><td>Address, hours and reviews; we key on our own location list</td></tr>
+          <tr><td class="mono">image, siteUrl, sourceUrl, resultId, searchId</td><td class="d">—</td><td><span class="tag tag--skip">unused</span></td><td>Presentation and tracing only</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="col">
+      <h3>The row this produced</h3>
+    </div>
+
+    <pre><code>supplier          Enterprise Rent-A-Car
+booking_provider  Expedia
+vehicle_class     PASSENGER_VAN          <span class="d">← derived</span>
+vehicle_name      Honda Odyssey (Passenger van)
+sipp              FVAR
+seats             8
+pickup_date       2026-09-10
+dropoff_date      2026-10-10
+duration_days     30
+total_price       1651.00
+monthly_rate      1651.00                <span class="d">← derived</span>
+mileage_policy    UNLIMITED: Unlimited miles
+fuel_policy       full-to-full
+fingerprint       1e9b87ce9765b790…      <span class="d">← derived</span>
+reason            pattern:\bpassenger van\b</code></pre>
+
+    <div class="col">
+      <div class="callout is-flag">
+        <h3>A correction to an earlier note</h3>
+        <p>
+          An earlier summary said Kayak reported this Odyssey as a 12-seat vehicle. That was wrong. Kayak reports
+          <strong>8 seats</strong>. The figure 12 came from our own fallback, which filled in a typical seat count for
+          the class whenever the supplier gave none, and it was being used because the seat field was being read from
+          the wrong place in the payload.
+        </p>
+        <p>
+          That is now fixed, along with two related bugs found in the same review: the ACRISS code and the fuel policy
+          were also being read from the wrong keys, so both were being discarded. Six tests built from this exact
+          payload now guard the mapping. The corrected values apply to future scans; rows already stored keep what
+          they captured at the time.
+        </p>
+      </div>
+
+      <div class="callout is-warn">
+        <h3>Still verify seats before booking</h3>
+        <p>
+          Eight seats is what Kayak reports, and the vehicle is labelled a passenger van, but a Honda Odyssey is a
+          seven or eight seat minivan rather than a true 12-passenger van. Any candidate for the 12-passenger
+          requirement must be confirmed on the supplier's own site.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2><span class="num">06</span>What each scan costs</h2>
+      <p>
+        Apify charges per row returned, at roughly <strong>$1.55 per thousand</strong>. There is no charge for
+        compute time, so a slow search costs nothing extra.
+      </p>
+      <ul class="plain">
+        <li><strong>One van search:</strong> up to 80 rows, about $0.12</li>
+        <li><strong>One SUV search:</strong> up to 220 rows, about $0.34</li>
+        <li><strong>One job</strong> (one location, one pickup date): about <strong>$0.47</strong></li>
+        <li><strong>A full daily scan</strong> of 10 locations across 3 pickup dates: about <strong>$14</strong></li>
+      </ul>
+      <p>
+        Each individual actor run is hard-capped at $0.50 in configuration, so a runaway search cannot drain the
+        account. Today's seven scans of a single location used $1.74 of the $5.00 free credit.
+      </p>
+    </div>
+  </section>
+
+  <footer>
+    Prepared 7 September 2026. The request, response and stored row shown here are verbatim from a live scan of
+    Atlanta Hartsfield-Jackson carried out that day. Prices are quotes captured at a moment in time, not
+    reservations.
+  </footer>
+
+</div>

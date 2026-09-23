@@ -1,0 +1,588 @@
+<title>Backend Build Report</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+
+<style>
+  :root {
+    --ground: #eef2f1;
+    --surface: #ffffff;
+    --surface-sunk: #e7edec;
+    --border: #d2dcda;
+
+    --ink: #0d2426;
+    --ink-soft: #46595a;
+    --ink-faint: #6f8180;
+
+    --accent: #0a6b73;
+    --accent-deep: #084f55;
+    --accent-wash: #ddeced;
+
+    --good: #2f6b3f;
+    --good-wash: #e2efe4;
+    --warn: #90600d;
+    --warn-wash: #f7eddb;
+    --stop: #8d3520;
+    --stop-wash: #f6e5e1;
+
+    --code-bg: #0d2426;
+    --code-fg: #d6e2e0;
+    --code-dim: #7d9291;
+    --code-hi: #7fd0d6;
+
+    --display: 'Archivo', 'Helvetica Neue', Arial, sans-serif;
+    --body: 'Source Serif 4', Georgia, serif;
+    --mono: 'JetBrains Mono', Consolas, monospace;
+
+    color-scheme: light;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #0a1516;
+      --surface: #10201f;
+      --surface-sunk: #16292a;
+      --border: #24403f;
+
+      --ink: #e6efed;
+      --ink-soft: #a6bab8;
+      --ink-faint: #7d9291;
+
+      --accent: #52b6bd;
+      --accent-deep: #7ccdd2;
+      --accent-wash: #12333a;
+
+      --good: #74c58a;
+      --good-wash: #14301d;
+      --warn: #dda94b;
+      --warn-wash: #33260c;
+      --stop: #e2947f;
+      --stop-wash: #351a13;
+
+      --code-bg: #071011;
+      --code-fg: #cfdedc;
+
+      color-scheme: dark;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground: #0a1516;
+    --surface: #10201f;
+    --surface-sunk: #16292a;
+    --border: #24403f;
+
+    --ink: #e6efed;
+    --ink-soft: #a6bab8;
+    --ink-faint: #7d9291;
+
+    --accent: #52b6bd;
+    --accent-deep: #7ccdd2;
+    --accent-wash: #12333a;
+
+    --good: #74c58a;
+    --good-wash: #14301d;
+    --warn: #dda94b;
+    --warn-wash: #33260c;
+    --stop: #e2947f;
+    --stop-wash: #351a13;
+
+    --code-bg: #071011;
+    --code-fg: #cfdedc;
+
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 17px;
+    line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 28px 88px; }
+  .col { max-width: 66ch; }
+
+  .masthead { border-bottom: 2px solid var(--ink); padding: 48px 0 20px; margin-bottom: 30px; }
+  .eyebrow {
+    font-family: var(--display); font-size: 12px; font-weight: 600;
+    letter-spacing: 0.13em; text-transform: uppercase; color: var(--accent); margin: 0 0 12px;
+  }
+  h1 {
+    font-family: var(--display); font-weight: 700;
+    font-size: clamp(32px, 5vw, 48px); line-height: 1.05;
+    letter-spacing: -0.02em; margin: 0; text-wrap: balance;
+  }
+  .standfirst { max-width: 60ch; margin: 16px 0 0; font-size: 19px; line-height: 1.5; color: var(--ink-soft); }
+  .byline {
+    display: flex; flex-wrap: wrap; gap: 7px 24px; margin-top: 22px;
+    font-family: var(--mono); font-size: 12.5px; color: var(--ink-faint);
+  }
+  .byline b { color: var(--ink-soft); font-weight: 500; }
+
+  .figures {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1px; background: var(--border); border: 1px solid var(--border); margin-bottom: 44px;
+  }
+  .fig { background: var(--surface); padding: 16px 18px 18px; }
+  .fig dt {
+    font-family: var(--display); font-size: 11px; font-weight: 600;
+    letter-spacing: 0.09em; text-transform: uppercase; color: var(--ink-faint);
+  }
+  .fig dd {
+    margin: 6px 0 0; font-family: var(--display); font-size: 27px; font-weight: 700;
+    letter-spacing: -0.02em; font-variant-numeric: tabular-nums; line-height: 1.1;
+  }
+  .fig p { margin: 4px 0 0; font-size: 13px; line-height: 1.4; color: var(--ink-faint); }
+
+  section { margin-bottom: 52px; }
+  h2 {
+    font-family: var(--display); font-weight: 700; font-size: 26px;
+    letter-spacing: -0.015em; margin: 0 0 10px; text-wrap: balance;
+  }
+  h2 .num { font-family: var(--mono); font-size: 13px; font-weight: 500; color: var(--accent); margin-right: 11px; vertical-align: 3px; }
+  h3 { font-family: var(--display); font-weight: 600; font-size: 17.5px; margin: 30px 0 8px; }
+
+  p { margin: 0 0 16px; }
+  ul.plain { margin: 0 0 16px; padding-left: 21px; }
+  ul.plain li { margin-bottom: 7px; }
+  strong { font-weight: 600; }
+
+  code {
+    font-family: var(--mono); font-size: 0.85em;
+    background: var(--surface-sunk); padding: 1px 5px; border-radius: 3px;
+  }
+
+  pre {
+    font-family: var(--mono); font-size: 12.5px; line-height: 1.75;
+    background: var(--code-bg); color: var(--code-fg);
+    padding: 17px 19px; border-radius: 4px; overflow-x: auto; margin: 0 0 10px;
+  }
+  pre code { background: none; padding: 0; font-size: inherit; color: inherit; }
+  .d { color: var(--code-dim); }
+  .hi { color: var(--code-hi); }
+
+  .code-note { margin: 0 0 20px; font-size: 13.5px; color: var(--ink-faint); max-width: 66ch; }
+
+  .scroller { overflow-x: auto; margin: 0 0 18px; border: 1px solid var(--border); background: var(--surface); }
+  table { width: 100%; border-collapse: collapse; font-size: 14.5px; }
+  caption {
+    caption-side: bottom; text-align: left; padding: 11px 15px;
+    font-size: 13.5px; line-height: 1.45; color: var(--ink-faint); border-top: 1px solid var(--border);
+  }
+  th, td { padding: 10px 15px; text-align: left; border-bottom: 1px solid var(--border); vertical-align: top; }
+  thead th {
+    font-family: var(--display); font-size: 11px; font-weight: 600;
+    letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-faint);
+    background: var(--surface-sunk); white-space: nowrap;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  td.mono { font-family: var(--mono); font-size: 12.5px; }
+  tr.is-rec td { background: var(--accent-wash); }
+  tr.is-out td { color: var(--ink-faint); }
+
+  .pill {
+    display: inline-block; font-family: var(--display); font-size: 11px; font-weight: 600;
+    letter-spacing: 0.05em; text-transform: uppercase; padding: 3px 9px; border-radius: 2px; white-space: nowrap;
+  }
+  .pill--done { background: var(--good-wash); color: var(--good); }
+  .pill--part { background: var(--warn-wash); color: var(--warn); }
+  .pill--no { background: var(--stop-wash); color: var(--stop); }
+
+  .callout { border-left: 3px solid var(--accent); background: var(--surface); padding: 17px 21px; margin: 0 0 20px; }
+  .callout.is-flag { border-left-color: var(--stop); }
+  .callout.is-warn { border-left-color: var(--warn); }
+  .callout h3 { margin: 0 0 6px; font-size: 16px; }
+  .callout p:last-child { margin-bottom: 0; }
+
+  .modes { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 18px; margin-bottom: 22px; }
+  .mode { background: var(--surface); border: 1px solid var(--border); padding: 20px 22px; }
+  .mode--rec { border-color: var(--accent); border-width: 2px; }
+  .mode h3 { margin: 0 0 3px; font-size: 18px; }
+  .mode .lede { font-size: 13.5px; color: var(--ink-faint); margin: 0 0 13px; font-family: var(--display); font-weight: 500; }
+  .mode ul { margin: 0; padding-left: 19px; font-size: 15px; }
+  .mode li { margin-bottom: 6px; }
+
+  .q { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); padding: 20px 24px; margin-bottom: 16px; }
+  .q--block { border-left-color: var(--stop); }
+  .q__num { font-family: var(--mono); font-size: 12px; color: var(--accent); display: block; margin-bottom: 5px; }
+  .q--block .q__num { color: var(--stop); }
+  .q h3 { margin: 0 0 10px; font-size: 19px; letter-spacing: -0.01em; }
+  .q p { margin: 0 0 12px; font-size: 16px; }
+  .q p:last-child { margin-bottom: 0; }
+  .q__opts { margin: 0 0 12px; padding: 0; list-style: none; }
+  .q__opts li { padding: 5px 0 5px 22px; position: relative; font-size: 15.5px; }
+  .q__opts li::before {
+    content: ''; position: absolute; left: 0; top: 13px;
+    width: 10px; height: 10px; border: 1.5px solid var(--ink-faint); border-radius: 50%;
+  }
+  .q__rec { background: var(--accent-wash); padding: 11px 14px; font-size: 15px; margin-top: 4px; }
+  .q__rec b {
+    font-family: var(--display); font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--accent-deep); display: block; margin-bottom: 3px;
+  }
+
+  footer { border-top: 1px solid var(--border); padding-top: 18px; font-size: 14px; color: var(--ink-faint); max-width: 66ch; }
+
+  @media (max-width: 620px) {
+    body { font-size: 16px; }
+    .wrap { padding: 0 18px 60px; }
+    pre { font-size: 11.5px; }
+    .q { padding: 17px 18px; }
+  }
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <p class="eyebrow">Backend &middot; build report</p>
+    <h1>The scanner engine is built and running</h1>
+    <p class="standfirst">
+      What was delivered on the backend today, what it found on live data, and the one decision we need from you
+      before it can be switched on properly: which locations should it search?
+    </p>
+    <p class="byline">
+      <span><b>Date</b> 7 September 2026</span>
+      <span><b>Scope</b> Backend only</span>
+      <span><b>Status</b> Working on live data</span>
+      <span><b>Spend</b> $1.74 of $5.00</span>
+    </p>
+  </header>
+
+  <dl class="figures">
+    <div class="fig"><dt>Offers collected</dt><dd>1,047</dd><p>From live searches today</p></div>
+    <div class="fig"><dt>Distinct deals</dt><dd>92</dd><p>After removing duplicates</p></div>
+    <div class="fig"><dt>Suppliers reached</dt><dd>11</dd><p>Enterprise, Hertz, Avis and more</p></div>
+    <div class="fig"><dt>Automated tests</dt><dd>69</dd><p>All passing</p></div>
+  </dl>
+
+  <section>
+    <div class="col">
+      <h2><span class="num">01</span>What was built</h2>
+      <p>
+        A complete scanning engine: roughly 4,200 lines of TypeScript across 45 source files, with a PostgreSQL
+        database behind it. It is one application that can be used three different ways.
+      </p>
+      <ul class="plain">
+        <li><strong>A worker</strong> that performs a full scan, from searching to writing the report.</li>
+        <li><strong>A scheduler</strong> that triggers the worker every morning without anyone involved.</li>
+        <li><strong>An API</strong> that serves the stored results to the dashboard, read-only, so it can never
+          accidentally spend money.</li>
+      </ul>
+      <p>
+        Each nightly run searches the configured locations, converts every offer into a comparable monthly price,
+        stores it, compares it against yesterday, and produces a report of the cheapest options with what has
+        changed.
+      </p>
+
+      <h3>What it does with each offer</h3>
+      <p>
+        Three pieces of logic do the real work, and all three are covered by tests.
+      </p>
+      <ul class="plain">
+        <li><strong>Vehicle identification.</strong> Decides whether something is a minivan, a 12-passenger van or a
+          large SUV, using the industry vehicle code where available and otherwise seat counts and a maintained list
+          of model names. It records why each decision was made, so a wrong answer can be traced rather than guessed
+          at.</li>
+        <li><strong>Deal identity.</strong> Gives every deal a stable identity from location, supplier, vehicle,
+          pickup date and length. Without it, the same car would look like a brand new discovery every morning.</li>
+        <li><strong>Change detection.</strong> Marks deals as new, cheaper, dearer or gone, ignoring movements below
+          3% or $20 so ordinary daily noise stays out of the report.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2><span class="num">02</span>What today's live runs showed</h2>
+      <p>
+        Five scans ran against Atlanta. The first working scan looked successful but was quietly returning the wrong
+        thing, and fixing that took three attempts.
+      </p>
+      <ul class="plain">
+        <li><strong>The first scan found only peer-to-peer listings.</strong> Six qualifying deals, all from Turo,
+          which your brief excludes and which cannot be extended into a monthly programme.</li>
+        <li><strong>The cause was our own search shape.</strong> The comparison site ranks everything by price, so
+          asking for vans and SUVs together spent the whole budget on cheap compact SUVs. The vans were never
+          reached.</li>
+        <li><strong>Splitting the search per vehicle type fixed it.</strong> 12-passenger vans went from zero results
+          to 38, and Enterprise, Hertz, Avis, Budget, Dollar and Thrifty all appeared.</li>
+      </ul>
+
+      <div class="callout is-warn">
+        <h3>A correction to an earlier verbal update</h3>
+        <p>
+          We reported that the major rental companies were absent from the data. That was wrong. They were there the
+          whole time, hidden behind a result limit. An uncapped test returned 425 offers across 11 suppliers.
+        </p>
+      </div>
+
+      <h3>Three data bugs found and fixed</h3>
+      <p>
+        Inspecting the raw supplier data revealed that three fields were being read from the wrong place and silently
+        discarded: the industry vehicle code, the seat count, and the fuel policy. All three are fixed, and six tests
+        built from a real supplier response now guard them.
+      </p>
+      <p>
+        One consequence matters commercially. A vehicle we previously reported as seating 12 is actually reported by
+        the source as seating 8; the figure 12 came from our own fallback filling a gap. Seat counts now come from the
+        source, but any 12-passenger candidate should still be confirmed on the supplier's own website before booking.
+      </p>
+
+      <h3>The prices we actually found</h3>
+    </div>
+
+    <div class="scroller">
+      <table>
+        <caption>Cheapest option per vehicle type at Atlanta airport, 30-day rental, measured 7 September 2026.</caption>
+        <thead>
+          <tr><th>Vehicle type</th><th>Vehicle</th><th>Supplier</th><th class="num">Per month</th><th>Long-term programme</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Large SUV</td><td>Nissan Pathfinder</td><td>Dollar</td><td class="num">$1,178</td><td>None</td></tr>
+          <tr><td>Minivan</td><td>Chrysler Pacifica</td><td>Enterprise</td><td class="num">$1,493</td><td>Month-or-More</td></tr>
+          <tr><td>12-passenger van</td><td>Honda Odyssey</td><td>Enterprise</td><td class="num">$1,651</td><td>Month-or-More</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="col">
+      <div class="callout is-flag">
+        <h3>Nothing met the $1,100 target</h3>
+        <p>
+          The cheapest qualifying vehicle was $1,178 and the cheapest minivan from a supplier with a monthly
+          programme was $1,493, about 36% over. The only options below $1,100 were peer-to-peer listings that are
+          excluded. Atlanta is one city and may simply be expensive, which is precisely why the next decision matters.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2><span class="num">03</span>Where the backend stands</h2>
+    </div>
+
+    <div class="scroller">
+      <table>
+        <caption>“Built, unproven” means the code exists and passes tests but has not yet run in real conditions.</caption>
+        <thead>
+          <tr><th>Capability</th><th>Status</th><th>Detail</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Searching and collecting offers</td><td><span class="pill pill--done">Working</span></td><td>1,047 offers collected today</td></tr>
+          <tr><td>Identifying the right vehicles</td><td><span class="pill pill--done">Working</span></td><td>Verified against live listings</td></tr>
+          <tr><td>Storing history</td><td><span class="pill pill--done">Working</span></td><td>Six database tables, every original response kept</td></tr>
+          <tr><td>Report with prices and booking links</td><td><span class="pill pill--done">Working</span></td><td>Written to file each run</td></tr>
+          <tr><td>Cost controls</td><td><span class="pill pill--done">Working</span></td><td>Every search hard-capped; a fault cannot drain the account</td></tr>
+          <tr><td>Daily automatic run</td><td><span class="pill pill--part">Built, unproven</span></td><td>Set for 06:00 but has never fired; needs a supervisor process</td></tr>
+          <tr><td>New and changed deal alerts</td><td><span class="pill pill--part">Built, unproven</span></td><td>Needs consecutive daily runs to demonstrate</td></tr>
+          <tr><td>Email and Slack delivery</td><td><span class="pill pill--part">Built, unconfigured</span></td><td>Needs an address or webhook from you</td></tr>
+          <tr><td>Nationwide coverage</td><td><span class="pill pill--no">Not decided</span></td><td>Ten locations configured, one scanned. See below</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2><span class="num">04</span>The decision we need: which locations?</h2>
+      <p>
+        The scanner works. What it does <em>not</em> know is where to look. The brief said “throughout the United
+        States”, and that phrase can mean two very different systems with very different costs.
+      </p>
+    </div>
+
+    <div class="modes">
+      <div class="mode">
+        <h3>A &middot; Everywhere in the US</h3>
+        <p class="lede">The literal reading of the brief</p>
+        <ul>
+          <li>Every major airport and city branch nationwide</li>
+          <li>Finds bargains anywhere, including places you would never think to check</li>
+          <li>Enterprise alone has around 4,400 US branches, so “everywhere” has to be capped somewhere regardless</li>
+          <li>At 250 locations this costs roughly <strong>$3,500 a month</strong></li>
+        </ul>
+      </div>
+      <div class="mode mode--rec">
+        <h3>B &middot; A list you choose</h3>
+        <p class="lede">What the system is built for today</p>
+        <ul>
+          <li>You name the airports or cities that matter to you</li>
+          <li>We scan exactly those every morning</li>
+          <li>Adding or removing a location is a one-line change, no development</li>
+          <li>Ten locations costs roughly <strong>$140 a month</strong></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="col">
+      <p>
+        The cost is driven by how many searches run each day, and every location multiplies it. These figures are
+        measured, not estimated: each location costs about $0.47 per pickup date scanned.
+      </p>
+    </div>
+
+    <div class="scroller">
+      <table>
+        <caption>Measured from live runs. Timings assume four searches running at once, which is the limit of the current data-provider plan.</caption>
+        <thead>
+          <tr>
+            <th>Coverage</th>
+            <th class="num">Searches per day</th>
+            <th class="num">Time per run</th>
+            <th class="num">Per day</th>
+            <th class="num">Per month</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="is-rec"><td><strong>5 locations, 1 pickup date</strong></td><td class="num">10</td><td class="num">3 min</td><td class="num">$2.35</td><td class="num">$70</td></tr>
+          <tr class="is-rec"><td><strong>10 locations, 1 pickup date</strong></td><td class="num">20</td><td class="num">5 min</td><td class="num">$4.70</td><td class="num">$141</td></tr>
+          <tr><td>10 locations, 3 pickup dates</td><td class="num">60</td><td class="num">14 min</td><td class="num">$14.10</td><td class="num">$423</td></tr>
+          <tr><td>50 locations, 1 pickup date</td><td class="num">100</td><td class="num">25 min</td><td class="num">$23.50</td><td class="num">$705</td></tr>
+          <tr class="is-out"><td>250 locations, 1 pickup date</td><td class="num">500</td><td class="num">2 hr</td><td class="num">$117</td><td class="num">$3,525</td></tr>
+          <tr class="is-out"><td>250 locations, 3 pickup dates</td><td class="num">1,500</td><td class="num">6 hr</td><td class="num">$352</td><td class="num">$10,575</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="col">
+      <div class="callout is-flag">
+        <h3>Genuine nationwide coverage is not affordable on this data source</h3>
+        <p>
+          The original plan estimated $35 to $60 a month. Real pricing puts even a 250-location daily sweep at around
+          $3,500 a month, and that is still far short of “every location in the US”. Wide coverage would need an
+          official partner agreement with a rental aggregator, which is cheaper per search and contractually clean,
+          but requires a qualifying business and an application process.
+        </p>
+      </div>
+
+      <div class="callout is-warn">
+        <h3>Today's account would also need upgrading</h3>
+        <p>
+          The current data-provider plan allows four searches at once and includes $5 of credit a month, of which
+          $1.74 is already used. Anything beyond a handful of locations needs a paid plan before it can run at all.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2><span class="num">05</span>Questions for you</h2>
+      <p>
+        The first three shape the daily job directly. The last two we have asked before and still need answered.
+      </p>
+    </div>
+
+    <div class="q q--block">
+      <span class="q__num">Question 01</span>
+      <h3>All US locations, or a list you choose?</h3>
+      <ul class="q__opts">
+        <li><strong>A list you choose.</strong> Tell us the airports or cities and we scan those every morning.</li>
+        <li><strong>As wide as the budget allows.</strong> Give us a monthly figure and we fit the largest sensible list inside it.</li>
+        <li><strong>Genuinely nationwide.</strong> Requires an official partner agreement first; not possible on the current source at sane cost.</li>
+      </ul>
+      <div class="q__rec">
+        <b>Our suggestion</b>
+        Start with a list of 5 to 10, chosen for where you would actually collect a vehicle. After two weeks of real
+        prices we will know whether wider coverage is worth paying for, instead of guessing now.
+      </div>
+    </div>
+
+    <div class="q q--block">
+      <span class="q__num">Question 02</span>
+      <h3>Which locations, specifically?</h3>
+      <p>
+        Ten major airports are configured as a starting point: Los Angeles, San Francisco, Las Vegas, Phoenix,
+        Dallas, Denver, Chicago, Atlanta, Orlando and New York. Only Atlanta has actually been scanned.
+      </p>
+      <p>
+        Airports usually hold the largest fleets, but city branches are often cheaper for long rentals because they
+        avoid airport surcharges. We can scan either.
+      </p>
+      <div class="q__rec">
+        <b>What we need</b>
+        A list of places, or confirmation that the ten above are right. If there is a region you would actually drive
+        from, say so; scanning cities you cannot reach is wasted money.
+      </div>
+    </div>
+
+    <div class="q q--block">
+      <span class="q__num">Question 03</span>
+      <h3>How many pickup dates, and how often should it run?</h3>
+      <p>
+        Today it checks three pickup dates per location, at 3, 14 and 28 days ahead, which triples the cost. Prices
+        for monthly rentals move slowly, so daily checking of three separate dates may be more than you need.
+      </p>
+      <ul class="q__opts">
+        <li>One pickup date, checked daily &mdash; cheapest, still spots price drops</li>
+        <li>Three pickup dates, checked daily &mdash; three times the cost, better coverage of the booking window</li>
+        <li>Three pickup dates, checked twice a week &mdash; a middle path</li>
+      </ul>
+      <div class="q__rec">
+        <b>Our suggestion</b>
+        One pickup date daily to begin with. Daily checking is what makes price-drop alerts possible, so we would
+        rather cut the number of dates than the frequency.
+      </div>
+    </div>
+
+    <div class="q">
+      <span class="q__num">Question 04</span>
+      <h3>Is $1,100 a month still the target?</h3>
+      <p>
+        Nothing at Atlanta met it. We can keep the target and accept quiet days, raise it to something the market
+        offers, or set a different figure for each vehicle type.
+      </p>
+      <div class="q__rec"><b>Our suggestion</b> Decide after two weeks of real prices from your chosen locations.</div>
+    </div>
+
+    <div class="q">
+      <span class="q__num">Question 05</span>
+      <h3>Has anyone confirmed the long-term extension with a supplier?</h3>
+      <p>
+        No booking site quotes a single 330-day rental, so the scanner prices a 30-day rental and notes which monthly
+        programme each supplier runs. Nobody has yet phoned Enterprise or Avis to confirm that a booking really
+        extends toward eleven months, or what it costs when it does.
+      </p>
+      <div class="q__rec">
+        <b>What we need</b>
+        One phone call to one branch about one vehicle. Until that happens, every monthly figure we report is a
+        30-day price rather than a proven long-term rate.
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2><span class="num">06</span>What happens once you answer</h2>
+      <p>
+        Question 1 to 3 are the only things standing between the current state and a scanner that runs itself every
+        morning. With those answered:
+      </p>
+      <ul class="plain">
+        <li>The location list goes into configuration, which takes minutes rather than development work.</li>
+        <li>The daily job gets a supervisor so it survives restarts and runs unattended.</li>
+        <li>Reports start arriving by email or Slack, once you give us an address.</li>
+        <li>After two consecutive runs, price-change alerts begin working, since there is finally a yesterday to
+          compare against.</li>
+      </ul>
+      <p>
+        Everything else on the backend is finished and tested.
+      </p>
+    </div>
+  </section>
+
+  <footer>
+    Prepared 7 September 2026. All prices, costs and timings quoted here were measured from live scans of Atlanta
+    Hartsfield-Jackson carried out that day. Prices are quotes captured at a moment in time, not reservations, and
+    must be confirmed with the supplier before booking.
+  </footer>
+
+</div>

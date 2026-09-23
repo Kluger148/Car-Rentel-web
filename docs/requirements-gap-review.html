@@ -1,0 +1,410 @@
+<title>330-Day Scanner Gap Review</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+<style>
+  :root {
+    --ground:#eef2f1; --surface:#ffffff; --surface-sunk:#e7edec; --border:#d2dcda;
+    --ink:#0d2426; --ink-soft:#46595a; --ink-faint:#6f8180;
+    --accent:#0a6b73; --accent-wash:#ddeced;
+    --good:#2f6b3f; --good-wash:#e2efe4; --warn:#90600d; --warn-wash:#f7eddb; --stop:#8d3520; --stop-wash:#f6e5e1;
+    --display:'Archivo','Helvetica Neue',Arial,sans-serif; --body:'Source Serif 4',Georgia,serif; --mono:'JetBrains Mono',Consolas,monospace;
+    color-scheme:light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:#0a1516; --surface:#10201f; --surface-sunk:#16292a; --border:#24403f;
+      --ink:#e6efed; --ink-soft:#a6bab8; --ink-faint:#7d9291; --accent:#52b6bd; --accent-wash:#12333a;
+      --good:#74c58a; --good-wash:#14301d; --warn:#dda94b; --warn-wash:#33260c; --stop:#e2947f; --stop-wash:#351a13;
+      color-scheme:dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground:#0a1516; --surface:#10201f; --surface-sunk:#16292a; --border:#24403f;
+    --ink:#e6efed; --ink-soft:#a6bab8; --ink-faint:#7d9291; --accent:#52b6bd; --accent-wash:#12333a;
+    --good:#74c58a; --good-wash:#14301d; --warn:#dda94b; --warn-wash:#33260c; --stop:#e2947f; --stop-wash:#351a13;
+    color-scheme:dark;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--ground); color:var(--ink); font-family:var(--body); font-size:17px; line-height:1.6; -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:1080px; margin:0 auto; padding:0 28px 90px; }
+  .col { max-width:68ch; }
+  .masthead { border-bottom:2px solid var(--ink); padding:48px 0 20px; margin-bottom:30px; }
+  .eyebrow { font-family:var(--display); font-size:12px; font-weight:600; letter-spacing:.13em; text-transform:uppercase; color:var(--accent); margin:0 0 12px; }
+  h1 { font-family:var(--display); font-weight:700; font-size:clamp(30px,5vw,46px); line-height:1.05; letter-spacing:-.02em; margin:0; text-wrap:balance; }
+  .standfirst { max-width:64ch; margin:14px 0 0; font-size:19px; line-height:1.5; color:var(--ink-soft); }
+  .byline { display:flex; flex-wrap:wrap; gap:6px 24px; margin-top:20px; font-family:var(--mono); font-size:12.5px; color:var(--ink-faint); }
+  .byline b { color:var(--ink-soft); font-weight:500; }
+  .figures { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:1px; background:var(--border); border:1px solid var(--border); margin-bottom:40px; }
+  .fig { background:var(--surface); padding:15px 18px 17px; }
+  .fig dt { font-family:var(--display); font-size:11px; font-weight:600; letter-spacing:.09em; text-transform:uppercase; color:var(--ink-faint); }
+  .fig dd { margin:6px 0 0; font-family:var(--display); font-size:28px; font-weight:700; letter-spacing:-.02em; font-variant-numeric:tabular-nums; line-height:1.1; }
+  .fig p { margin:4px 0 0; font-size:13px; line-height:1.4; color:var(--ink-faint); }
+  .fig.good dd { color:var(--good); } .fig.warn dd { color:var(--warn); } .fig.stop dd { color:var(--stop); }
+  section { margin-bottom:54px; }
+  h2 { font-family:var(--display); font-weight:700; font-size:26px; letter-spacing:-.015em; margin:0 0 10px; }
+  h2 .num { font-family:var(--mono); font-size:13px; font-weight:500; color:var(--accent); margin-right:11px; vertical-align:3px; }
+  h3 { font-family:var(--display); font-weight:600; font-size:18px; margin:28px 0 8px; }
+  p { margin:0 0 15px; }
+  ul.plain, ol.plain { margin:0 0 15px; padding-left:22px; } ul.plain li, ol.plain li { margin-bottom:6px; }
+  code { font-family:var(--mono); font-size:.85em; background:var(--surface-sunk); padding:1px 5px; border-radius:3px; }
+  .scroller { overflow-x:auto; margin:0 0 18px; border:1px solid var(--border); background:var(--surface); }
+  table { width:100%; border-collapse:collapse; font-size:14.5px; }
+  caption { caption-side:bottom; text-align:left; padding:10px 15px; font-size:13.5px; color:var(--ink-faint); border-top:1px solid var(--border); }
+  th, td { padding:10px 14px; text-align:left; border-bottom:1px solid var(--border); vertical-align:top; }
+  thead th { font-family:var(--display); font-size:11px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-faint); background:var(--surface-sunk); white-space:nowrap; }
+  tbody tr:last-child td { border-bottom:none; }
+  td.num, th.num { text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
+  tr.group td { background:var(--surface-sunk); font-family:var(--display); font-size:12px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-soft); padding:8px 14px; }
+  .pill { display:inline-block; font-family:var(--display); font-size:11px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; padding:3px 8px; border-radius:2px; white-space:nowrap; }
+  .pill.done { background:var(--good-wash); color:var(--good); }
+  .pill.part { background:var(--warn-wash); color:var(--warn); }
+  .pill.none { background:var(--stop-wash); color:var(--stop); }
+  .pill.unk { background:var(--accent-wash); color:var(--accent); }
+  .callout { border-left:3px solid var(--accent); background:var(--surface); padding:16px 20px; margin:0 0 18px; }
+  .callout.flag { border-left-color:var(--stop); } .callout.warn { border-left-color:var(--warn); } .callout.good { border-left-color:var(--good); }
+  .callout h3 { margin:0 0 6px; font-size:16px; } .callout p:last-child, .callout ul:last-child { margin-bottom:0; }
+  .q { background:var(--surface); border:1px solid var(--border); border-left:3px solid var(--accent); padding:16px 20px; margin-bottom:12px; }
+  .q.block { border-left-color:var(--stop); }
+  .q .qid { font-family:var(--mono); font-size:12px; color:var(--accent); display:block; margin-bottom:3px; }
+  .q.block .qid { color:var(--stop); }
+  .q h3 { margin:0 0 7px; font-size:17px; }
+  .q p { font-size:15.5px; margin-bottom:8px; } .q p:last-child { margin-bottom:0; }
+  .q .why { font-size:14.5px; color:var(--ink-soft); }
+  .q .sug { font-size:14.5px; background:var(--accent-wash); padding:8px 12px; }
+  .q .sug b { font-family:var(--display); font-size:11px; letter-spacing:.06em; text-transform:uppercase; }
+  footer { border-top:1px solid var(--border); padding-top:16px; font-size:14px; color:var(--ink-faint); max-width:68ch; }
+  @media (max-width:640px){ body{font-size:16px;} .wrap{padding:0 18px 60px;} }
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <p class="eyebrow">Requirements gap review</p>
+    <h1>Client scope vs. what is built today</h1>
+    <p class="standfirst">
+      Every line of the client's confirmed scope checked against the actual code, database and data provider — what
+      already works, what must be added or changed, and the questions the client still needs to answer.
+    </p>
+    <p class="byline">
+      <span><b>Date</b> 17 September 2026</span>
+      <span><b>Checked against</b> client scope of 16 September</span>
+      <span><b>Method</b> code, database and Apify actor inspected directly</span>
+    </p>
+  </header>
+
+  <dl class="figures">
+    <div class="fig good"><dt>Already met</dt><dd>12</dd><p>requirements fully working</p></div>
+    <div class="fig warn"><dt>Partly built</dt><dd>13</dd><p>code exists, needs changes</p></div>
+    <div class="fig stop"><dt>Not built</dt><dd>9</dd><p>new work required</p></div>
+    <div class="fig"><dt>Unverified</dt><dd>4</dd><p>depend on Skyscanner data</p></div>
+  </dl>
+
+  <!-- 01 -->
+  <section>
+    <div class="col">
+      <h2><span class="num">01</span>The honest starting point</h2>
+      <p>
+        The system built in early September works end to end, but it was built for an earlier brief: Kayak data,
+        30-day rentals, three vehicle types and a fixed list of ten airports. The client's confirmed scope changes the
+        data source, rental length, search area and users.
+      </p>
+    </div>
+    <div class="callout flag">
+      <h3>Four facts that matter most</h3>
+      <ul class="plain">
+        <li><strong>No Skyscanner search has ever run.</strong> All 1,047 offers in the database came from Kayak, all for 30-day rentals. The Skyscanner connection exists in code but is untested.</li>
+        <li><strong>Skyscanner 330-day results are unproven.</strong> The Skyscanner scraper accepts any return date, so a 330-day search can be requested. Whether Skyscanner returns offers for it is unknown. The Budget screenshot proves Budget's own website quotes 330 days — not Skyscanner.</li>
+        <li><strong>Some required fields may not exist in Skyscanner's data.</strong> The scraper's documented output has vehicle, supplier, price, seats, bags, fuel policy, vehicle code, pickup type and booking link. It does <em>not</em> list the booking provider, the depot address or a tax breakdown. These may be inside the full raw response the scraper also saves; that must be checked.</li>
+        <li><strong>Skyscanner is only reachable by scraping.</strong> The official Skyscanner API is not available for this kind of tool. The scraper used is a small third-party service (6 users, 158 runs as of today).</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 02 -->
+  <section>
+    <div class="col">
+      <h2><span class="num">02</span>Requirement-by-requirement status</h2>
+      <p>Each line of the client's scope, what exists now, and what is needed.</p>
+    </div>
+
+    <div class="scroller">
+      <table>
+        <caption><strong>Done</strong> = works today. <strong>Partial</strong> = code exists but needs changes. <strong>Not built</strong> = new work. <strong>Unverified</strong> = depends on what Skyscanner actually returns.</caption>
+        <thead><tr><th>Client requirement</th><th>Status</th><th>Today</th><th>Needed</th></tr></thead>
+        <tbody>
+          <tr class="group"><td colspan="4">1 · Data source</td></tr>
+          <tr><td>Skyscanner inventory only</td><td><span class="pill part">Partial</span></td><td>Skyscanner adapter exists as a backup; Kayak is the active source</td><td>Make Skyscanner the only source; remove Kayak</td></tr>
+          <tr><td>No Kayak or rental-company sites</td><td><span class="pill part">Partial</span></td><td>Kayak is in use</td><td>Remove Kayak code and config</td></tr>
+          <tr><td>Show all deals Skyscanner has</td><td><span class="pill part">Partial</span></td><td>Results capped and Turo excluded</td><td>Remove exclusions; decide on result cap (cost question)</td></tr>
+          <tr><td>Show rental company</td><td><span class="pill done">Done</span></td><td>Stored as supplier</td><td>—</td></tr>
+          <tr><td>Show booking provider</td><td><span class="pill unk">Unverified</span></td><td>Skyscanner adapter sets it to empty</td><td>Find it in raw response, or confirm it is unavailable</td></tr>
+
+          <tr class="group"><td colspan="4">2 · Rental period</td></tr>
+          <tr><td>Exactly 330 days per search</td><td><span class="pill part">Partial</span></td><td>Rental length is configurable; set to 30</td><td>Fix at 330 days</td></tr>
+          <tr><td>User selects one pickup date</td><td><span class="pill none">Not built</span></td><td>Dates are automatic (3, 14, 28 days ahead)</td><td>Pickup date entered per search</td></tr>
+          <tr><td>Return date = pickup + 330 days</td><td><span class="pill done">Done</span></td><td>Return date already calculated from length</td><td>—</td></tr>
+          <tr><td>Same pickup and return location</td><td><span class="pill done">Done</span></td><td>No drop-off location is ever sent</td><td>—</td></tr>
+          <tr><td>One complete 330-day search, never split</td><td><span class="pill done">Done</span></td><td>One search per location and date</td><td>—</td></tr>
+          <tr><td>Skyscanner returns 330-day offers</td><td><span class="pill unk">Unverified</span></td><td>Never tested</td><td>Test with real searches (question Q2)</td></tr>
+
+          <tr class="group"><td colspan="4">3 · Search area</td></tr>
+          <tr><td>Enter a starting ZIP code</td><td><span class="pill none">Not built</span></td><td>—</td><td>ZIP input and ZIP-to-coordinates data</td></tr>
+          <tr><td>Enter maximum distance in miles</td><td><span class="pill none">Not built</span></td><td>—</td><td>Distance input and radius search</td></tr>
+          <tr><td>Optional states filter</td><td><span class="pill part">Partial</span></td><td>State filter exists on results only</td><td>Apply state limit when planning searches</td></tr>
+          <tr><td>Search every location in range, including small branches</td><td><span class="pill none">Not built</span></td><td>Fixed list of 10 airports</td><td>Airport + city search list, radius selection, depot collection</td></tr>
+
+          <tr class="group"><td colspan="4">4 · Vehicles</td></tr>
+          <tr><td>Search every vehicle category</td><td><span class="pill part">Partial</span></td><td>All offers stored, but results keep only minivan, passenger van, large SUV</td><td>Show all categories</td></tr>
+          <tr><td>Clearly identify vehicle type</td><td><span class="pill done">Done</span></td><td>Classifier using vehicle code, seats, model name</td><td>Extend labels beyond three types</td></tr>
+          <tr><td>Quick filters: minivan, large SUV, passenger van</td><td><span class="pill done">Done</span></td><td>Working on dashboard</td><td>—</td></tr>
+
+          <tr class="group"><td colspan="4">5 · Pricing</td></tr>
+          <tr><td>Complete price incl. taxes and mandatory fees</td><td><span class="pill unk">Unverified</span></td><td>Total price stored as quoted</td><td>Confirm Skyscanner total includes them</td></tr>
+          <tr><td>Average 30-day cost = total ÷ 11</td><td><span class="pill done">Done</span></td><td>Formula total × 30 ÷ days gives exactly total ÷ 11 at 330 days</td><td>Label as "per 30 days"</td></tr>
+          <tr><td>Sort lowest average first</td><td><span class="pill done">Done</span></td><td>Default sort</td><td>—</td></tr>
+          <tr><td>$1,100 target, show results above it</td><td><span class="pill part">Partial</span></td><td>Target used for highlighting; filters hide nothing</td><td>Make target editable per search</td></tr>
+
+          <tr class="group"><td colspan="4">6 · Information per result</td></tr>
+          <tr><td>Vehicle category and example vehicle</td><td><span class="pill done">Done</span></td><td>Stored and shown</td><td>—</td></tr>
+          <tr><td>Pickup and return location</td><td><span class="pill part">Partial</span></td><td>Search location stored; Skyscanner adapter stores "pickup type" in the location field</td><td>Store real depot name and address</td></tr>
+          <tr><td>Distance from ZIP</td><td><span class="pill none">Not built</span></td><td>—</td><td>Needs depot coordinates or address</td></tr>
+          <tr><td>Taxes and fees shown separately</td><td><span class="pill unk">Unverified</span></td><td>Not stored</td><td>Map from raw response if present</td></tr>
+          <tr><td>Mileage allowance</td><td><span class="pill part">Partial</span></td><td>Stored for Kayak; not in Skyscanner documented output</td><td>Map from raw response if present</td></tr>
+          <tr><td>Important rental conditions</td><td><span class="pill part">Partial</span></td><td>Fuel policy only</td><td>Add cancellation, deposit, pickup type, age rules where available</td></tr>
+          <tr><td>View / book link</td><td><span class="pill done">Done</span></td><td>Stored and shown</td><td>—</td></tr>
+
+          <tr class="group"><td colspan="4">7 · Reports and price tracking</td></tr>
+          <tr><td>Run the selected search daily</td><td><span class="pill part">Partial</span></td><td>Daily scheduler runs one fixed configuration</td><td>Run each saved search daily</td></tr>
+          <tr><td>Save results and price history</td><td><span class="pill done">Done</span></td><td>Every run stored; price history page works</td><td>Link history to saved searches</td></tr>
+          <tr><td>New deals, price down, price up</td><td><span class="pill part">Partial</span></td><td>Detection logic works and is tested</td><td>Scope detection per saved search</td></tr>
+          <tr><td>Deals no longer available</td><td><span class="pill part">Partial</span></td><td>"Gone" detection works</td><td>Scope per saved search</td></tr>
+          <tr><td>Filter and sort results</td><td><span class="pill done">Done</span></td><td>Dashboard filters and sorting</td><td>Add distance and booking provider filters</td></tr>
+
+          <tr class="group"><td colspan="4">Internal business tool</td></tr>
+          <tr><td>Secure login for 2 users</td><td><span class="pill none">Not built</span></td><td>No login</td><td>Login, password hashing, sessions, rate limiting</td></tr>
+          <tr><td>No public pages or registration</td><td><span class="pill none">Not built</span></td><td>Dashboard is open to anyone who can reach it</td><td>Protect every page and API behind login</td></tr>
+          <tr><td>Staff enter customer requirements</td><td><span class="pill none">Not built</span></td><td>—</td><td>New-search form and saved searches list</td></tr>
+          <tr><td>Staff review before presenting</td><td><span class="pill none">Not built</span></td><td>—</td><td>Shortlist and notes per deal</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 03 -->
+  <section>
+    <div class="col">
+      <h2><span class="num">03</span>What we have built so far</h2>
+    </div>
+    <div class="scroller">
+      <table>
+        <thead><tr><th>Part</th><th>What it does</th><th>Keep for v1?</th></tr></thead>
+        <tbody>
+          <tr><td>Backend (NestJS, PostgreSQL)</td><td>Runs searches, stores results, provides data to the dashboard</td><td><span class="pill done">Keep</span></td></tr>
+          <tr><td>Skyscanner scraper connection</td><td>Sends a search to the Apify Skyscanner scraper and reads offers back; never run</td><td><span class="pill part">Keep, fix mapping</span></td></tr>
+          <tr><td>Kayak scraper connection</td><td>Current active data source</td><td><span class="pill none">Remove</span></td></tr>
+          <tr><td>Retries, parallel limits, spending caps</td><td>Protects against failures and runaway cost</td><td><span class="pill done">Keep</span></td></tr>
+          <tr><td>Vehicle classifier</td><td>Labels minivan, passenger van, large SUV from vehicle code, seats and model</td><td><span class="pill part">Keep, extend to all types</span></td></tr>
+          <tr><td>Price calculation</td><td>Monthly figure; already equals total ÷ 11 at 330 days</td><td><span class="pill done">Keep</span></td></tr>
+          <tr><td>Deal tracking</td><td>New, cheaper, dearer, gone detection; price history</td><td><span class="pill part">Keep, scope per search</span></td></tr>
+          <tr><td>Daily scheduler</td><td>Runs one fixed configuration every morning</td><td><span class="pill part">Adapt to saved searches</span></td></tr>
+          <tr><td>Fixed airport list and date offsets</td><td>Decides where and when to search</td><td><span class="pill none">Replace with ZIP + radius + date</span></td></tr>
+          <tr><td>Dashboard (React)</td><td>Deals list with filters, scan history, deal price history</td><td><span class="pill part">Keep, add login and search screens</span></td></tr>
+          <tr><td>HTML / CSV / Slack report</td><td>Daily summary</td><td><span class="pill part">Optional for internal use</span></td></tr>
+          <tr><td>Automated tests</td><td>69 tests, all passing</td><td><span class="pill done">Keep, add new tests</span></td></tr>
+          <tr><td>Design mockups and Figma screens</td><td>Built for the old airport-list, 30-day scope</td><td><span class="pill part">Revise</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 04 -->
+  <section>
+    <div class="col">
+      <h2><span class="num">04</span>What needs to be added or changed</h2>
+      <p>Grouped into the order it would be built. Effort is for one developer and assumes the verification step passes.</p>
+    </div>
+    <div class="scroller">
+      <table>
+        <caption>Estimated total: about 21–29 working days, plus 3–5 days of verification first.</caption>
+        <thead><tr><th>#</th><th>Work item</th><th>Why</th><th class="num">Days</th></tr></thead>
+        <tbody>
+          <tr class="group"><td colspan="4">Step 0 · Verification (before building)</td></tr>
+          <tr><td>0.1</td><td>Run real 330-day Skyscanner searches at 5–10 locations; inspect full raw responses</td><td>Proves 330-day offers exist and which fields are available</td><td class="num">3–5</td></tr>
+          <tr><td>0.2</td><td>Compare scraper results with a manual search on skyscanner.com</td><td>Checks whether suppliers or the cheapest deal are missing</td><td class="num">incl.</td></tr>
+          <tr><td>0.3</td><td>Compare 3–5 totals with supplier checkout pages</td><td>Checks whether taxes and fees are included</td><td class="num">incl.</td></tr>
+
+          <tr class="group"><td colspan="4">Step 1 · Data source</td></tr>
+          <tr><td>1.1</td><td>Make Skyscanner the only source; remove Kayak</td><td>Client requirement</td><td class="num">1</td></tr>
+          <tr><td>1.2</td><td>Map booking provider, depot, mileage, fees and conditions from raw response</td><td>Required result fields</td><td class="num">2–3</td></tr>
+          <tr><td>1.3</td><td>Fix rental length to 330 days; remove automatic date offsets</td><td>Client requirement</td><td class="num">0.5</td></tr>
+
+          <tr class="group"><td colspan="4">Step 2 · Search area</td></tr>
+          <tr><td>2.1</td><td>Load ZIP code and US airport and city location data</td><td>Needed to turn a ZIP and radius into searches</td><td class="num">2</td></tr>
+          <tr><td>2.2</td><td>Radius and state search planning, with cost estimate before running</td><td>Every location within distance</td><td class="num">2–3</td></tr>
+          <tr><td>2.3</td><td>Save every depot found; calculate distance from ZIP; drop depots outside radius</td><td>Distance shown per result, small branches included</td><td class="num">2</td></tr>
+
+          <tr class="group"><td colspan="4">Step 3 · Saved searches and tracking</td></tr>
+          <tr><td>3.1</td><td>Saved-search records: customer reference, ZIP, miles, states, pickup date, status</td><td>Staff enter customer requirements</td><td class="num">1–2</td></tr>
+          <tr><td>3.2</td><td>Daily scheduler runs each active saved search; stops after pickup date</td><td>Daily tracking per customer request</td><td class="num">1–2</td></tr>
+          <tr><td>3.3</td><td>Scope new / cheaper / dearer / gone and history to each saved search</td><td>Tracking per request</td><td class="num">1–2</td></tr>
+          <tr><td>3.4</td><td>Show all vehicle categories; keep three quick filters</td><td>Client requirement</td><td class="num">1</td></tr>
+
+          <tr class="group"><td colspan="4">Step 4 · Login and screens</td></tr>
+          <tr><td>4.1</td><td>Secure login for two users; protect all pages and API</td><td>Internal-only tool</td><td class="num">2–3</td></tr>
+          <tr><td>4.2</td><td>Screens: saved searches, new search form, results with distance, deal detail with shortlist and notes, run log</td><td>Staff workflow</td><td class="num">4–5</td></tr>
+          <tr><td>4.3</td><td>Monthly spending limit and cost per run shown</td><td>Low search costs</td><td class="num">1</td></tr>
+
+          <tr class="group"><td colspan="4">Step 5 · Launch</td></tr>
+          <tr><td>5.1</td><td>Hosting, HTTPS, backups, create two accounts</td><td>Live use</td><td class="num">1–2</td></tr>
+          <tr><td>5.2</td><td>Tests for new parts; one week of supervised real use</td><td>Accuracy</td><td class="num">1–2</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 05 -->
+  <section>
+    <div class="col">
+      <h2><span class="num">05</span>Questions for the client</h2>
+      <p>
+        The confirmed scope answered most earlier questions. These remain. The first four should be answered before
+        development starts; the rest have a suggested default and can be confirmed later.
+      </p>
+    </div>
+
+    <h3>Answer before development</h3>
+
+    <div class="q block">
+      <span class="qid">Q1 · Data access and terms</span>
+      <h3>Do you accept using a third-party Skyscanner scraper?</h3>
+      <p>Skyscanner's official API is only for large travel websites and does not allow automated searching. The only practical way to get Skyscanner data is a third-party scraping service, which is against Skyscanner's terms of use. Because your business charges customers a fee, this carries more risk than personal use, and the service could stop working without notice.</p>
+      <p class="sug"><b>Suggested</b> — Confirm in writing that you accept this, and consider brief legal advice.</p>
+    </div>
+
+    <div class="q block">
+      <span class="qid">Q2 · Verification budget</span>
+      <h3>May we spend about $10–20 to test real 330-day Skyscanner searches first?</h3>
+      <p>This checks, before building, whether Skyscanner returns 330-day offers, whether the booking provider, depot address, taxes and mileage are included, and what one search really costs.</p>
+      <p class="sug"><b>Suggested</b> — Yes; 3–5 days, results shared before development continues.</p>
+    </div>
+
+    <div class="q block">
+      <span class="qid">Q3 · If 330-day offers are limited</span>
+      <h3>What should happen if Skyscanner returns few or no 330-day offers?</h3>
+      <p>The Budget screenshot shows Budget's own site can quote 330 days, but Skyscanner may not show those offers, or only from a few companies.</p>
+      <p>Options: (a) show only what Skyscanner returns, even if little; (b) also allow rental-company websites such as Budget and Avis for long rentals; (c) stop and reconsider.</p>
+      <p class="sug"><b>Suggested</b> — Decide after the Q2 test results.</p>
+    </div>
+
+    <div class="q block">
+      <span class="qid">Q4 · Monthly search budget</span>
+      <h3>What is the maximum monthly spend on searches?</h3>
+      <p>Cost depends on how many locations fall inside the chosen distance and how many searches are running daily. A larger radius costs much more: doubling the distance roughly quadruples the area. The system can stop daily searches when a monthly limit is reached.</p>
+      <p class="sug"><b>Suggested</b> — Set a starting limit, for example $200–$300 per month, and adjust after measuring real costs.</p>
+    </div>
+
+    <h3>Can be confirmed later (suggested default given)</h3>
+
+    <div class="q">
+      <span class="qid">Q5 · Missing fields</span>
+      <h3>If Skyscanner does not provide booking provider, depot address or tax breakdown, is that acceptable?</h3>
+      <p class="why">These fields are not in the scraper's documented output. If missing, we show "not provided by Skyscanner" instead of guessing.</p>
+      <p class="sug"><b>Suggested</b> — Acceptable; show what is available and mark the rest clearly.</p>
+    </div>
+
+    <div class="q">
+      <span class="qid">Q6 · Distance</span>
+      <h3>Is straight-line distance from the ZIP code acceptable?</h3>
+      <p class="why">Driving distance needs a paid routing service. If a depot's exact address is not available, distance would be measured to the searched city or airport and marked approximate.</p>
+      <p class="sug"><b>Suggested</b> — Straight-line distance, marked approximate when needed.</p>
+    </div>
+
+    <div class="q">
+      <span class="qid">Q7 · Maximum radius</span>
+      <h3>What is the default distance, and the largest distance allowed?</h3>
+      <p class="sug"><b>Suggested</b> — Default 50 miles; show cost and ask for confirmation above 150 miles.</p>
+    </div>
+
+    <div class="q">
+      <span class="qid">Q8 · Results per location</span>
+      <h3>Should each location return all offers, or only the cheapest ones?</h3>
+      <p class="why">The scraper returns Skyscanner results cheapest first and lets us cap how many it returns; cost rises with the number of offers. Returning only the cheapest 100–150 per location greatly reduces cost and still finds the lowest prices, but may miss rarer vehicles such as 15-seat vans.</p>
+      <p class="sug"><b>Suggested</b> — Cheapest 150 per location by default, with an option to run a complete search.</p>
+    </div>
+
+    <div class="q">
+      <span class="qid">Q9 · Pickup time and driver age</span>
+      <h3>What pickup/return time and driver age should searches use?</h3>
+      <p class="why">Both affect price and availability. Drivers under 25 or over 70 may pay extra at the counter.</p>
+      <p class="sug"><b>Suggested</b> — Pickup and return 10:00; driver age 30; editable per search.</p>
+    </div>
+
+    <div class="q">
+      <span class="qid">Q10 · How long a search keeps running</span>
+      <h3>How long should a saved search run daily, and how many can run at once?</h3>
+      <p class="sug"><b>Suggested</b> — Runs daily until staff pause it or the pickup date passes; up to 10 active searches at once.</p>
+    </div>
+
+    <div class="q">
+      <span class="qid">Q11 · Customer details</span>
+      <h3>What customer information should be stored with each search?</h3>
+      <p class="why">Storing personal details adds privacy responsibilities.</p>
+      <p class="sug"><b>Suggested</b> — A customer reference or first name only, plus internal notes.</p>
+    </div>
+
+    <div class="q">
+      <span class="qid">Q12 · Notifications</span>
+      <h3>How should staff learn about daily changes?</h3>
+      <p class="sug"><b>Suggested</b> — Shown on the dashboard; optional daily email summary.</p>
+    </div>
+
+    <div class="q">
+      <span class="qid">Q13 · Login details</span>
+      <h3>Who are the two users, and is two-step login wanted?</h3>
+      <p class="sug"><b>Suggested</b> — Two email accounts with passwords, plus two-step login with an authenticator app.</p>
+    </div>
+
+    <div class="q">
+      <span class="qid">Q14 · Hosting</span>
+      <h3>Where should the system run?</h3>
+      <p class="why">A small cloud server lets both users access it from anywhere; an office computer is cheaper but must stay on for daily searches.</p>
+      <p class="sug"><b>Suggested</b> — Small cloud server, about $15–$50 per month excluding search costs.</p>
+    </div>
+
+    <div class="q">
+      <span class="qid">Q15 · Conditions to show</span>
+      <h3>Which rental conditions matter most?</h3>
+      <p class="sug"><b>Suggested</b> — Mileage, fuel policy, cancellation, deposit, pickup type (airport / shuttle / city), age rules.</p>
+    </div>
+
+    <div class="q">
+      <span class="qid">Q16 · Price history retention</span>
+      <h3>How long should results and history be kept?</h3>
+      <p class="sug"><b>Suggested</b> — 12 months.</p>
+    </div>
+  </section>
+
+  <!-- 06 -->
+  <section>
+    <div class="col">
+      <h2><span class="num">06</span>Recommended next step</h2>
+      <ol class="plain">
+        <li>Send the client questions Q1–Q4.</li>
+        <li>With approval, run the verification step: real 330-day Skyscanner searches at 5–10 locations.</li>
+        <li>Share the results — offers found, available fields, real cost — and confirm Q3.</li>
+        <li>Start building in the order of section 04.</li>
+      </ol>
+      <div class="callout good">
+        <h3>Good news</h3>
+        <p>Much of the existing system carries over: the backend, database, price calculation, deal tracking, price history, cost controls, dashboard filters and tests. The main new work is the ZIP and radius search, saved searches and login.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    Prepared 17 September 2026. Status is based on direct inspection of the code (69 passing tests), the database
+    (1,047 stored offers, all Kayak 30-day) and the Apify Skyscanner scraper's published input and output. Effort
+    and costs are estimates until the verification step is complete. Not legal advice.
+  </footer>
+</div>

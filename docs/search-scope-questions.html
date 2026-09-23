@@ -1,0 +1,596 @@
+<title>Search Scope Questions</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+
+<style>
+  :root {
+    --ground: #eef2f1;
+    --surface: #ffffff;
+    --surface-sunk: #e7edec;
+    --border: #d2dcda;
+
+    --ink: #0d2426;
+    --ink-soft: #46595a;
+    --ink-faint: #6f8180;
+
+    --accent: #0a6b73;
+    --accent-deep: #084f55;
+    --accent-wash: #ddeced;
+
+    --good: #2f6b3f;
+    --good-wash: #e2efe4;
+    --warn: #90600d;
+    --warn-wash: #f7eddb;
+    --stop: #8d3520;
+    --stop-wash: #f6e5e1;
+
+    --code-bg: #0d2426;
+    --code-fg: #d6e2e0;
+    --code-dim: #7d9291;
+    --code-hi: #7fd0d6;
+
+    --display: 'Archivo', 'Helvetica Neue', Arial, sans-serif;
+    --body: 'Source Serif 4', Georgia, serif;
+    --mono: 'JetBrains Mono', Consolas, monospace;
+
+    color-scheme: light;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #0a1516;
+      --surface: #10201f;
+      --surface-sunk: #16292a;
+      --border: #24403f;
+
+      --ink: #e6efed;
+      --ink-soft: #a6bab8;
+      --ink-faint: #7d9291;
+
+      --accent: #52b6bd;
+      --accent-deep: #7ccdd2;
+      --accent-wash: #12333a;
+
+      --good: #74c58a;
+      --good-wash: #14301d;
+      --warn: #dda94b;
+      --warn-wash: #33260c;
+      --stop: #e2947f;
+      --stop-wash: #351a13;
+
+      --code-bg: #071011;
+      --code-fg: #cfdedc;
+
+      color-scheme: dark;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground: #0a1516;
+    --surface: #10201f;
+    --surface-sunk: #16292a;
+    --border: #24403f;
+
+    --ink: #e6efed;
+    --ink-soft: #a6bab8;
+    --ink-faint: #7d9291;
+
+    --accent: #52b6bd;
+    --accent-deep: #7ccdd2;
+    --accent-wash: #12333a;
+
+    --good: #74c58a;
+    --good-wash: #14301d;
+    --warn: #dda94b;
+    --warn-wash: #33260c;
+    --stop: #e2947f;
+    --stop-wash: #351a13;
+
+    --code-bg: #071011;
+    --code-fg: #cfdedc;
+
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 17px;
+    line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { max-width: 1020px; margin: 0 auto; padding: 0 28px 88px; }
+  .col { max-width: 66ch; }
+
+  .masthead { border-bottom: 2px solid var(--ink); padding: 48px 0 20px; margin-bottom: 32px; }
+  .eyebrow {
+    font-family: var(--display); font-size: 12px; font-weight: 600;
+    letter-spacing: 0.13em; text-transform: uppercase; color: var(--accent); margin: 0 0 12px;
+  }
+  h1 {
+    font-family: var(--display); font-weight: 700;
+    font-size: clamp(31px, 5vw, 46px); line-height: 1.05;
+    letter-spacing: -0.02em; margin: 0; text-wrap: balance;
+  }
+  .standfirst { max-width: 60ch; margin: 16px 0 0; font-size: 19px; line-height: 1.5; color: var(--ink-soft); }
+
+  section { margin-bottom: 50px; }
+  h2 {
+    font-family: var(--display); font-weight: 700; font-size: 25px;
+    letter-spacing: -0.015em; margin: 0 0 10px; text-wrap: balance;
+  }
+  h3 { font-family: var(--display); font-weight: 600; font-size: 17px; margin: 28px 0 8px; }
+
+  p { margin: 0 0 16px; }
+  ul.plain { margin: 0 0 16px; padding-left: 21px; }
+  ul.plain li { margin-bottom: 7px; }
+  strong { font-weight: 600; }
+
+  code {
+    font-family: var(--mono); font-size: 0.85em;
+    background: var(--surface-sunk); padding: 1px 5px; border-radius: 3px;
+  }
+
+  pre {
+    font-family: var(--mono); font-size: 12.5px; line-height: 1.75;
+    background: var(--code-bg); color: var(--code-fg);
+    padding: 17px 19px; border-radius: 4px; overflow-x: auto; margin: 0 0 10px;
+  }
+  pre code { background: none; padding: 0; font-size: inherit; color: inherit; }
+  .d { color: var(--code-dim); }
+  .hi { color: var(--code-hi); }
+
+  .code-note { margin: 0 0 20px; font-size: 13.5px; color: var(--ink-faint); max-width: 66ch; }
+
+  .scroller { overflow-x: auto; margin: 0 0 18px; border: 1px solid var(--border); background: var(--surface); }
+  table { width: 100%; border-collapse: collapse; font-size: 14.5px; }
+  caption {
+    caption-side: bottom; text-align: left; padding: 11px 15px;
+    font-size: 13.5px; line-height: 1.45; color: var(--ink-faint); border-top: 1px solid var(--border);
+  }
+  th, td { padding: 10px 15px; text-align: left; border-bottom: 1px solid var(--border); vertical-align: top; }
+  thead th {
+    font-family: var(--display); font-size: 11px; font-weight: 600;
+    letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-faint);
+    background: var(--surface-sunk); white-space: nowrap;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+  /* two-mode cards */
+  .modes { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 18px; margin-bottom: 24px; }
+  .mode { background: var(--surface); border: 1px solid var(--border); padding: 20px 22px; }
+  .mode h3 { margin: 0 0 4px; font-size: 18px; }
+  .mode .lede { font-size: 14px; color: var(--ink-faint); margin: 0 0 14px; font-family: var(--display); font-weight: 500; }
+  .mode ul { margin: 0; padding-left: 19px; font-size: 15px; }
+  .mode li { margin-bottom: 6px; }
+
+  /* questions */
+  .q { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); padding: 20px 24px; margin-bottom: 16px; }
+  .q--block { border-left-color: var(--stop); }
+  .q__num {
+    font-family: var(--mono); font-size: 12px; color: var(--accent); display: block; margin-bottom: 5px;
+  }
+  .q--block .q__num { color: var(--stop); }
+  .q h3 { margin: 0 0 10px; font-size: 19px; letter-spacing: -0.01em; }
+  .q p { margin: 0 0 12px; font-size: 16px; }
+  .q p:last-child { margin-bottom: 0; }
+  .q__opts { margin: 0 0 12px; padding: 0; list-style: none; }
+  .q__opts li {
+    padding: 5px 0 5px 22px; position: relative; font-size: 15.5px;
+  }
+  .q__opts li::before {
+    content: ''; position: absolute; left: 0; top: 13px;
+    width: 10px; height: 10px; border: 1.5px solid var(--ink-faint); border-radius: 50%;
+  }
+  .q__rec {
+    background: var(--accent-wash); padding: 11px 14px; font-size: 15px; margin-top: 4px;
+  }
+  .q__rec b { font-family: var(--display); font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent-deep); display: block; margin-bottom: 3px; }
+
+  .callout { border-left: 3px solid var(--warn); background: var(--surface); padding: 17px 21px; margin: 0 0 20px; }
+  .callout h3 { margin: 0 0 6px; font-size: 16px; }
+  .callout p:last-child { margin-bottom: 0; }
+
+  figure { margin: 22px 0 26px; }
+  figure svg { display: block; width: 100%; height: auto; }
+  figcaption { margin-top: 11px; font-size: 13.5px; line-height: 1.5; color: var(--ink-faint); max-width: 66ch; }
+  .diagram-frame { background: var(--surface); border: 1px solid var(--border); padding: 20px 18px; overflow-x: auto; }
+
+  footer { border-top: 1px solid var(--border); padding-top: 18px; font-size: 14px; color: var(--ink-faint); max-width: 66ch; }
+
+  @media (max-width: 620px) {
+    body { font-size: 16px; }
+    .wrap { padding: 0 18px 60px; }
+    pre { font-size: 11.5px; }
+    .q { padding: 17px 18px; }
+  }
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <p class="eyebrow">Questions for the client</p>
+    <h1>How should the search actually work?</h1>
+    <p class="standfirst">
+      The scanner runs and finds real prices. Before we widen it, we need decisions on what it should search, how
+      often, and what counts as a good enough price. Twelve questions, each with our recommendation.
+    </p>
+  </header>
+
+  <section>
+    <div class="col">
+      <h2>The core choice</h2>
+      <p>
+        There are two ways to look for a cheap long-term rental, and they answer different questions. The system is
+        built for the first. The second is possible and would take about a day to add.
+      </p>
+    </div>
+
+    <div class="modes">
+      <div class="mode">
+        <h3>A &middot; Scheduled sweep</h3>
+        <p class="lede">Built and working today</p>
+        <ul>
+          <li>Runs itself every morning at 06:00</li>
+          <li>Searches a fixed list of locations we set in advance</li>
+          <li>Answers <em>“where in the country is something unusually cheap?”</em></li>
+          <li>Spots price drops because it sees the same deals every day</li>
+          <li>Costs money every single day, whether or not you look</li>
+        </ul>
+      </div>
+      <div class="mode">
+        <h3>B &middot; On-demand search</h3>
+        <p class="lede">Possible, roughly a day of work</p>
+        <ul>
+          <li>You name a place, a date and a length</li>
+          <li>Searches only that, results in about a minute</li>
+          <li>Answers <em>“what can I get in Denver from 2 November?”</em></li>
+          <li>No price history, because it only looks once</li>
+          <li>Costs only when someone asks</li>
+        </ul>
+      </div>
+    </div>
+
+    <figure>
+      <div class="diagram-frame">
+        <svg viewBox="0 0 860 250" role="img" aria-label="Comparison of the two modes. The scheduled sweep is triggered by a clock, fans out into thirty searches across a fixed location list, and produces a daily report with price changes. The on-demand search is triggered by a person naming one trip, runs two searches, and returns a single answer with no history.">
+          <defs>
+            <marker id="a2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"></path>
+            </marker>
+          </defs>
+
+          <g font-family="Archivo, sans-serif" fill="currentColor">
+            <text x="14" y="20" font-size="13.5" font-weight="600">A &middot; Scheduled sweep</text>
+            <text x="470" y="20" font-size="13.5" font-weight="600">B &middot; On-demand search</text>
+          </g>
+
+          <!-- A -->
+          <g stroke="currentColor" stroke-width="1.5" fill="none">
+            <rect x="14" y="40" width="108" height="46" rx="2"></rect>
+            <rect x="176" y="40" width="120" height="46" rx="2"></rect>
+            <rect x="176" y="112" width="120" height="46" rx="2"></rect>
+            <rect x="176" y="184" width="120" height="46" rx="2"></rect>
+            <rect x="336" y="112" width="100" height="46" rx="2"></rect>
+          </g>
+          <g fill="none" stroke="currentColor" stroke-width="1.4" marker-end="url(#a2)" opacity="0.75">
+            <path d="M 122 63 L 150 63 L 150 63 L 172 63"></path>
+            <path d="M 122 63 L 150 63 L 150 135 L 172 135"></path>
+            <path d="M 122 63 L 150 63 L 150 207 L 172 207"></path>
+            <path d="M 296 63 L 316 63 L 316 130 L 332 130"></path>
+            <path d="M 296 135 L 332 135"></path>
+            <path d="M 296 207 L 316 207 L 316 140 L 332 140"></path>
+          </g>
+          <g font-family="Archivo, sans-serif" fill="currentColor">
+            <text x="30" y="60" font-size="13" font-weight="600">06:00 clock</text>
+            <text x="30" y="76" font-size="11" opacity="0.7">every day</text>
+            <text x="190" y="60" font-size="12.5">Atlanta</text>
+            <text x="190" y="76" font-size="11" opacity="0.7">3 pickup dates</text>
+            <text x="190" y="132" font-size="12.5">Denver</text>
+            <text x="190" y="148" font-size="11" opacity="0.7">3 pickup dates</text>
+            <text x="190" y="204" font-size="12.5">+ 8 more</text>
+            <text x="190" y="220" font-size="11" opacity="0.7">from the fixed list</text>
+            <text x="350" y="130" font-size="12.5" font-weight="600">Daily report</text>
+            <text x="350" y="146" font-size="11" opacity="0.7">with changes</text>
+          </g>
+          <text x="14" y="248" font-family="Archivo, sans-serif" font-size="11.5" fill="currentColor" opacity="0.72">30 searches &middot; about 7 minutes &middot; about $14 every day</text>
+
+          <line x1="450" y1="30" x2="450" y2="235" stroke="currentColor" stroke-width="1" opacity="0.25"></line>
+
+          <!-- B -->
+          <g stroke="currentColor" stroke-width="1.5" fill="none">
+            <rect x="470" y="112" width="130" height="46" rx="2"></rect>
+            <rect x="650" y="112" width="90" height="46" rx="2"></rect>
+            <rect x="780" y="112" width="66" height="46" rx="2"></rect>
+          </g>
+          <g fill="none" stroke="currentColor" stroke-width="1.4" marker-end="url(#a2)" opacity="0.75">
+            <line x1="600" y1="135" x2="646" y2="135"></line>
+            <line x1="740" y1="135" x2="776" y2="135"></line>
+          </g>
+          <g font-family="Archivo, sans-serif" fill="currentColor">
+            <text x="484" y="130" font-size="12.5" font-weight="600">You ask</text>
+            <text x="484" y="146" font-size="11" opacity="0.7">Denver, 2 Nov, 21 days</text>
+            <text x="663" y="132" font-size="12.5">2 searches</text>
+            <text x="663" y="148" font-size="11" opacity="0.7">van + SUV</text>
+            <text x="793" y="132" font-size="12.5" font-weight="600">Answer</text>
+            <text x="793" y="148" font-size="11" opacity="0.7">no history</text>
+          </g>
+          <text x="470" y="248" font-family="Archivo, sans-serif" font-size="11.5" fill="currentColor" opacity="0.72">2 searches &middot; about 1 minute &middot; about $0.47, only when asked</text>
+        </svg>
+      </div>
+      <figcaption>
+        <strong>The difference that matters.</strong> The sweep sees the same deals every day, which is the only way
+        to know a price has dropped. The on-demand search cannot do that, because it has nothing to compare against.
+      </figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>What each one looks like in practice</h2>
+
+      <h3>Today: the scheduled sweep</h3>
+      <p>
+        At 06:00 the scanner works through its configured list without anyone asking. Today that list is ten airports
+        and three pickup dates.
+      </p>
+    </div>
+
+    <pre><code><span class="d">06:00  Scanner wakes up</span>
+06:00  Builds 30 searches from the list <span class="d">(10 airports × 3 pickup dates)</span>
+06:07  Finished. 307 offers found at Atlanta alone
+06:07  Report written, price changes marked:
+
+       <span class="hi">Minivan</span>        Chrysler Pacifica   Enterprise   ATL   $1,493/mo   <span class="hi">↓ $86 since yesterday</span>
+       <span class="hi">Large SUV</span>      Nissan Pathfinder   Dollar       ATL   $1,178/mo   <span class="hi">NEW</span>
+       <span class="hi">12-passenger</span>   Honda Odyssey       Enterprise   ATL   $1,651/mo</code></pre>
+    <p class="code-note">
+      The arrows and the “new” marker are the point of the sweep. They only exist because yesterday's prices are on
+      record.
+    </p>
+
+    <div class="col">
+      <h3>The alternative: asking for one trip</h3>
+      <p>
+        Instead of a fixed list, someone names the trip they actually want. Nothing runs until they ask.
+      </p>
+    </div>
+
+    <pre><code><span class="d">You ask for:</span>  Denver, pick up 2 November, 21 days, 14:00
+
+<span class="d">About a minute later:</span>
+
+       <span class="hi">Minivan</span>        Chrysler Pacifica   Enterprise   DEN   $1,340/mo
+       <span class="hi">Large SUV</span>      Chevrolet Tahoe     Avis         DEN   $1,510/mo
+       <span class="hi">12-passenger</span>   Ford Transit        Enterprise   DEN   $1,720/mo
+
+<span class="d">No “new” or “price drop” markers: nothing to compare against.</span></code></pre>
+    <p class="code-note">
+      Illustrative figures for Denver. The Atlanta numbers above are real, measured on 7 September 2026.
+    </p>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>Side by side</h2>
+    </div>
+
+    <div class="scroller">
+      <table>
+        <caption>Costs are measured from live runs. The data provider charges per result row, about $1.55 per thousand.</caption>
+        <thead>
+          <tr><th></th><th>Scheduled sweep</th><th>On-demand search</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Who starts it</td><td>A clock, every day</td><td>A person, when they need it</td></tr>
+          <tr><td>What it searches</td><td>A fixed list agreed in advance</td><td>Whatever is asked for</td></tr>
+          <tr><td>Finds bargains you weren't looking for</td><td>Yes, that is the point</td><td>No</td></tr>
+          <tr><td>Spots price drops</td><td>Yes</td><td>No</td></tr>
+          <tr><td>Answers a specific trip</td><td>Only if that place and date are on the list</td><td>Yes</td></tr>
+          <tr><td>Typical cost</td><td class="num">$14 per day</td><td class="num">$0.47 per question</td></tr>
+          <tr><td>Ready today</td><td>Yes</td><td>About a day of work</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="col">
+      <div class="callout">
+        <h3>They are not mutually exclusive</h3>
+        <p>
+          The most useful setup is usually a small daily sweep over a handful of locations, giving you price history
+          where it matters, plus the ability to ask a one-off question about anywhere else. That is also the cheapest
+          way to keep wide coverage available without paying for it daily.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>Decide these first</h2>
+      <p>
+        These five block everything else. The rest of the project is shaped by the answers.
+      </p>
+    </div>
+
+    <div class="q q--block">
+      <span class="q__num">Question 01</span>
+      <h3>Which way should the scanner work?</h3>
+      <ul class="q__opts">
+        <li><strong>Scheduled sweep only.</strong> Daily report over a fixed location list.</li>
+        <li><strong>On-demand only.</strong> Nothing runs unless someone asks.</li>
+        <li><strong>Both.</strong> A small daily sweep, plus one-off questions.</li>
+      </ul>
+      <div class="q__rec">
+        <b>Our suggestion</b>
+        Both, but build on-demand first. It costs almost nothing to run, answers real questions immediately, and it
+        tells us which locations are worth putting into the daily sweep instead of guessing.
+      </div>
+    </div>
+
+    <div class="q q--block">
+      <span class="q__num">Question 02</span>
+      <h3>How many locations, and how many pickup dates?</h3>
+      <p>
+        This is the single biggest cost driver. Each location and each pickup date multiplies the daily bill.
+      </p>
+      <ul class="q__opts">
+        <li>5 locations, 1 pickup date &mdash; about <strong>$2.35 a day</strong>, roughly $70 a month</li>
+        <li>10 locations, 1 pickup date &mdash; about <strong>$4.70 a day</strong>, roughly $141 a month</li>
+        <li>10 locations, 3 pickup dates &mdash; about <strong>$14 a day</strong>, roughly $423 a month</li>
+        <li>250 locations, 3 pickup dates &mdash; about <strong>$352 a day</strong>, roughly $10,575 a month</li>
+      </ul>
+      <div class="q__rec">
+        <b>Our suggestion</b>
+        Start with 5 to 10 airports and a single pickup date. Nationwide daily coverage at full depth is not
+        affordable on this data source, and the original estimate of $35 to $60 a month does not survive contact with
+        the real pricing.
+      </div>
+    </div>
+
+    <div class="q q--block">
+      <span class="q__num">Question 03</span>
+      <h3>Is $1,100 per month still the target?</h3>
+      <p>
+        At Atlanta, nothing met it. The cheapest large SUV was $1,178, the cheapest minivan $1,493, and the cheapest
+        12-passenger van $1,651. The only options below $1,100 were peer-to-peer listings, which are excluded and
+        cannot be extended into a monthly programme.
+      </p>
+      <ul class="q__opts">
+        <li>Keep $1,100 and accept that most days report nothing</li>
+        <li>Raise it to a figure the market actually offers</li>
+        <li>Set a different target for each vehicle type</li>
+      </ul>
+      <div class="q__rec">
+        <b>Our suggestion</b>
+        Set a separate target per vehicle type, chosen after a week of real scanning. Atlanta is one city and may
+        simply be expensive; a week of data across several cities would tell us what “cheap” really looks like.
+      </div>
+    </div>
+
+    <div class="q q--block">
+      <span class="q__num">Question 04</span>
+      <h3>Is a 30-day booking an acceptable stand-in for the 330-day rental?</h3>
+      <p>
+        No booking engine will quote a single 330-day rental. Long-term hire is sold as monthly programmes instead,
+        such as Enterprise Month-or-More from 28 days or Hertz Multi-Month from 63. The scanner therefore prices a
+        30-day rental and notes which programme each supplier offers.
+      </p>
+      <p>
+        This question was raised at the planning stage and has never been answered. Everything built so far assumes
+        the answer is yes.
+      </p>
+      <div class="q__rec">
+        <b>Our suggestion</b>
+        Confirm explicitly, because if the answer is no, the approach needs rethinking before any more is spent.
+      </div>
+    </div>
+
+    <div class="q q--block">
+      <span class="q__num">Question 05</span>
+      <h3>Who confirms with a supplier that the extension actually works?</h3>
+      <p>
+        Nobody has yet checked with Enterprise or Avis that a 30-day booking really can be extended toward eleven
+        months, or what it costs when you do. This is a phone call, not a piece of software, and the whole premise
+        rests on it.
+      </p>
+      <div class="q__rec">
+        <b>Our suggestion</b>
+        Someone should call one branch this week and ask about one specific vehicle. Until then, every monthly figure
+        the system reports is a 30-day price, not a proven long-term rate.
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>Then these, to shape the searches</h2>
+      <p>Smaller decisions. Each has a working default, so none of them blocks progress.</p>
+    </div>
+
+    <div class="q">
+      <span class="q__num">Question 06</span>
+      <h3>Do you ever need one-way rentals?</h3>
+      <p>
+        Today every search returns the vehicle to the same place, as the brief asked. The data source does support a
+        different drop-off city, so this can be added.
+      </p>
+      <div class="q__rec"><b>Default if unanswered</b> Same-location only.</div>
+    </div>
+
+    <div class="q">
+      <span class="q__num">Question 07</span>
+      <h3>What pickup time should we use?</h3>
+      <p>
+        Currently 10:00 for every search. Time affects both price and availability. The data source only accepts whole
+        hours, and offers nothing between 01:00 and 05:00.
+      </p>
+      <div class="q__rec"><b>Default if unanswered</b> 10:00, pickup and return.</div>
+    </div>
+
+    <div class="q">
+      <span class="q__num">Question 08</span>
+      <h3>Should we price other rental lengths?</h3>
+      <p>
+        Only 30 days today. Some programmes need longer commitments to unlock, notably Avis Flex at 60 days and Hertz
+        Multi-Month at 63, so a 60-day search might reveal rates a 30-day search never shows.
+      </p>
+      <div class="q__rec"><b>Our suggestion</b> Add a 60-day search for a week and compare. It doubles that portion of the cost.</div>
+    </div>
+
+    <div class="q">
+      <span class="q__num">Question 09</span>
+      <h3>What is the driver's age?</h3>
+      <p>
+        Set to 30. Drivers under 25 or over 70 attract counter surcharges that these quotes do not include, so the
+        reported price would understate what is actually paid.
+      </p>
+      <div class="q__rec"><b>Default if unanswered</b> 30.</div>
+    </div>
+
+    <div class="q">
+      <span class="q__num">Question 10</span>
+      <h3>Should peer-to-peer listings stay excluded?</h3>
+      <p>
+        Turo is currently filtered out, because the brief excluded it and it has no monthly programme. It was also
+        consistently the cheapest option at Atlanta, sometimes several hundred dollars below the rental companies.
+      </p>
+      <div class="q__rec"><b>Our suggestion</b> Keep it excluded, but say so knowingly: it is the only thing that came in under budget.</div>
+    </div>
+
+    <div class="q">
+      <span class="q__num">Question 11</span>
+      <h3>Where should the daily report go?</h3>
+      <p>
+        Reports are written to disk and shown on the dashboard. Email and Slack delivery are built but switched off,
+        because they need an address or a webhook.
+      </p>
+      <div class="q__rec"><b>Needed from you</b> An email address, a Slack webhook, or confirmation that the dashboard is enough.</div>
+    </div>
+
+    <div class="q">
+      <span class="q__num">Question 12</span>
+      <h3>Who runs the on-demand searches, and how?</h3>
+      <p>
+        If you want on-demand search, it can be a command a developer runs, or a search box on the dashboard. The
+        search box is friendlier but means the website can spend money, so it would need a daily limit to stop an
+        accidental run of queries draining the account.
+      </p>
+      <div class="q__rec"><b>Our suggestion</b> Start with the command, add the search box once the daily budget is agreed.</div>
+    </div>
+  </section>
+
+  <footer>
+    Prepared 7 September 2026. All Atlanta prices and all costs quoted here were measured from live scans on that
+    date. Prices are quotes captured at a moment in time, not reservations, and must be confirmed with the supplier
+    before booking.
+  </footer>
+
+</div>

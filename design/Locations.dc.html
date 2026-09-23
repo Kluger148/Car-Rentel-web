@@ -1,0 +1,188 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+  <style>
+    body { margin: 0; font-family: 'Inter', -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background: #f1f3f6; color: #111c2d; }
+    a { color: #0770e3; text-decoration: none; }
+    a:hover { color: #0059c1; text-decoration: underline; }
+    * { box-sizing: border-box; }
+  </style>
+</helmet>
+
+<div style="width: 1440px; min-height: 980px; background: #f1f3f6;">
+
+  <div style="background: #05203c; color: #ffffff;">
+    <div style="max-width: 1240px; margin: 0 auto; padding: 0 20px; height: 62px; display: flex; align-items: center; gap: 28px;">
+      <div style="display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 17px; letter-spacing: -0.02em;">
+        <div style="display: grid; place-items: center; width: 30px; height: 30px; border-radius: 9px; background: #0770e3;">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17V8a1 1 0 0 1 1-1h9l4 4h3a1 1 0 0 1 1 1v5"></path><path d="M3 17h2m14 0h2M8 17h8"></path><circle cx="7" cy="17.5" r="2"></circle><circle cx="17" cy="17.5" r="2"></circle></svg>
+        </div>
+        VanScan
+      </div>
+      <div style="display: flex; gap: 4px; margin-right: auto;">
+        <div style="padding: 7px 12px; border-radius: 6px; color: rgba(255,255,255,0.78); font-size: 14px; font-weight: 500;">Deals</div>
+        <div style="padding: 7px 12px; border-radius: 6px; background: rgba(255,255,255,0.16); color: #ffffff; font-size: 14px; font-weight: 500;">Locations</div>
+        <div style="padding: 7px 12px; border-radius: 6px; color: rgba(255,255,255,0.78); font-size: 14px; font-weight: 500;">Scan history</div>
+      </div>
+      <div style="font-size: 13px; color: rgba(255,255,255,0.72);">Next scan tomorrow 06:00</div>
+    </div>
+  </div>
+
+  <div style="max-width: 1240px; margin: 0 auto; padding: 30px 20px 56px;">
+
+    <div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; margin-bottom: 22px;">
+      <div>
+        <div style="font-size: 26px; font-weight: 800; letter-spacing: -0.02em;">Where the scanner looks</div>
+        <div style="margin-top: 6px; font-size: 15px; color: #5a6779; max-width: 68ch;">Every location you switch on is searched each morning. Cost rises with the number of locations, so this page always shows what the next scan will cost before you commit.</div>
+      </div>
+      <div style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: 10px; background: #0770e3; color: #ffffff; font-size: 14px; font-weight: 600; white-space: nowrap;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"></path></svg>
+        Add location
+      </div>
+    </div>
+
+    <!-- budget bar -->
+    <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; background: #dfe4ec; border: 1px solid #dfe4ec; border-radius: 16px; overflow: hidden; margin-bottom: 24px;">
+      <div style="background: #ffffff; padding: 16px 20px;">
+        <div style="font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #8b95a6;">Locations on</div>
+        <div style="margin-top: 5px; font-size: 27px; font-weight: 800; letter-spacing: -0.02em;">10</div>
+        <div style="margin-top: 3px; font-size: 13px; color: #8b95a6;">of 15 configured</div>
+      </div>
+      <div style="background: #ffffff; padding: 16px 20px;">
+        <div style="font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #8b95a6;">Searches per day</div>
+        <div style="margin-top: 5px; font-size: 27px; font-weight: 800; letter-spacing: -0.02em;">20</div>
+        <div style="margin-top: 3px; font-size: 13px; color: #8b95a6;">1 pickup date, van + SUV</div>
+      </div>
+      <div style="background: #ffffff; padding: 16px 20px;">
+        <div style="font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #8b95a6;">Cost per day</div>
+        <div style="margin-top: 5px; font-size: 27px; font-weight: 800; letter-spacing: -0.02em;">$4.70</div>
+        <div style="margin-top: 3px; font-size: 13px; color: #8b95a6;">about $141 a month</div>
+      </div>
+      <div style="background: #ffffff; padding: 16px 20px;">
+        <div style="font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #8b95a6;">Runtime</div>
+        <div style="margin-top: 5px; font-size: 27px; font-weight: 800; letter-spacing: -0.02em;">5 min</div>
+        <div style="margin-top: 3px; font-size: 13px; color: #8b95a6;">4 searches at a time</div>
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 24px;">
+
+      <!-- table -->
+      <div style="background: #ffffff; border: 1px solid #dfe4ec; border-radius: 16px; box-shadow: 0 1px 2px rgba(9,30,66,0.08); overflow: hidden;">
+        <div style="display: grid; grid-template-columns: 64px 1.6fr 0.7fr 0.8fr 0.9fr 0.7fr; padding: 11px 18px; background: #f7f9fc; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #8b95a6;">
+          <div>On</div><div>Location</div><div>Code</div><div>Type</div><div style="text-align: right;">Cheapest seen</div><div style="text-align: right;">Cost/day</div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 64px 1.6fr 0.7fr 0.8fr 0.9fr 0.7fr; align-items: center; padding: 13px 18px; border-top: 1px solid #dfe4ec; font-size: 14px;">
+          <div><div style="width: 34px; height: 20px; border-radius: 999px; background: #0770e3; position: relative;"><div style="position: absolute; right: 2px; top: 2px; width: 16px; height: 16px; border-radius: 50%; background: #ffffff;"></div></div></div>
+          <div style="font-weight: 600;">Hartsfield-Jackson Atlanta Intl<div style="font-weight: 400; font-size: 12.5px; color: #8b95a6;">Atlanta, GA</div></div>
+          <div style="color: #5a6779;">ATL</div>
+          <div style="color: #5a6779;">Airport</div>
+          <div style="text-align: right; font-weight: 700;">$1,178</div>
+          <div style="text-align: right; color: #5a6779;">$0.47</div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 64px 1.6fr 0.7fr 0.8fr 0.9fr 0.7fr; align-items: center; padding: 13px 18px; border-top: 1px solid #dfe4ec; font-size: 14px;">
+          <div><div style="width: 34px; height: 20px; border-radius: 999px; background: #0770e3; position: relative;"><div style="position: absolute; right: 2px; top: 2px; width: 16px; height: 16px; border-radius: 50%; background: #ffffff;"></div></div></div>
+          <div style="font-weight: 600;">Los Angeles Intl<div style="font-weight: 400; font-size: 12.5px; color: #8b95a6;">Los Angeles, CA</div></div>
+          <div style="color: #5a6779;">LAX</div>
+          <div style="color: #5a6779;">Airport</div>
+          <div style="text-align: right; color: #8b95a6;">Not scanned yet</div>
+          <div style="text-align: right; color: #5a6779;">$0.47</div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 64px 1.6fr 0.7fr 0.8fr 0.9fr 0.7fr; align-items: center; padding: 13px 18px; border-top: 1px solid #dfe4ec; font-size: 14px;">
+          <div><div style="width: 34px; height: 20px; border-radius: 999px; background: #0770e3; position: relative;"><div style="position: absolute; right: 2px; top: 2px; width: 16px; height: 16px; border-radius: 50%; background: #ffffff;"></div></div></div>
+          <div style="font-weight: 600;">Denver Intl<div style="font-weight: 400; font-size: 12.5px; color: #8b95a6;">Denver, CO</div></div>
+          <div style="color: #5a6779;">DEN</div>
+          <div style="color: #5a6779;">Airport</div>
+          <div style="text-align: right; color: #8b95a6;">Not scanned yet</div>
+          <div style="text-align: right; color: #5a6779;">$0.47</div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 64px 1.6fr 0.7fr 0.8fr 0.9fr 0.7fr; align-items: center; padding: 13px 18px; border-top: 1px solid #dfe4ec; font-size: 14px;">
+          <div><div style="width: 34px; height: 20px; border-radius: 999px; background: #0770e3; position: relative;"><div style="position: absolute; right: 2px; top: 2px; width: 16px; height: 16px; border-radius: 50%; background: #ffffff;"></div></div></div>
+          <div style="font-weight: 600;">Orlando Intl<div style="font-weight: 400; font-size: 12.5px; color: #8b95a6;">Orlando, FL</div></div>
+          <div style="color: #5a6779;">MCO</div>
+          <div style="color: #5a6779;">Airport</div>
+          <div style="text-align: right; color: #8b95a6;">Not scanned yet</div>
+          <div style="text-align: right; color: #5a6779;">$0.47</div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 64px 1.6fr 0.7fr 0.8fr 0.9fr 0.7fr; align-items: center; padding: 13px 18px; border-top: 1px solid #dfe4ec; font-size: 14px; background: #f7f9fc;">
+          <div><div style="width: 34px; height: 20px; border-radius: 999px; background: #c3ccda; position: relative;"><div style="position: absolute; left: 2px; top: 2px; width: 16px; height: 16px; border-radius: 50%; background: #ffffff;"></div></div></div>
+          <div style="font-weight: 600; color: #8b95a6;">Atlanta — Buckhead branch<div style="font-weight: 400; font-size: 12.5px; color: #8b95a6;">Atlanta, GA</div></div>
+          <div style="color: #8b95a6;">ATL-BH</div>
+          <div style="color: #8b95a6;">City branch</div>
+          <div style="text-align: right; color: #8b95a6;">Off</div>
+          <div style="text-align: right; color: #8b95a6;">—</div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 64px 1.6fr 0.7fr 0.8fr 0.9fr 0.7fr; align-items: center; padding: 13px 18px; border-top: 1px solid #dfe4ec; font-size: 14px; background: #f7f9fc;">
+          <div><div style="width: 34px; height: 20px; border-radius: 999px; background: #c3ccda; position: relative;"><div style="position: absolute; left: 2px; top: 2px; width: 16px; height: 16px; border-radius: 50%; background: #ffffff;"></div></div></div>
+          <div style="font-weight: 600; color: #8b95a6;">Miami Intl<div style="font-weight: 400; font-size: 12.5px; color: #8b95a6;">Miami, FL</div></div>
+          <div style="color: #8b95a6;">MIA</div>
+          <div style="color: #8b95a6;">Airport</div>
+          <div style="text-align: right; color: #8b95a6;">Off</div>
+          <div style="text-align: right; color: #8b95a6;">—</div>
+        </div>
+
+        <div style="padding: 13px 18px; border-top: 1px solid #dfe4ec; font-size: 13.5px; color: #8b95a6;">+ 9 more locations</div>
+      </div>
+
+      <!-- side panel -->
+      <div style="display: flex; flex-direction: column; gap: 16px;">
+
+        <div style="background: #ffffff; border: 1px solid #dfe4ec; border-radius: 16px; box-shadow: 0 1px 2px rgba(9,30,66,0.08); padding: 18px 20px;">
+          <div style="font-size: 15px; font-weight: 700; margin-bottom: 4px;">Pickup dates</div>
+          <div style="font-size: 13px; color: #5a6779; margin-bottom: 14px;">Each extra date multiplies the daily cost.</div>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <div style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1.5px solid #0770e3; border-radius: 10px; font-size: 14px;">
+              <div style="width: 15px; height: 15px; border-radius: 50%; border: 4px solid #0770e3;"></div>
+              <div style="flex-grow: 1;">1 date · 3 days ahead</div>
+              <div style="font-weight: 700;">$4.70</div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid #dfe4ec; border-radius: 10px; font-size: 14px; color: #5a6779;">
+              <div style="width: 15px; height: 15px; border-radius: 50%; border: 1.5px solid #c3ccda;"></div>
+              <div style="flex-grow: 1;">2 dates · 3, 14 days</div>
+              <div style="font-weight: 700; color: #111c2d;">$9.40</div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid #dfe4ec; border-radius: 10px; font-size: 14px; color: #5a6779;">
+              <div style="width: 15px; height: 15px; border-radius: 50%; border: 1.5px solid #c3ccda;"></div>
+              <div style="flex-grow: 1;">3 dates · 3, 14, 28 days</div>
+              <div style="font-weight: 700; color: #111c2d;">$14.10</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="background: #ffffff; border: 1px solid #dfe4ec; border-radius: 16px; box-shadow: 0 1px 2px rgba(9,30,66,0.08); padding: 18px 20px;">
+          <div style="font-size: 15px; font-weight: 700; margin-bottom: 4px;">Monthly budget cap</div>
+          <div style="font-size: 13px; color: #5a6779; margin-bottom: 14px;">Scanning pauses if a month would exceed this.</div>
+          <div style="display: flex; align-items: baseline; gap: 8px; margin-bottom: 10px;">
+            <div style="font-size: 27px; font-weight: 800; letter-spacing: -0.02em;">$150</div>
+            <div style="font-size: 13px; color: #8b95a6;">/ month</div>
+          </div>
+          <div style="height: 8px; border-radius: 999px; background: #f1f3f6; overflow: hidden;">
+            <div style="height: 8px; width: 94%; border-radius: 999px; background: #0770e3;"></div>
+          </div>
+          <div style="margin-top: 8px; font-size: 12.5px; color: #5a6779;">Current setting uses $141 of $150</div>
+        </div>
+
+        <div style="background: #fff4de; border-radius: 16px; padding: 16px 18px;">
+          <div style="font-size: 14px; font-weight: 700; color: #a86500; margin-bottom: 5px;">Nationwide is not affordable</div>
+          <div style="font-size: 13px; color: #a86500; line-height: 1.55;">Scanning 250 locations daily would cost about $3,500 a month on the current data source. Choose the places you would genuinely collect a vehicle from.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

@@ -1,0 +1,70 @@
+{
+  "artboards": [
+    {
+      "file": "Main.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 980,
+      "title": "Deals dashboard"
+    },
+    {
+      "file": "Locations.dc.html",
+      "x": 1560,
+      "y": 0,
+      "w": 1440,
+      "h": 980,
+      "title": "Location scope & budget"
+    },
+    {
+      "file": "DailyReport.dc.html",
+      "x": 0,
+      "y": 1120,
+      "w": 760,
+      "h": 1180,
+      "title": "Daily report email"
+    },
+    {
+      "file": "PriceHistory.dc.html",
+      "x": 880,
+      "y": 1120,
+      "w": 1440,
+      "h": 900,
+      "title": "Deal price history"
+    },
+    {
+      "file": "AddLocation.dc.html",
+      "x": 3120,
+      "y": 0,
+      "w": 760,
+      "h": 700,
+      "title": "Add location modal"
+    }
+  ],
+  "annotations": [
+    {
+      "id": "brief",
+      "x": 0,
+      "y": -190,
+      "w": 620,
+      "text": "Four screens covering the brief.\n\nDeals dashboard — cheapest options nationwide, ranked by monthly rate, with vehicle type, company, location, dates, total, monthly average and a booking link.\n\nLocation scope — which US locations get scanned, and what that costs before you commit."
+    },
+    {
+      "id": "data-note",
+      "x": 2400,
+      "y": 1120,
+      "w": 460,
+      "text": "Prices are real, from the live Atlanta scan on 7 Sep 2026: Pathfinder $1,178, Pacifica $1,493, Odyssey $1,651.\n\nThe price-history trend and the other cities are illustrative — only Atlanta has been scanned so far."
+    },
+    {
+      "id": "target-note",
+      "x": 2400,
+      "y": 1420,
+      "w": 460,
+      "text": "Note the $1,100 target line on the history chart sits below every real price found. That gap is the open commercial question, not a design detail."
+    }
+  ],
+  "launch": {
+    "view": "canvas"
+  }
+}

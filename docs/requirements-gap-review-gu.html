@@ -1,0 +1,418 @@
+<!doctype html>
+<html lang="gu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>330-દિવસ સ્કેનર સમીક્ષા</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+Gujarati:wght@500;600;700&family=Noto+Serif+Gujarati:wght@400;600&display=swap">
+<style>
+  :root {
+    --ground:#eef2f1; --surface:#ffffff; --surface-sunk:#e7edec; --border:#d2dcda;
+    --ink:#0d2426; --ink-soft:#46595a; --ink-faint:#6f8180;
+    --accent:#0a6b73; --accent-wash:#ddeced;
+    --good:#2f6b3f; --good-wash:#e2efe4; --warn:#90600d; --warn-wash:#f7eddb; --stop:#8d3520; --stop-wash:#f6e5e1;
+    --display:'Archivo','Noto Sans Gujarati',sans-serif; --body:'Noto Serif Gujarati','Noto Sans Gujarati',Georgia,serif; --mono:'JetBrains Mono','Noto Sans Gujarati',monospace;
+    color-scheme:light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:#0a1516; --surface:#10201f; --surface-sunk:#16292a; --border:#24403f;
+      --ink:#e6efed; --ink-soft:#a6bab8; --ink-faint:#7d9291; --accent:#52b6bd; --accent-wash:#12333a;
+      --good:#74c58a; --good-wash:#14301d; --warn:#dda94b; --warn-wash:#33260c; --stop:#e2947f; --stop-wash:#351a13;
+      color-scheme:dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground:#0a1516; --surface:#10201f; --surface-sunk:#16292a; --border:#24403f;
+    --ink:#e6efed; --ink-soft:#a6bab8; --ink-faint:#7d9291; --accent:#52b6bd; --accent-wash:#12333a;
+    --good:#74c58a; --good-wash:#14301d; --warn:#dda94b; --warn-wash:#33260c; --stop:#e2947f; --stop-wash:#351a13;
+    color-scheme:dark;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--ground); color:var(--ink); font-family:var(--body); font-size:17px; line-height:1.75; -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:1080px; margin:0 auto; padding:0 28px 90px; }
+  .col { max-width:70ch; }
+  .masthead { border-bottom:2px solid var(--ink); padding:48px 0 20px; margin-bottom:30px; }
+  .eyebrow { font-family:var(--display); font-size:13px; font-weight:600; letter-spacing:.05em; color:var(--accent); margin:0 0 12px; }
+  h1 { font-family:var(--display); font-weight:700; font-size:clamp(28px,4.6vw,42px); line-height:1.25; margin:0; text-wrap:balance; }
+  .standfirst { max-width:66ch; margin:14px 0 0; font-size:18px; line-height:1.7; color:var(--ink-soft); }
+  .byline { display:flex; flex-wrap:wrap; gap:6px 24px; margin-top:20px; font-family:var(--mono); font-size:13px; color:var(--ink-faint); }
+  .byline b { color:var(--ink-soft); font-weight:500; }
+  .figures { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:1px; background:var(--border); border:1px solid var(--border); margin-bottom:40px; }
+  .fig { background:var(--surface); padding:15px 18px 17px; }
+  .fig dt { font-family:var(--display); font-size:13px; font-weight:600; color:var(--ink-faint); }
+  .fig dd { margin:6px 0 0; font-family:var(--display); font-size:28px; font-weight:700; font-variant-numeric:tabular-nums; line-height:1.1; }
+  .fig p { margin:4px 0 0; font-size:13.5px; line-height:1.5; color:var(--ink-faint); }
+  .fig.good dd { color:var(--good); } .fig.warn dd { color:var(--warn); } .fig.stop dd { color:var(--stop); }
+  section { margin-bottom:54px; }
+  h2 { font-family:var(--display); font-weight:700; font-size:25px; margin:0 0 10px; line-height:1.35; }
+  h2 .num { font-family:var(--mono); font-size:13px; font-weight:500; color:var(--accent); margin-right:11px; vertical-align:3px; }
+  h3 { font-family:var(--display); font-weight:600; font-size:18px; margin:28px 0 8px; line-height:1.45; }
+  p { margin:0 0 15px; }
+  ul.plain, ol.plain { margin:0 0 15px; padding-left:22px; } ul.plain li, ol.plain li { margin-bottom:6px; }
+  .scroller { overflow-x:auto; margin:0 0 18px; border:1px solid var(--border); background:var(--surface); }
+  table { width:100%; border-collapse:collapse; font-size:14.5px; line-height:1.6; }
+  caption { caption-side:bottom; text-align:left; padding:10px 15px; font-size:13.5px; color:var(--ink-faint); border-top:1px solid var(--border); }
+  th, td { padding:10px 14px; text-align:left; border-bottom:1px solid var(--border); vertical-align:top; }
+  thead th { font-family:var(--display); font-size:12.5px; font-weight:600; color:var(--ink-faint); background:var(--surface-sunk); white-space:nowrap; }
+  tbody tr:last-child td { border-bottom:none; }
+  td.num, th.num { text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
+  tr.group td { background:var(--surface-sunk); font-family:var(--display); font-size:13.5px; font-weight:600; color:var(--ink-soft); padding:8px 14px; }
+  .pill { display:inline-block; font-family:var(--display); font-size:12px; font-weight:600; padding:2px 8px; border-radius:2px; white-space:nowrap; }
+  .pill.done { background:var(--good-wash); color:var(--good); }
+  .pill.part { background:var(--warn-wash); color:var(--warn); }
+  .pill.none { background:var(--stop-wash); color:var(--stop); }
+  .pill.unk { background:var(--accent-wash); color:var(--accent); }
+  .callout { border-left:3px solid var(--accent); background:var(--surface); padding:16px 20px; margin:0 0 18px; }
+  .callout.flag { border-left-color:var(--stop); } .callout.good { border-left-color:var(--good); }
+  .callout h3 { margin:0 0 6px; font-size:16.5px; } .callout p:last-child, .callout ul:last-child { margin-bottom:0; }
+  .q { background:var(--surface); border:1px solid var(--border); border-left:3px solid var(--accent); padding:16px 20px; margin-bottom:12px; }
+  .q.block { border-left-color:var(--stop); }
+  .q .qid { font-family:var(--mono); font-size:12.5px; color:var(--accent); display:block; margin-bottom:3px; }
+  .q.block .qid { color:var(--stop); }
+  .q h3 { margin:0 0 7px; font-size:17px; }
+  .q p { font-size:15.5px; margin-bottom:8px; } .q p:last-child { margin-bottom:0; }
+  .q .why { font-size:14.5px; color:var(--ink-soft); }
+  .q .sug { font-size:14.5px; background:var(--accent-wash); padding:8px 12px; }
+  .q .sug b { font-family:var(--display); font-size:13px; }
+  footer { border-top:1px solid var(--border); padding-top:16px; font-size:14px; color:var(--ink-faint); max-width:70ch; }
+  @media (max-width:640px){ body{font-size:16px;} .wrap{padding:0 16px 60px;} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="masthead">
+    <p class="eyebrow">જરૂરિયાતો અને હાલની સ્થિતિની સમીક્ષા</p>
+    <h1>ક્લાયન્ટનો સ્કોપ વિરુદ્ધ આજે શું બન્યું છે</h1>
+    <p class="standfirst">
+      ક્લાયન્ટે કન્ફર્મ કરેલા સ્કોપની દરેક લાઇન હાલના કોડ, ડેટાબેઝ અને ડેટા પ્રોવાઇડર સાથે સીધી ચકાસવામાં આવી છે —
+      શું પહેલેથી કામ કરે છે, શું ઉમેરવું કે બદલવું પડશે, અને ક્લાયન્ટને હજુ કયા પ્રશ્નોના જવાબ આપવાના બાકી છે.
+    </p>
+    <p class="byline">
+      <span><b>તારીખ</b> 17 સપ્ટેમ્બર 2026</span>
+      <span><b>આધાર</b> 16 સપ્ટેમ્બરનો ક્લાયન્ટ સ્કોપ</span>
+      <span><b>પદ્ધતિ</b> કોડ, ડેટાબેઝ અને Apify actor સીધા તપાસ્યા</span>
+    </p>
+    <p class="byline"><span>English version: requirements-gap-review.html</span></p>
+  </header>
+
+  <dl class="figures">
+    <div class="fig good"><dt>પૂર્ણ</dt><dd>12</dd><p>જરૂરિયાતો સંપૂર્ણ કામ કરે છે</p></div>
+    <div class="fig warn"><dt>આંશિક</dt><dd>13</dd><p>કોડ છે, ફેરફાર જોઈએ</p></div>
+    <div class="fig stop"><dt>બન્યું નથી</dt><dd>9</dd><p>નવું કામ જરૂરી</p></div>
+    <div class="fig"><dt>ચકાસણી બાકી</dt><dd>4</dd><p>Skyscanner ડેટા પર આધાર</p></div>
+  </dl>
+
+  <!-- 01 -->
+  <section>
+    <div class="col">
+      <h2><span class="num">01</span>પ્રામાણિક શરૂઆતની સ્થિતિ</h2>
+      <p>
+        સપ્ટેમ્બરની શરૂઆતમાં બનેલી સિસ્ટમ શરૂથી અંત સુધી કામ કરે છે, પરંતુ તે જૂના બ્રીફ માટે બની હતી: Kayak ડેટા,
+        30-દિવસના ભાડા, ત્રણ વાહન પ્રકાર અને દસ એરપોર્ટની નિશ્ચિત યાદી. ક્લાયન્ટના કન્ફર્મ સ્કોપથી ડેટા સ્રોત,
+        ભાડાનો સમયગાળો, શોધ વિસ્તાર અને યુઝર્સ — બધું બદલાય છે.
+      </p>
+    </div>
+    <div class="callout flag">
+      <h3>સૌથી મહત્વની ચાર હકીકતો</h3>
+      <ul class="plain">
+        <li><strong>હજુ સુધી એક પણ Skyscanner સર્ચ ચાલ્યું નથી.</strong> ડેટાબેઝમાંની તમામ 1,047 ઓફર Kayak માંથી છે, અને બધી 30-દિવસના ભાડાની છે. Skyscanner કનેક્શન કોડમાં છે પણ ટેસ્ટ થયું નથી.</li>
+        <li><strong>Skyscanner પર 330-દિવસના પરિણામો સાબિત થયા નથી.</strong> Skyscanner scraper કોઈપણ રિટર્ન તારીખ સ્વીકારે છે, એટલે 330-દિવસનું સર્ચ મોકલી શકાય. પણ Skyscanner તેની ઓફર આપે છે કે નહીં તે ખબર નથી. Budget નો સ્ક્રીનશોટ સાબિત કરે છે કે Budget ની પોતાની વેબસાઇટ 330 દિવસનો ભાવ આપે છે — Skyscanner નહીં.</li>
+        <li><strong>જરૂરી કેટલીક માહિતી Skyscanner ડેટામાં ન પણ હોય.</strong> Scraper ના દસ્તાવેજી આઉટપુટમાં વાહન, કંપની, ભાવ, સીટ, બેગ, ફ્યુઅલ પોલિસી, વાહન કોડ, પિકઅપ પ્રકાર અને બુકિંગ લિંક છે. તેમાં બુકિંગ પ્રોવાઇડર, ડેપોનું સરનામું કે ટેક્સની વિગત <em>નથી</em>. Scraper જે પૂરો raw response સેવ કરે છે તેમાં આ હોઈ શકે — તે તપાસવું પડશે.</li>
+        <li><strong>Skyscanner ડેટા માત્ર scraping થી જ મળે છે.</strong> Skyscanner નું સત્તાવાર API આ પ્રકારના ટૂલ માટે ઉપલબ્ધ નથી. વપરાતો scraper એક નાની third-party સર્વિસ છે (આજે 6 યુઝર્સ, 158 રન).</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 02 -->
+  <section>
+    <div class="col">
+      <h2><span class="num">02</span>દરેક જરૂરિયાતની સ્થિતિ</h2>
+      <p>ક્લાયન્ટના સ્કોપની દરેક લાઇન, હાલમાં શું છે, અને શું જરૂરી છે.</p>
+    </div>
+
+    <div class="scroller">
+      <table>
+        <caption><strong>પૂર્ણ</strong> = આજે કામ કરે છે. <strong>આંશિક</strong> = કોડ છે પણ ફેરફાર જોઈએ. <strong>બન્યું નથી</strong> = નવું કામ. <strong>ચકાસણી બાકી</strong> = Skyscanner ખરેખર શું આપે છે તેના પર આધાર.</caption>
+        <thead><tr><th>ક્લાયન્ટની જરૂરિયાત</th><th>સ્થિતિ</th><th>આજે</th><th>જરૂરી</th></tr></thead>
+        <tbody>
+          <tr class="group"><td colspan="4">1 · ડેટા સ્રોત</td></tr>
+          <tr><td>માત્ર Skyscanner ઇન્વેન્ટરી</td><td><span class="pill part">આંશિક</span></td><td>Skyscanner adapter બેકઅપ તરીકે છે; Kayak સક્રિય સ્રોત છે</td><td>Skyscanner ને એકમાત્ર સ્રોત બનાવવો; Kayak દૂર કરવું</td></tr>
+          <tr><td>Kayak કે ભાડા કંપનીઓની સાઇટ નહીં</td><td><span class="pill part">આંશિક</span></td><td>Kayak વપરાય છે</td><td>Kayak કોડ અને config દૂર કરવા</td></tr>
+          <tr><td>Skyscanner પરની બધી ડીલ બતાવવી</td><td><span class="pill part">આંશિક</span></td><td>પરિણામોની મર્યાદા છે અને Turo બાકાત છે</td><td>બાકાત દૂર કરવું; પરિણામ મર્યાદા નક્કી કરવી (ખર્ચનો પ્રશ્ન)</td></tr>
+          <tr><td>ભાડા કંપની બતાવવી</td><td><span class="pill done">પૂર્ણ</span></td><td>supplier તરીકે સેવ થાય છે</td><td>—</td></tr>
+          <tr><td>બુકિંગ પ્રોવાઇડર બતાવવો</td><td><span class="pill unk">ચકાસણી બાકી</span></td><td>Skyscanner adapter તેને ખાલી રાખે છે</td><td>raw response માં શોધવું, અથવા ઉપલબ્ધ નથી તે કન્ફર્મ કરવું</td></tr>
+
+          <tr class="group"><td colspan="4">2 · ભાડાનો સમયગાળો</td></tr>
+          <tr><td>દરેક સર્ચ બરાબર 330 દિવસનું</td><td><span class="pill part">આંશિક</span></td><td>સમયગાળો બદલી શકાય છે; હાલ 30 છે</td><td>330 દિવસ નિશ્ચિત કરવા</td></tr>
+          <tr><td>યુઝર એક પિકઅપ તારીખ પસંદ કરે</td><td><span class="pill none">બન્યું નથી</span></td><td>તારીખો આપોઆપ (3, 14, 28 દિવસ પછી)</td><td>દરેક સર્ચમાં પિકઅપ તારીખ દાખલ કરવી</td></tr>
+          <tr><td>રિટર્ન તારીખ = પિકઅપ + 330 દિવસ</td><td><span class="pill done">પૂર્ણ</span></td><td>રિટર્ન તારીખ સમયગાળા પરથી ગણાય છે</td><td>—</td></tr>
+          <tr><td>પિકઅપ અને રિટર્ન એક જ સ્થળે</td><td><span class="pill done">પૂર્ણ</span></td><td>અલગ ડ્રોપ-ઓફ સ્થળ ક્યારેય મોકલાતું નથી</td><td>—</td></tr>
+          <tr><td>એક સંપૂર્ણ 330-દિવસ સર્ચ, ટુકડા નહીં</td><td><span class="pill done">પૂર્ણ</span></td><td>દરેક સ્થળ અને તારીખ માટે એક સર્ચ</td><td>—</td></tr>
+          <tr><td>Skyscanner 330-દિવસની ઓફર આપે</td><td><span class="pill unk">ચકાસણી બાકી</span></td><td>ક્યારેય ટેસ્ટ નથી થયું</td><td>વાસ્તવિક સર્ચથી ટેસ્ટ (પ્રશ્ન Q2)</td></tr>
+
+          <tr class="group"><td colspan="4">3 · શોધ વિસ્તાર</td></tr>
+          <tr><td>શરૂઆતનો ZIP કોડ દાખલ કરવો</td><td><span class="pill none">બન્યું નથી</span></td><td>—</td><td>ZIP ઇનપુટ અને ZIP-થી-કોઓર્ડિનેટ ડેટા</td></tr>
+          <tr><td>મહત્તમ અંતર માઇલમાં દાખલ કરવું</td><td><span class="pill none">બન્યું નથી</span></td><td>—</td><td>અંતર ઇનપુટ અને ત્રિજ્યા (radius) સર્ચ</td></tr>
+          <tr><td>વૈકલ્પિક રાજ્ય (state) ફિલ્ટર</td><td><span class="pill part">આંશિક</span></td><td>રાજ્ય ફિલ્ટર માત્ર પરિણામોમાં છે</td><td>સર્ચ પ્લાન કરતી વખતે રાજ્ય મર્યાદા લાગુ કરવી</td></tr>
+          <tr><td>અંતરમાં આવતા દરેક સ્થળે સર્ચ, નાની બ્રાન્ચ સહિત</td><td><span class="pill none">બન્યું નથી</span></td><td>10 એરપોર્ટની નિશ્ચિત યાદી</td><td>એરપોર્ટ + શહેર યાદી, ત્રિજ્યા પસંદગી, ડેપો સંગ્રહ</td></tr>
+
+          <tr class="group"><td colspan="4">4 · વાહનો</td></tr>
+          <tr><td>દરેક વાહન કેટેગરી શોધવી</td><td><span class="pill part">આંશિક</span></td><td>બધી ઓફર સેવ થાય છે, પણ પરિણામોમાં માત્ર minivan, passenger van, large SUV રહે છે</td><td>બધી કેટેગરી બતાવવી</td></tr>
+          <tr><td>વાહનનો પ્રકાર સ્પષ્ટ ઓળખવો</td><td><span class="pill done">પૂર્ણ</span></td><td>વાહન કોડ, સીટ, મોડલ નામથી વર્ગીકરણ</td><td>ત્રણથી વધુ પ્રકારના લેબલ ઉમેરવા</td></tr>
+          <tr><td>ઝડપી ફિલ્ટર: minivan, large SUV, passenger van</td><td><span class="pill done">પૂર્ણ</span></td><td>ડેશબોર્ડ પર કામ કરે છે</td><td>—</td></tr>
+
+          <tr class="group"><td colspan="4">5 · ભાવ</td></tr>
+          <tr><td>ટેક્સ અને ફરજિયાત ફી સહિત પૂરો ભાવ</td><td><span class="pill unk">ચકાસણી બાકી</span></td><td>જે કુલ ભાવ આવે તે સેવ થાય છે</td><td>Skyscanner ના કુલમાં તે સમાયેલ છે કે નહીં તે કન્ફર્મ કરવું</td></tr>
+          <tr><td>સરેરાશ 30-દિવસ ખર્ચ = કુલ ÷ 11</td><td><span class="pill done">પૂર્ણ</span></td><td>ફોર્મ્યુલા કુલ × 30 ÷ દિવસ, 330 દિવસે બરાબર કુલ ÷ 11 આપે છે</td><td>"દર 30 દિવસ" લેબલ કરવું</td></tr>
+          <tr><td>સૌથી ઓછી સરેરાશ પહેલાં</td><td><span class="pill done">પૂર્ણ</span></td><td>ડિફોલ્ટ સોર્ટ</td><td>—</td></tr>
+          <tr><td>$1,100 ટાર્ગેટ, તેનાથી વધુના પરિણામો પણ બતાવવા</td><td><span class="pill part">આંશિક</span></td><td>ટાર્ગેટ હાઇલાઇટ માટે વપરાય છે; કંઈ છુપાવાતું નથી</td><td>દરેક સર્ચમાં ટાર્ગેટ બદલી શકાય તેવું કરવું</td></tr>
+
+          <tr class="group"><td colspan="4">6 · દરેક પરિણામની માહિતી</td></tr>
+          <tr><td>વાહન કેટેગરી અને ઉદાહરણ વાહન</td><td><span class="pill done">પૂર્ણ</span></td><td>સેવ થાય છે અને દેખાય છે</td><td>—</td></tr>
+          <tr><td>પિકઅપ અને રિટર્ન સ્થળ</td><td><span class="pill part">આંશિક</span></td><td>સર્ચ સ્થળ સેવ થાય છે; Skyscanner adapter સ્થળના ફીલ્ડમાં "પિકઅપ પ્રકાર" સેવ કરે છે</td><td>ડેપોનું સાચું નામ અને સરનામું સેવ કરવું</td></tr>
+          <tr><td>ZIP થી અંતર</td><td><span class="pill none">બન્યું નથી</span></td><td>—</td><td>ડેપોના કોઓર્ડિનેટ કે સરનામું જરૂરી</td></tr>
+          <tr><td>ટેક્સ અને ફી અલગ બતાવવી</td><td><span class="pill unk">ચકાસણી બાકી</span></td><td>સેવ થતું નથી</td><td>raw response માં હોય તો મેપ કરવું</td></tr>
+          <tr><td>માઇલેજ મર્યાદા</td><td><span class="pill part">આંશિક</span></td><td>Kayak માટે સેવ થાય છે; Skyscanner ના દસ્તાવેજી આઉટપુટમાં નથી</td><td>raw response માં હોય તો મેપ કરવું</td></tr>
+          <tr><td>મહત્વની ભાડા શરતો</td><td><span class="pill part">આંશિક</span></td><td>માત્ર ફ્યુઅલ પોલિસી</td><td>ઉપલબ્ધ હોય ત્યાં કેન્સલેશન, ડિપોઝિટ, પિકઅપ પ્રકાર, ઉંમર નિયમો ઉમેરવા</td></tr>
+          <tr><td>જુઓ / બુક કરો લિંક</td><td><span class="pill done">પૂર્ણ</span></td><td>સેવ થાય છે અને દેખાય છે</td><td>—</td></tr>
+
+          <tr class="group"><td colspan="4">7 · રિપોર્ટ અને ભાવ ટ્રેકિંગ</td></tr>
+          <tr><td>પસંદ કરેલું સર્ચ દરરોજ ચલાવવું</td><td><span class="pill part">આંશિક</span></td><td>દૈનિક scheduler એક નિશ્ચિત config ચલાવે છે</td><td>દરેક સેવ કરેલું સર્ચ દરરોજ ચલાવવું</td></tr>
+          <tr><td>પરિણામો અને ભાવ ઇતિહાસ સેવ કરવો</td><td><span class="pill done">પૂર્ણ</span></td><td>દરેક રન સેવ થાય છે; ભાવ ઇતિહાસ પેજ કામ કરે છે</td><td>ઇતિહાસને સેવ કરેલા સર્ચ સાથે જોડવો</td></tr>
+          <tr><td>નવી ડીલ, ભાવ ઘટ્યો, ભાવ વધ્યો</td><td><span class="pill part">આંશિક</span></td><td>ઓળખવાનું લોજિક કામ કરે છે અને ટેસ્ટ થયેલું છે</td><td>દરેક સેવ કરેલા સર્ચ મુજબ ઓળખવું</td></tr>
+          <tr><td>હવે ઉપલબ્ધ ન હોય તેવી ડીલ</td><td><span class="pill part">આંશિક</span></td><td>"ગઈ" ઓળખ કામ કરે છે</td><td>દરેક સેવ કરેલા સર્ચ મુજબ</td></tr>
+          <tr><td>પરિણામો ફિલ્ટર અને સોર્ટ કરવા</td><td><span class="pill done">પૂર્ણ</span></td><td>ડેશબોર્ડ ફિલ્ટર અને સોર્ટિંગ</td><td>અંતર અને બુકિંગ પ્રોવાઇડર ફિલ્ટર ઉમેરવા</td></tr>
+
+          <tr class="group"><td colspan="4">આંતરિક બિઝનેસ ટૂલ</td></tr>
+          <tr><td>2 યુઝર માટે સુરક્ષિત લૉગિન</td><td><span class="pill none">બન્યું નથી</span></td><td>લૉગિન નથી</td><td>લૉગિન, પાસવર્ડ hashing, sessions, rate limiting</td></tr>
+          <tr><td>કોઈ પબ્લિક પેજ કે રજિસ્ટ્રેશન નહીં</td><td><span class="pill none">બન્યું નથી</span></td><td>ડેશબોર્ડ સુધી પહોંચી શકે તે કોઈપણ ખોલી શકે</td><td>દરેક પેજ અને API લૉગિન પાછળ સુરક્ષિત કરવા</td></tr>
+          <tr><td>સ્ટાફ ગ્રાહકની જરૂરિયાતો દાખલ કરે</td><td><span class="pill none">બન્યું નથી</span></td><td>—</td><td>નવું-સર્ચ ફોર્મ અને સેવ કરેલા સર્ચની યાદી</td></tr>
+          <tr><td>ગ્રાહકને બતાવતા પહેલાં સ્ટાફ સમીક્ષા કરે</td><td><span class="pill none">બન્યું નથી</span></td><td>—</td><td>દરેક ડીલ માટે શોર્ટલિસ્ટ અને નોંધ</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 03 -->
+  <section>
+    <div class="col">
+      <h2><span class="num">03</span>અત્યાર સુધી શું બનાવ્યું છે</h2>
+    </div>
+    <div class="scroller">
+      <table>
+        <thead><tr><th>ભાગ</th><th>તે શું કરે છે</th><th>v1 માટે રાખવું?</th></tr></thead>
+        <tbody>
+          <tr><td>Backend (NestJS, PostgreSQL)</td><td>સર્ચ ચલાવે છે, પરિણામો સેવ કરે છે, ડેશબોર્ડને ડેટા આપે છે</td><td><span class="pill done">રાખવું</span></td></tr>
+          <tr><td>Skyscanner scraper કનેક્શન</td><td>Apify Skyscanner scraper ને સર્ચ મોકલે છે અને ઓફર પાછી વાંચે છે; ક્યારેય ચાલ્યું નથી</td><td><span class="pill part">રાખવું, મેપિંગ સુધારવું</span></td></tr>
+          <tr><td>Kayak scraper કનેક્શન</td><td>હાલનો સક્રિય ડેટા સ્રોત</td><td><span class="pill none">દૂર કરવું</span></td></tr>
+          <tr><td>Retry, સમાંતર મર્યાદા, ખર્ચ મર્યાદા</td><td>નિષ્ફળતા અને બેફામ ખર્ચ સામે રક્ષણ</td><td><span class="pill done">રાખવું</span></td></tr>
+          <tr><td>વાહન વર્ગીકરણ</td><td>વાહન કોડ, સીટ અને મોડલ પરથી minivan, passenger van, large SUV લેબલ કરે છે</td><td><span class="pill part">રાખવું, બધા પ્રકાર સુધી વધારવું</span></td></tr>
+          <tr><td>ભાવ ગણતરી</td><td>માસિક આંકડો; 330 દિવસે પહેલેથી કુલ ÷ 11 બરાબર</td><td><span class="pill done">રાખવું</span></td></tr>
+          <tr><td>ડીલ ટ્રેકિંગ</td><td>નવી, સસ્તી, મોંઘી, ગઈ ઓળખ; ભાવ ઇતિહાસ</td><td><span class="pill part">રાખવું, સર્ચ મુજબ કરવું</span></td></tr>
+          <tr><td>દૈનિક scheduler</td><td>દરરોજ સવારે એક નિશ્ચિત config ચલાવે છે</td><td><span class="pill part">સેવ કરેલા સર્ચ માટે બદલવું</span></td></tr>
+          <tr><td>નિશ્ચિત એરપોર્ટ યાદી અને તારીખ offset</td><td>ક્યાં અને ક્યારે સર્ચ કરવું તે નક્કી કરે છે</td><td><span class="pill none">ZIP + ત્રિજ્યા + તારીખથી બદલવું</span></td></tr>
+          <tr><td>ડેશબોર્ડ (React)</td><td>ફિલ્ટર સાથે ડીલ યાદી, સ્કેન ઇતિહાસ, ડીલ ભાવ ઇતિહાસ</td><td><span class="pill part">રાખવું, લૉગિન અને સર્ચ સ્ક્રીન ઉમેરવી</span></td></tr>
+          <tr><td>HTML / CSV / Slack રિપોર્ટ</td><td>દૈનિક સારાંશ</td><td><span class="pill part">આંતરિક ઉપયોગ માટે વૈકલ્પિક</span></td></tr>
+          <tr><td>ઓટોમેટેડ ટેસ્ટ</td><td>69 ટેસ્ટ, બધા પાસ</td><td><span class="pill done">રાખવું, નવા ટેસ્ટ ઉમેરવા</span></td></tr>
+          <tr><td>ડિઝાઇન મોકઅપ અને Figma સ્ક્રીન</td><td>જૂના એરપોર્ટ-યાદી, 30-દિવસ સ્કોપ માટે બનેલા</td><td><span class="pill part">સુધારવું</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 04 -->
+  <section>
+    <div class="col">
+      <h2><span class="num">04</span>શું ઉમેરવું કે બદલવું પડશે</h2>
+      <p>જે ક્રમમાં બનાવવામાં આવશે તે મુજબ જૂથબદ્ધ. સમય એક ડેવલપર માટે છે અને ચકાસણી સફળ થાય તે ધારીને છે.</p>
+    </div>
+    <div class="scroller">
+      <table>
+        <caption>અંદાજિત કુલ: લગભગ 21–29 કામકાજના દિવસ, ઉપરાંત પહેલાં 3–5 દિવસની ચકાસણી.</caption>
+        <thead><tr><th>#</th><th>કામ</th><th>કેમ</th><th class="num">દિવસ</th></tr></thead>
+        <tbody>
+          <tr class="group"><td colspan="4">પગલું 0 · ચકાસણી (બનાવતા પહેલાં)</td></tr>
+          <tr><td>0.1</td><td>5–10 સ્થળે વાસ્તવિક 330-દિવસ Skyscanner સર્ચ ચલાવવા; પૂરા raw response તપાસવા</td><td>330-દિવસ ઓફર છે અને કઈ માહિતી મળે છે તે સાબિત કરે</td><td class="num">3–5</td></tr>
+          <tr><td>0.2</td><td>Scraper પરિણામોની skyscanner.com પર જાતે કરેલા સર્ચ સાથે સરખામણી</td><td>કંપનીઓ કે સૌથી સસ્તી ડીલ છૂટી જાય છે કે નહીં તે તપાસે</td><td class="num">સામેલ</td></tr>
+          <tr><td>0.3</td><td>3–5 કુલ ભાવની ભાડા કંપનીના checkout પેજ સાથે સરખામણી</td><td>ટેક્સ અને ફી સમાયેલ છે કે નહીં તે તપાસે</td><td class="num">સામેલ</td></tr>
+
+          <tr class="group"><td colspan="4">પગલું 1 · ડેટા સ્રોત</td></tr>
+          <tr><td>1.1</td><td>Skyscanner ને એકમાત્ર સ્રોત બનાવવો; Kayak દૂર કરવું</td><td>ક્લાયન્ટની જરૂરિયાત</td><td class="num">1</td></tr>
+          <tr><td>1.2</td><td>raw response માંથી બુકિંગ પ્રોવાઇડર, ડેપો, માઇલેજ, ફી અને શરતો મેપ કરવી</td><td>પરિણામમાં જરૂરી માહિતી</td><td class="num">2–3</td></tr>
+          <tr><td>1.3</td><td>સમયગાળો 330 દિવસ નિશ્ચિત કરવો; આપોઆપ તારીખ offset દૂર કરવા</td><td>ક્લાયન્ટની જરૂરિયાત</td><td class="num">0.5</td></tr>
+
+          <tr class="group"><td colspan="4">પગલું 2 · શોધ વિસ્તાર</td></tr>
+          <tr><td>2.1</td><td>ZIP કોડ અને US એરપોર્ટ તથા શહેર સ્થળોનો ડેટા લોડ કરવો</td><td>ZIP અને ત્રિજ્યાને સર્ચમાં ફેરવવા જરૂરી</td><td class="num">2</td></tr>
+          <tr><td>2.2</td><td>ત્રિજ્યા અને રાજ્ય મુજબ સર્ચ પ્લાનિંગ, ચલાવતા પહેલાં ખર્ચ અંદાજ</td><td>અંતરમાં આવતું દરેક સ્થળ</td><td class="num">2–3</td></tr>
+          <tr><td>2.3</td><td>મળેલા દરેક ડેપોને સેવ કરવો; ZIP થી અંતર ગણવું; ત્રિજ્યા બહારના ડેપો કાઢવા</td><td>દરેક પરિણામમાં અંતર, નાની બ્રાન્ચ સહિત</td><td class="num">2</td></tr>
+
+          <tr class="group"><td colspan="4">પગલું 3 · સેવ કરેલા સર્ચ અને ટ્રેકિંગ</td></tr>
+          <tr><td>3.1</td><td>સેવ કરેલા સર્ચનો રેકોર્ડ: ગ્રાહક રેફરન્સ, ZIP, માઇલ, રાજ્ય, પિકઅપ તારીખ, સ્થિતિ</td><td>સ્ટાફ ગ્રાહકની જરૂરિયાત દાખલ કરે</td><td class="num">1–2</td></tr>
+          <tr><td>3.2</td><td>દૈનિક scheduler દરેક સક્રિય સર્ચ ચલાવે; પિકઅપ તારીખ પછી બંધ</td><td>દરેક ગ્રાહક વિનંતીનું દૈનિક ટ્રેકિંગ</td><td class="num">1–2</td></tr>
+          <tr><td>3.3</td><td>નવી / સસ્તી / મોંઘી / ગઈ અને ઇતિહાસ દરેક સેવ કરેલા સર્ચ મુજબ</td><td>વિનંતી મુજબ ટ્રેકિંગ</td><td class="num">1–2</td></tr>
+          <tr><td>3.4</td><td>બધી વાહન કેટેગરી બતાવવી; ત્રણ ઝડપી ફિલ્ટર રાખવા</td><td>ક્લાયન્ટની જરૂરિયાત</td><td class="num">1</td></tr>
+
+          <tr class="group"><td colspan="4">પગલું 4 · લૉગિન અને સ્ક્રીન</td></tr>
+          <tr><td>4.1</td><td>બે યુઝર માટે સુરક્ષિત લૉગિન; બધા પેજ અને API સુરક્ષિત</td><td>માત્ર આંતરિક ટૂલ</td><td class="num">2–3</td></tr>
+          <tr><td>4.2</td><td>સ્ક્રીન: સેવ કરેલા સર્ચ, નવું સર્ચ ફોર્મ, અંતર સાથે પરિણામો, શોર્ટલિસ્ટ અને નોંધ સાથે ડીલ વિગત, રન લોગ</td><td>સ્ટાફ વર્કફ્લો</td><td class="num">4–5</td></tr>
+          <tr><td>4.3</td><td>માસિક ખર્ચ મર્યાદા અને દરેક રનનો ખર્ચ બતાવવો</td><td>સર્ચ ખર્ચ ઓછો રાખવો</td><td class="num">1</td></tr>
+
+          <tr class="group"><td colspan="4">પગલું 5 · લૉન્ચ</td></tr>
+          <tr><td>5.1</td><td>Hosting, HTTPS, બેકઅપ, બે એકાઉન્ટ બનાવવા</td><td>લાઇવ ઉપયોગ</td><td class="num">1–2</td></tr>
+          <tr><td>5.2</td><td>નવા ભાગો માટે ટેસ્ટ; એક અઠવાડિયું દેખરેખ હેઠળ વાસ્તવિક ઉપયોગ</td><td>ચોકસાઈ</td><td class="num">1–2</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 05 -->
+  <section>
+    <div class="col">
+      <h2><span class="num">05</span>ક્લાયન્ટ માટેના પ્રશ્નો</h2>
+      <p>
+        કન્ફર્મ સ્કોપે અગાઉના મોટાભાગના પ્રશ્નોના જવાબ આપી દીધા છે. આટલા બાકી છે. પહેલા ચાર પ્રશ્નોના જવાબ
+        ડેવલપમેન્ટ શરૂ થાય તે પહેલાં જોઈએ; બાકીના માટે સૂચવેલો ડિફોલ્ટ જવાબ છે અને પછીથી કન્ફર્મ કરી શકાય.
+      </p>
+    </div>
+
+    <h3>ડેવલપમેન્ટ પહેલાં જવાબ જરૂરી</h3>
+
+    <div class="q block">
+      <span class="qid">Q1 · ડેટા ઍક્સેસ અને શરતો</span>
+      <h3>શું તમે third-party Skyscanner scraper વાપરવાનું સ્વીકારો છો?</h3>
+      <p>Skyscanner નું સત્તાવાર API માત્ર મોટી ટ્રાવેલ વેબસાઇટ્સ માટે છે અને ઓટોમેટેડ સર્ચની મંજૂરી આપતું નથી. Skyscanner ડેટા મેળવવાનો એકમાત્ર વ્યવહારુ રસ્તો third-party scraping સર્વિસ છે, જે Skyscanner ની વપરાશની શરતો વિરુદ્ધ છે. તમારો બિઝનેસ ગ્રાહકો પાસેથી ફી લે છે એટલે જોખમ વ્યક્તિગત ઉપયોગ કરતાં વધુ છે, અને સર્વિસ ચેતવણી વગર બંધ પણ થઈ શકે.</p>
+      <p class="sug"><b>સૂચન</b> — લેખિતમાં સ્વીકૃતિ આપો, અને ટૂંકી કાનૂની સલાહ લેવાનું વિચારો.</p>
+    </div>
+
+    <div class="q block">
+      <span class="qid">Q2 · ચકાસણી બજેટ</span>
+      <h3>શું પહેલાં વાસ્તવિક 330-દિવસ Skyscanner સર્ચ ટેસ્ટ કરવા લગભગ $10–20 ખર્ચી શકીએ?</h3>
+      <p>આથી બનાવતા પહેલાં ખબર પડશે કે Skyscanner 330-દિવસની ઓફર આપે છે કે નહીં, બુકિંગ પ્રોવાઇડર, ડેપો સરનામું, ટેક્સ અને માઇલેજ મળે છે કે નહીં, અને એક સર્ચનો ખરો ખર્ચ કેટલો છે.</p>
+      <p class="sug"><b>સૂચન</b> — હા; 3–5 દિવસ, અને ડેવલપમેન્ટ આગળ વધે તે પહેલાં પરિણામો શેર કરાશે.</p>
+    </div>
+
+    <div class="q block">
+      <span class="qid">Q3 · જો 330-દિવસની ઓફર ઓછી મળે</span>
+      <h3>જો Skyscanner ઓછી કે એકેય 330-દિવસ ઓફર ન આપે તો શું કરવું?</h3>
+      <p>Budget નો સ્ક્રીનશોટ બતાવે છે કે Budget ની પોતાની સાઇટ 330 દિવસનો ભાવ આપી શકે છે, પણ Skyscanner તે ઓફર ન બતાવે, અથવા માત્ર થોડી કંપનીઓની જ બતાવે.</p>
+      <p>વિકલ્પો: (a) Skyscanner જે આપે તે જ બતાવવું, ભલે ઓછું હોય; (b) લાંબા ભાડા માટે Budget અને Avis જેવી કંપનીઓની વેબસાઇટ પણ મંજૂર કરવી; (c) રોકીને ફરી વિચારવું.</p>
+      <p class="sug"><b>સૂચન</b> — Q2 ટેસ્ટના પરિણામો પછી નક્કી કરવું.</p>
+    </div>
+
+    <div class="q block">
+      <span class="qid">Q4 · માસિક સર્ચ બજેટ</span>
+      <h3>સર્ચ પાછળ દર મહિને વધુમાં વધુ કેટલો ખર્ચ કરવો?</h3>
+      <p>ખર્ચ પસંદ કરેલા અંતરમાં કેટલા સ્થળ આવે છે અને દરરોજ કેટલા સર્ચ ચાલે છે તેના પર આધાર રાખે છે. મોટી ત્રિજ્યા ઘણી વધુ મોંઘી પડે: અંતર બમણું કરવાથી વિસ્તાર લગભગ ચાર ગણો થાય. માસિક મર્યાદા પહોંચે ત્યારે સિસ્ટમ દૈનિક સર્ચ રોકી શકે છે.</p>
+      <p class="sug"><b>સૂચન</b> — શરૂઆતની મર્યાદા નક્કી કરો, ઉદાહરણ તરીકે દર મહિને $200–$300, અને વાસ્તવિક ખર્ચ માપ્યા પછી બદલો.</p>
+    </div>
+
+    <h3>પછીથી કન્ફર્મ કરી શકાય (સૂચવેલ ડિફોલ્ટ સાથે)</h3>
+
+    <div class="q">
+      <span class="qid">Q5 · ખૂટતી માહિતી</span>
+      <h3>જો Skyscanner બુકિંગ પ્રોવાઇડર, ડેપો સરનામું કે ટેક્સની વિગત ન આપે, તો ચાલશે?</h3>
+      <p class="why">આ માહિતી scraper ના દસ્તાવેજી આઉટપુટમાં નથી. ન મળે તો અનુમાન કરવાને બદલે "Skyscanner દ્વારા ઉપલબ્ધ નથી" બતાવીશું.</p>
+      <p class="sug"><b>સૂચન</b> — ચાલશે; જે ઉપલબ્ધ છે તે બતાવવું અને બાકીનું સ્પષ્ટ રીતે દર્શાવવું.</p>
+    </div>
+
+    <div class="q">
+      <span class="qid">Q6 · અંતર</span>
+      <h3>ZIP કોડથી સીધી રેખાનું અંતર ચાલશે?</h3>
+      <p class="why">ડ્રાઇવિંગ અંતર માટે પેઇડ રૂટિંગ સર્વિસ જોઈએ. જો ડેપોનું ચોક્કસ સરનામું ન મળે, તો અંતર શોધેલા શહેર કે એરપોર્ટ સુધી મપાશે અને અંદાજિત તરીકે દર્શાવાશે.</p>
+      <p class="sug"><b>સૂચન</b> — સીધી રેખાનું અંતર, જરૂર પડે ત્યાં અંદાજિત તરીકે દર્શાવેલું.</p>
+    </div>
+
+    <div class="q">
+      <span class="qid">Q7 · મહત્તમ ત્રિજ્યા</span>
+      <h3>ડિફોલ્ટ અંતર કેટલું, અને વધુમાં વધુ કેટલું અંતર મંજૂર?</h3>
+      <p class="sug"><b>સૂચન</b> — ડિફોલ્ટ 50 માઇલ; 150 માઇલથી વધુ હોય તો ખર્ચ બતાવીને કન્ફર્મેશન માગવું.</p>
+    </div>
+
+    <div class="q">
+      <span class="qid">Q8 · દરેક સ્થળ દીઠ પરિણામો</span>
+      <h3>દરેક સ્થળે બધી ઓફર લાવવી, કે માત્ર સૌથી સસ્તી?</h3>
+      <p class="why">Scraper Skyscanner પરિણામો સૌથી સસ્તાથી શરૂ કરીને આપે છે અને કેટલા લાવવા તેની મર્યાદા રાખી શકાય છે; ઓફર જેટલી વધુ, ખર્ચ એટલો વધુ. દરેક સ્થળે માત્ર સૌથી સસ્તી 100–150 લાવવાથી ખર્ચ ઘણો ઘટે અને સૌથી ઓછો ભાવ તો મળે જ, પણ 15-સીટ વાન જેવા ઓછા મળતા વાહનો છૂટી શકે.</p>
+      <p class="sug"><b>સૂચન</b> — ડિફોલ્ટ દરેક સ્થળે સૌથી સસ્તી 150, અને સંપૂર્ણ સર્ચ ચલાવવાનો વિકલ્પ.</p>
+    </div>
+
+    <div class="q">
+      <span class="qid">Q9 · પિકઅપ સમય અને ડ્રાઇવરની ઉંમર</span>
+      <h3>સર્ચમાં કયો પિકઅપ/રિટર્ન સમય અને ડ્રાઇવરની ઉંમર વાપરવી?</h3>
+      <p class="why">બંને ભાવ અને ઉપલબ્ધતા પર અસર કરે છે. 25 વર્ષથી નાના કે 70 વર્ષથી મોટા ડ્રાઇવરને કાઉન્ટર પર વધુ ચૂકવવું પડી શકે.</p>
+      <p class="sug"><b>સૂચન</b> — પિકઅપ અને રિટર્ન 10:00; ડ્રાઇવરની ઉંમર 30; દરેક સર્ચમાં બદલી શકાય.</p>
+    </div>
+
+    <div class="q">
+      <span class="qid">Q10 · સર્ચ કેટલો સમય ચાલે</span>
+      <h3>સેવ કરેલું સર્ચ કેટલા દિવસ દરરોજ ચાલે, અને એકસાથે કેટલા ચાલી શકે?</h3>
+      <p class="sug"><b>સૂચન</b> — સ્ટાફ રોકે અથવા પિકઅપ તારીખ વીતી જાય ત્યાં સુધી દરરોજ; એકસાથે 10 સક્રિય સર્ચ સુધી.</p>
+    </div>
+
+    <div class="q">
+      <span class="qid">Q11 · ગ્રાહકની માહિતી</span>
+      <h3>દરેક સર્ચ સાથે ગ્રાહકની કઈ માહિતી સેવ કરવી?</h3>
+      <p class="why">વ્યક્તિગત માહિતી સેવ કરવાથી ગોપનીયતાની જવાબદારી વધે છે.</p>
+      <p class="sug"><b>સૂચન</b> — માત્ર ગ્રાહક રેફરન્સ કે પહેલું નામ, અને આંતરિક નોંધ.</p>
+    </div>
+
+    <div class="q">
+      <span class="qid">Q12 · સૂચનાઓ</span>
+      <h3>દૈનિક ફેરફારની જાણ સ્ટાફને કેવી રીતે થાય?</h3>
+      <p class="sug"><b>સૂચન</b> — ડેશબોર્ડ પર બતાવવું; વૈકલ્પિક દૈનિક ઇમેઇલ સારાંશ.</p>
+    </div>
+
+    <div class="q">
+      <span class="qid">Q13 · લૉગિન વિગતો</span>
+      <h3>બે યુઝર કોણ છે, અને ટુ-સ્ટેપ લૉગિન જોઈએ છે?</h3>
+      <p class="sug"><b>સૂચન</b> — પાસવર્ડ સાથે બે ઇમેઇલ એકાઉન્ટ, ઉપરાંત authenticator app થી ટુ-સ્ટેપ લૉગિન.</p>
+    </div>
+
+    <div class="q">
+      <span class="qid">Q14 · Hosting</span>
+      <h3>સિસ્ટમ ક્યાં ચાલશે?</h3>
+      <p class="why">નાનું cloud server બંને યુઝરને ગમે ત્યાંથી ઍક્સેસ આપે; ઓફિસ કમ્પ્યુટર સસ્તું છે પણ દૈનિક સર્ચ માટે સતત ચાલુ રાખવું પડે.</p>
+      <p class="sug"><b>સૂચન</b> — નાનું cloud server, સર્ચ ખર્ચ સિવાય દર મહિને લગભગ $15–$50.</p>
+    </div>
+
+    <div class="q">
+      <span class="qid">Q15 · બતાવવાની શરતો</span>
+      <h3>કઈ ભાડા શરતો સૌથી મહત્વની છે?</h3>
+      <p class="sug"><b>સૂચન</b> — માઇલેજ, ફ્યુઅલ પોલિસી, કેન્સલેશન, ડિપોઝિટ, પિકઅપ પ્રકાર (એરપોર્ટ / શટલ / શહેર), ઉંમર નિયમો.</p>
+    </div>
+
+    <div class="q">
+      <span class="qid">Q16 · ભાવ ઇતિહાસ કેટલો સમય રાખવો</span>
+      <h3>પરિણામો અને ઇતિહાસ કેટલો સમય સાચવવા?</h3>
+      <p class="sug"><b>સૂચન</b> — 12 મહિના.</p>
+    </div>
+  </section>
+
+  <!-- 06 -->
+  <section>
+    <div class="col">
+      <h2><span class="num">06</span>ભલામણ કરેલું આગળનું પગલું</h2>
+      <ol class="plain">
+        <li>ક્લાયન્ટને Q1–Q4 પ્રશ્નો મોકલવા.</li>
+        <li>મંજૂરી મળે તો ચકાસણી કરવી: 5–10 સ્થળે વાસ્તવિક 330-દિવસ Skyscanner સર્ચ.</li>
+        <li>પરિણામો શેર કરવા — મળેલી ઓફર, ઉપલબ્ધ માહિતી, ખરો ખર્ચ — અને Q3 કન્ફર્મ કરવો.</li>
+        <li>વિભાગ 04 ના ક્રમ મુજબ બનાવવાનું શરૂ કરવું.</li>
+      </ol>
+      <div class="callout good">
+        <h3>સારા સમાચાર</h3>
+        <p>હાલની સિસ્ટમનો મોટો ભાગ આગળ વાપરી શકાશે: backend, ડેટાબેઝ, ભાવ ગણતરી, ડીલ ટ્રેકિંગ, ભાવ ઇતિહાસ, ખર્ચ નિયંત્રણ, ડેશબોર્ડ ફિલ્ટર અને ટેસ્ટ. મુખ્ય નવું કામ ZIP અને ત્રિજ્યા સર્ચ, સેવ કરેલા સર્ચ અને લૉગિન છે.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    17 સપ્ટેમ્બર 2026 એ તૈયાર. સ્થિતિ કોડ (69 પાસ થતા ટેસ્ટ), ડેટાબેઝ (1,047 સેવ કરેલી ઓફર, બધી Kayak 30-દિવસ)
+    અને Apify Skyscanner scraper ના પ્રકાશિત ઇનપુટ અને આઉટપુટની સીધી તપાસ પર આધારિત છે. ચકાસણી પૂર્ણ થાય ત્યાં સુધી
+    સમય અને ખર્ચ અંદાજ છે. આ કાનૂની સલાહ નથી.
+  </footer>
+</div>
+</body>
+</html>
