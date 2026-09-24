@@ -81,6 +81,9 @@ export function Layout() {
             <Link to="/" data-active={pathname === '/' || pathname.startsWith('/search')}>
               Searches
             </Link>
+            <Link to="/favourites" data-active={pathname.startsWith('/favourites')}>
+              Favorites
+            </Link>
             <Link to="/runs" data-active={pathname.startsWith('/runs')}>
               Scan history
             </Link>

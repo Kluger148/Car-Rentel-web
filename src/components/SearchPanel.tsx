@@ -39,8 +39,16 @@ export function SearchPanel({ filters, facets, totalCount, searchId, runId, titl
 
           <label className="field">
             <span className="field__label">Pickup state</span>
-            <select value={filters.state} onChange={(e) => onChange({ state: e.target.value })}>
+            <select
+              value={filters.states.length === 0 ? 'ALL' : filters.states.length === 1 ? filters.states[0] : 'MANY'}
+              onChange={(e) => onChange({ states: e.target.value === 'ALL' ? [] : [e.target.value] })}
+            >
               <option value="ALL">All states</option>
+              {filters.states.length > 1 && (
+                <option value="MANY" disabled>
+                  {filters.states.length} states
+                </option>
+              )}
               {facets.states.map((s) => (
                 <option key={s.value} value={s.value}>
                   {s.value}

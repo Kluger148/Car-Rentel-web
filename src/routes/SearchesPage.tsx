@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import { useState, type FormEvent } from 'react';
+import { StatePicker, TagPicker } from '../components/TagPicker';
 import { ErrorState } from '../components/States';
 import { api, type SearchInput, type SearchPreview } from '../lib/api';
 import { STATUS_LABEL, fullDate, relativeTime } from '../lib/format';
@@ -11,10 +12,20 @@ function tomorrowIso(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
+const RADIUS_OPTIONS = [50, 100, 200, 300, 500, 1000, 2000];
+
 function NewSearchForm({ onCreated }: { onCreated: (id: number) => void }) {
   const [zip, setZip] = useState('');
   const [radius, setRadius] = useState('50');
-  const [states, setStates] = useState('');
+  const [customRadius, setCustomRadius] = useState(false);
+  const [states, setStates] = useState<string[]>([]);
+  const [suppliers, setSuppliers] = useState<string[]>([]);
+  const companiesQuery = useQuery({ queryKey: ['companies'], queryFn: () => api.companies(), staleTime: 300_000 });
+  const companyOptions = (companiesQuery.data ?? []).map((c) => ({
+    value: c.name,
+    label: c.name,
+    hint: `${c.count.toLocaleString('en-US')} offers`,
+  }));
   const [pickup, setPickup] = useState(tomorrowIso());
   const [name, setName] = useState('');
   const [notes, setNotes] = useState('');
@@ -24,10 +35,8 @@ function NewSearchForm({ onCreated }: { onCreated: (id: number) => void }) {
   const input = (): SearchInput => ({
     zip: zip.trim(),
     radiusMiles: Number.parseInt(radius, 10),
-    states: states
-      .split(/[,\s]+/)
-      .map((s) => s.trim().toUpperCase())
-      .filter(Boolean),
+    states,
+    suppliers,
     pickupDate: pickup,
     name: name.trim() || undefined,
     notes: notes.trim() || undefined,
@@ -69,12 +78,54 @@ function NewSearchForm({ onCreated }: { onCreated: (id: number) => void }) {
         </label>
         <label className="field">
           <span className="field__label">Max distance (miles)</span>
-          <input id="ns-radius" type="number" min={1} required value={radius} onChange={(e) => { setRadius(e.target.value); changed(); }} />
+          <select
+            id="ns-radius"
+            value={customRadius ? 'custom' : radius}
+            onChange={(e) => {
+              if (e.target.value === 'custom') {
+                setCustomRadius(true);
+              } else {
+                setCustomRadius(false);
+                setRadius(e.target.value);
+              }
+              changed();
+            }}
+          >
+            {RADIUS_OPTIONS.map((mi) => (
+              <option key={mi} value={String(mi)}>
+                ≤ {mi.toLocaleString('en-US')} miles
+              </option>
+            ))}
+            <option value="custom">Custom…</option>
+          </select>
+          {customRadius && (
+            <input
+              id="ns-radius-custom"
+              type="number"
+              min={1}
+              required
+              value={radius}
+              onChange={(e) => { setRadius(e.target.value); changed(); }}
+              placeholder="Miles, e.g. 750"
+              aria-label="Custom max distance in miles"
+            />
+          )}
         </label>
-        <label className="field">
-          <span className="field__label">States (optional)</span>
-          <input id="ns-states" value={states} onChange={(e) => { setStates(e.target.value); changed(); }} placeholder="GA, AL" />
-        </label>
+        <StatePicker
+          label="States (optional)"
+          value={states}
+          onChange={(next) => {
+            setStates(next);
+            changed();
+          }}
+        />
+        <TagPicker
+          label="Rental companies (optional)"
+          value={suppliers}
+          options={companyOptions}
+          emptyText="All companies — type to add"
+          onChange={setSuppliers}
+        />
         <label className="field">
           <span className="field__label">Pickup date</span>
           <input id="ns-pickup" type="date" required min={tomorrowIso()} value={pickup} onChange={(e) => { setPickup(e.target.value); changed(); }} />
@@ -181,6 +232,9 @@ export function SearchesPage() {
                   </td>
                   <td>
                     ZIP {s.zip} · {s.radiusMiles} mi{s.states.length > 0 && ` · ${s.states.join(', ')}`}
+                    {s.suppliers && s.suppliers.length > 0 && (
+                      <div className="muted">Only {s.suppliers.join(', ')}</div>
+                    )}
                   </td>
                   <td>
                     {fullDate(s.pickupDate)} → {fullDate(s.returnDate)}

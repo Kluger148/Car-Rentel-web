@@ -82,6 +82,35 @@ export interface DealOffer {
   freeCancellation: boolean;
 }
 
+/** A shortlisted deal from any search, with the latest offer stored for it. */
+export interface Favourite {
+  id: number;
+  savedSearchId: number;
+  searchName: string;
+  fingerprint: string;
+  note: string | null;
+  createdAt: string;
+  /** Offer fields are null only if no offer was ever stored for this deal. */
+  vehicleName: string | null;
+  vehicleClass: VehicleClass | null;
+  category: string | null;
+  supplier: string | null;
+  bookingProvider: string | null;
+  seats: number | null;
+  totalPrice: string | null;
+  monthlyRate: string | null;
+  currency: string | null;
+  deeplink: string | null;
+  distanceMiles: number | null;
+  place: string | null;
+  locationState: string | null;
+  imageUrl: string | null;
+  /** When the offer shown was last seen. */
+  seenAt: string | null;
+  /** False once the deal is missing from its search's latest scan; the price is then the last known one. */
+  available: boolean;
+}
+
 export type SuggestionKind = 'vehicle' | 'category' | 'company' | 'provider' | 'place';
 
 export interface Suggestion {
@@ -164,6 +193,12 @@ export interface HistoryResponse {
   points: HistoryPoint[];
 }
 
+/** Where a running scan is: name-checking new places (count only), searching places, or saving offers. */
+export type RunProgress =
+  | { phase: 'checking'; checked: number }
+  | { phase: 'searching'; done: number; total: number }
+  | { phase: 'saving'; done: number; total: number };
+
 export interface Run {
   id: number;
   savedSearchId: number;
@@ -180,6 +215,8 @@ export interface Run {
   costUsd: string;
   error: string | null;
   meta: {
+    /** Live progress while status is 'running'; dropped when the run finishes. */
+    progress?: RunProgress;
     warnings?: string[];
     providerErrors?: string[];
     changes?: Record<string, number>;
@@ -202,6 +239,8 @@ export interface SavedSearch {
   zipState: string;
   radiusMiles: number;
   states: string[];
+  /** Only offers from these rental companies are kept. Empty = every company. Missing on older backends. */
+  suppliers?: string[];
   pickupDate: string;
   returnDate: string;
   rentalDays: number;
@@ -228,6 +267,7 @@ export interface SearchInput {
   zip: string;
   radiusMiles: number;
   states: string[];
+  suppliers: string[];
   pickupDate: string;
   name?: string;
   notes?: string;
@@ -373,6 +413,8 @@ export const api = {
   config: () => request<ScannerConfig>('/api/config'),
 
   searches: () => request<SavedSearch[]>('/api/searches'),
+  /** Rental companies seen in past scans, most offers first. */
+  companies: () => request<Array<{ name: string; count: number }>>('/api/searches/companies'),
   search: (id: number) => request<SearchDetail>(`/api/searches/${id}`),
   previewSearch: (input: SearchInput) => post<SearchPreview>('/api/searches/preview', input),
   createSearch: (input: SearchInput) => post<SearchDetail>('/api/searches', input),
@@ -398,4 +440,10 @@ export const api = {
     post<{ favourite: boolean }>(`/api/searches/${searchId}/favourites`, { fingerprint }),
   removeFavourite: (searchId: number, fingerprint: string) =>
     request<{ favourite: boolean }>(`/api/searches/${searchId}/favourites/${fingerprint}`, { method: 'DELETE' }),
+  favourites: () => request<Favourite[]>('/api/favourites'),
+  setFavouriteNote: (id: number, note: string) =>
+    request<{ id: number; note: string | null }>(`/api/favourites/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ note }),
+    }),
 };

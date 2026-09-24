@@ -4,15 +4,17 @@ import { VEHICLE_CLASSES, type VehicleClass } from './lib/api';
 import type { SortKey } from './lib/filters';
 import { DealDetailPage } from './routes/DealDetailPage';
 import { DealsPage } from './routes/DealsPage';
+import { FavouritesPage } from './routes/FavouritesPage';
 import { RunsPage } from './routes/RunsPage';
 import { SearchesPage } from './routes/SearchesPage';
 
 /** Filters live in the URL so any result view can be bookmarked or shared. */
 export interface DealsSearch {
   class?: VehicleClass;
-  state?: string;
+  states?: string[];
   suppliers?: string[];
   max?: number;
+  dist?: number;
   seats?: number;
   unlimited?: boolean;
   fav?: boolean;
@@ -58,9 +60,11 @@ const dealsRoute = createRoute({
     const sort = asString(search.sort);
     return {
       class: cls && VEHICLE_CLASSES.includes(cls as VehicleClass) ? (cls as VehicleClass) : undefined,
-      state: asString(search.state)?.toUpperCase(),
+      // `state` is the old single-state param; old bookmarks still open filtered.
+      states: asStringArray(search.states ?? search.state)?.map((s) => s.toUpperCase()),
       suppliers: asStringArray(search.suppliers),
       max: asNumber(search.max),
+      dist: asNumber(search.dist),
       seats: asNumber(search.seats),
       unlimited: search.unlimited === true || search.unlimited === 'true' ? true : undefined,
       fav: search.fav === true || search.fav === 'true' ? true : undefined,
@@ -77,13 +81,19 @@ const runsRoute = createRoute({
   component: RunsPage,
 });
 
+const favouritesRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/favourites',
+  component: FavouritesPage,
+});
+
 const dealDetailRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/deal/$fingerprint',
   component: DealDetailPage,
 });
 
-const routeTree = rootRoute.addChildren([searchesRoute, dealsRoute, runsRoute, dealDetailRoute]);
+const routeTree = rootRoute.addChildren([searchesRoute, dealsRoute, runsRoute, favouritesRoute, dealDetailRoute]);
 
 export const router = createRouter({
   routeTree,

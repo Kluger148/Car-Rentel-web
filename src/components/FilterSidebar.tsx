@@ -21,6 +21,15 @@ export function FilterSidebar({ filters, facets, onChange, onReset }: FilterSide
   const range = facets.monthlyRange;
   const sliderMax = range ? Math.max(range.max, 100) : 3000;
   const sliderValue = filters.maxMonthly ?? sliderMax;
+  const miles = facets.distanceRange;
+  const milesMax = miles ? Math.max(miles.max, miles.min + 5) : 0;
+
+  const toggleState = (state: string) => {
+    const next = filters.states.includes(state)
+      ? filters.states.filter((s) => s !== state)
+      : [...filters.states, state];
+    onChange({ states: next });
+  };
 
   const toggleSupplier = (supplier: string) => {
     const next = filters.suppliers.includes(supplier)
@@ -57,6 +66,28 @@ export function FilterSidebar({ filters, facets, onChange, onReset }: FilterSide
             onChange={(e) => {
               const v = Number(e.target.value);
               onChange({ maxMonthly: v >= sliderMax ? null : v });
+            }}
+          />
+        </div>
+      )}
+
+      {miles && miles.max > miles.min && (
+        <div className="filter-group">
+          <div className="filter-group__title">Max distance</div>
+          <div className="range-value">
+            <span>{miles.min} mi</span>
+            <strong>{filters.maxDistance === null ? 'Any' : `${filters.maxDistance} mi`}</strong>
+          </div>
+          <input
+            type="range"
+            min={miles.min}
+            max={milesMax}
+            step={5}
+            value={filters.maxDistance ?? milesMax}
+            aria-label="Maximum distance in miles"
+            onChange={(e) => {
+              const v = Number(e.target.value);
+              onChange({ maxDistance: v >= milesMax ? null : v });
             }}
           />
         </div>
@@ -114,19 +145,17 @@ export function FilterSidebar({ filters, facets, onChange, onReset }: FilterSide
       {facets.states.length > 1 && (
         <div className="filter-group">
           <div className="filter-group__title">State</div>
-          <select
-            className="select"
-            value={filters.state}
-            onChange={(e) => onChange({ state: e.target.value })}
-            aria-label="Filter by state"
-          >
-            <option value="ALL">All states</option>
-            {facets.states.map((s) => (
-              <option key={s.value} value={s.value}>
-                {s.value} ({s.count})
-              </option>
-            ))}
-          </select>
+          {facets.states.map((s) => (
+            <label className="check" key={s.value}>
+              <input
+                type="checkbox"
+                checked={filters.states.includes(s.value)}
+                onChange={() => toggleState(s.value)}
+              />
+              {s.value}
+              <span className="check__count">{s.count}</span>
+            </label>
+          ))}
         </div>
       )}
 

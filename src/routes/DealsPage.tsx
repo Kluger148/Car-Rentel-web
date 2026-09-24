@@ -1,8 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, getRouteApi } from '@tanstack/react-router';
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { DealCard } from '../components/DealCard';
 import { FilterSidebar } from '../components/FilterSidebar';
+import { ScanProgress } from '../components/ScanProgress';
 import { SearchPanel } from '../components/SearchPanel';
 import { DealSkeleton, ErrorState, NoMatchesState } from '../components/States';
 import { AlertIcon, HeartIcon } from '../components/icons';
@@ -28,9 +29,10 @@ export function DealsPage() {
   const filters: DealFilters = useMemo(
     () => ({
       vehicleClass: search.class ?? DEFAULT_FILTERS.vehicleClass,
-      state: search.state ?? DEFAULT_FILTERS.state,
+      states: search.states ?? DEFAULT_FILTERS.states,
       suppliers: search.suppliers ?? DEFAULT_FILTERS.suppliers,
       maxMonthly: search.max ?? DEFAULT_FILTERS.maxMonthly,
+      maxDistance: search.dist ?? DEFAULT_FILTERS.maxDistance,
       minSeats: search.seats ?? DEFAULT_FILTERS.minSeats,
       unlimitedMileageOnly: search.unlimited ?? DEFAULT_FILTERS.unlimitedMileageOnly,
       favouritesOnly: search.fav ?? DEFAULT_FILTERS.favouritesOnly,
@@ -45,9 +47,10 @@ export function DealsPage() {
       const next = { ...filters, ...patch };
       const nextSearch: DealsSearch = {
         class: next.vehicleClass === 'ALL' ? undefined : next.vehicleClass,
-        state: next.state === 'ALL' ? undefined : next.state,
+        states: next.states.length > 0 ? next.states : undefined,
         suppliers: next.suppliers.length > 0 ? next.suppliers : undefined,
         max: next.maxMonthly ?? undefined,
+        dist: next.maxDistance ?? undefined,
         seats: next.minSeats ?? undefined,
         unlimited: next.unlimitedMileageOnly ? true : undefined,
         fav: next.favouritesOnly ? true : undefined,
@@ -64,13 +67,24 @@ export function DealsPage() {
     void navigate({ search: { run: search.run }, replace: true });
   }, [navigate, search.run]);
 
+  // After "Run now", the id of the run that was latest at the click (0 = none). Polling
+  // continues until a newer run appears, since the backend creates it a moment later.
+  const [awaitingNewerThan, setAwaitingNewerThan] = useState<number | null>(null);
   const detailQuery = useQuery({
     queryKey: ['search', searchId],
     queryFn: () => api.search(searchId),
-    // Poll while a scan is running so the page updates when it finishes.
-    refetchInterval: (q) => (q.state.data?.runs[0]?.status === 'running' ? 5_000 : false),
+    // Poll while a scan is running so the progress bar moves and the page updates when it finishes.
+    refetchInterval: (q) =>
+      q.state.data?.runs[0]?.status === 'running' || awaitingNewerThan !== null ? 2_000 : false,
   });
   const latestRun = detailQuery.data?.runs[0];
+  if (awaitingNewerThan !== null && latestRun && latestRun.id > awaitingNewerThan) setAwaitingNewerThan(null);
+  // Give up waiting if no run ever appears (e.g. the backend was already busy with another scan).
+  useEffect(() => {
+    if (awaitingNewerThan === null) return;
+    const id = setTimeout(() => setAwaitingNewerThan(null), 60_000);
+    return () => clearTimeout(id);
+  }, [awaitingNewerThan]);
 
   const dealsQuery = useQuery({
     queryKey: ['deals', searchId, search.run ?? 'latest', latestRun?.id, latestRun?.status],
@@ -80,7 +94,9 @@ export function DealsPage() {
 
   const runNow = useMutation({
     mutationFn: () => api.runSearch(searchId),
+    onMutate: () => setAwaitingNewerThan(latestRun?.id ?? 0),
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['search', searchId] }),
+    onError: () => setAwaitingNewerThan(null),
   });
   const toggleActive = useMutation({
     mutationFn: (active: boolean) => api.setSearchActive(searchId, active),
@@ -112,6 +128,7 @@ export function DealsPage() {
     onError: (_e, _deal, ctx) => {
       if (ctx?.prev) queryClient.setQueryData(dealsKey, ctx.prev);
     },
+    onSettled: () => void queryClient.invalidateQueries({ queryKey: ['favourites'] }),
   });
 
   const allDeals = dealsQuery.data?.deals ?? NO_DEALS;
@@ -120,7 +137,7 @@ export function DealsPage() {
   const shownRun = detailQuery.data?.runs.find((r) => r.id === dealsQuery.data?.runId);
   const warnings = shownRun?.meta?.warnings ?? [];
   const s = detailQuery.data?.search;
-  const running = latestRun?.status === 'running' || runNow.isPending;
+  const running = latestRun?.status === 'running' || runNow.isPending || awaitingNewerThan !== null;
 
   return (
     <>
@@ -168,6 +185,7 @@ export function DealsPage() {
             </button>
           </div>
         </div>
+        {running && <ScanProgress run={latestRun?.status === 'running' ? latestRun : null} />}
         {runNow.isError && (
           <p className="form-error" role="alert">
             {runNow.error.message}
