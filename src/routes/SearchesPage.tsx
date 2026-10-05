@@ -186,6 +186,13 @@ export function SearchesPage() {
   const [showForm, setShowForm] = useState(false);
   const searchesQuery = useQuery({ queryKey: ['searches'], queryFn: () => api.searches(), staleTime: 30_000 });
   const searches = searchesQuery.data ?? [];
+  const toggleActive = useMutation({
+    mutationFn: ({ id, active }: { id: number; active: boolean }) => api.setSearchActive(id, active),
+    onSuccess: (_d, { id }) => {
+      void queryClient.invalidateQueries({ queryKey: ['searches'] });
+      void queryClient.invalidateQueries({ queryKey: ['search', id] });
+    },
+  });
 
   return (
     <div className="container">
@@ -209,6 +216,11 @@ export function SearchesPage() {
       )}
 
       {searchesQuery.isError && <ErrorState error={searchesQuery.error} onRetry={() => void searchesQuery.refetch()} />}
+      {toggleActive.isError && (
+        <p className="form-error" role="alert">
+          {toggleActive.error.message}
+        </p>
+      )}
 
       {searches.length > 0 && (
         <div className="card table-wrap">
@@ -225,7 +237,7 @@ export function SearchesPage() {
             </thead>
             <tbody>
               {searches.map((s) => (
-                <tr key={s.id} style={{ opacity: s.active ? 1 : 0.55 }}>
+                <tr key={s.id} className={s.active ? undefined : 'is-off'}>
                   <td>
                     <strong>{s.name}</strong>
                     {s.notes && <div className="muted">{s.notes}</div>}
@@ -249,7 +261,20 @@ export function SearchesPage() {
                       <span className="muted">Not scanned yet</span>
                     )}
                   </td>
-                  <td>{s.active ? 'Active (daily)' : 'Off'}</td>
+                  <td className="cell-switch">
+                    <button
+                      type="button"
+                      role="switch"
+                      className="switch"
+                      aria-checked={s.active}
+                      aria-label={`Daily scan for ${s.name}`}
+                      disabled={toggleActive.isPending && toggleActive.variables?.id === s.id}
+                      onClick={() => toggleActive.mutate({ id: s.id, active: !s.active })}
+                    >
+                      <span className="switch__track" />
+                      {s.active ? 'Daily' : 'Off'}
+                    </button>
+                  </td>
                   <td>
                     <Link to="/search/$id" params={{ id: String(s.id) }}>
                       Open deals

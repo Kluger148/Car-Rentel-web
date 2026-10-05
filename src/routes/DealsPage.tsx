@@ -3,6 +3,7 @@ import { Link, getRouteApi } from '@tanstack/react-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { DealCard } from '../components/DealCard';
 import { FilterSidebar } from '../components/FilterSidebar';
+import { RunCostDialog } from '../components/RunCostDialog';
 import { ScanProgress } from '../components/ScanProgress';
 import { SearchPanel } from '../components/SearchPanel';
 import { DealSkeleton, ErrorState, NoMatchesState } from '../components/States';
@@ -92,6 +93,7 @@ export function DealsPage() {
     staleTime: 60_000,
   });
 
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const runNow = useMutation({
     mutationFn: () => api.runSearch(searchId),
     onMutate: () => setAwaitingNewerThan(latestRun?.id ?? 0),
@@ -180,11 +182,20 @@ export function DealsPage() {
                 {s.active ? 'Stop daily runs' : 'Resume daily runs'}
               </button>
             )}
-            <button type="button" className="btn btn--primary" disabled={running} onClick={() => runNow.mutate()}>
+            <button type="button" className="btn btn--primary" disabled={running} onClick={() => setConfirmOpen(true)}>
               {running ? 'Scanning…' : 'Run now'}
             </button>
           </div>
         </div>
+        <RunCostDialog
+          searchId={searchId}
+          open={confirmOpen}
+          onClose={() => setConfirmOpen(false)}
+          onConfirm={() => {
+            setConfirmOpen(false);
+            runNow.mutate();
+          }}
+        />
         {running && <ScanProgress run={latestRun?.status === 'running' ? latestRun : null} />}
         {runNow.isError && (
           <p className="form-error" role="alert">

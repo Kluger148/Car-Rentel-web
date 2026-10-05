@@ -3,7 +3,7 @@ import { Link, Outlet, useRouterState } from '@tanstack/react-router';
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { auth } from '../lib/api';
 import { LoginPage } from '../routes/LoginPage';
-import { MoonIcon, SunIcon, VanIcon } from './icons';
+import { CalendarIcon, HeartIcon, MoonIcon, SearchIcon, SunIcon, VanIcon } from './icons';
 
 type Theme = 'light' | 'dark';
 
@@ -75,22 +75,32 @@ export function Layout() {
             <span className="brand__mark">
               <VanIcon size={17} />
             </span>
-            VanScan
+            <span className="brand__name">
+              Van<span>Scan</span>
+            </span>
           </Link>
-          <nav className="topnav">
+          <nav className="topnav" aria-label="Main">
             <Link to="/" data-active={pathname === '/' || pathname.startsWith('/search')}>
-              Searches
+              <SearchIcon size={15} />
+              <span>Searches</span>
             </Link>
             <Link to="/favourites" data-active={pathname.startsWith('/favourites')}>
-              Favorites
+              <HeartIcon size={15} />
+              <span>Favorites</span>
             </Link>
             <Link to="/runs" data-active={pathname.startsWith('/runs')}>
-              Scan history
+              <CalendarIcon size={15} />
+              <span>Scan history</span>
             </Link>
           </nav>
           <div className="topbar__meta">
-            <span>{session.user.name ?? session.user.email}</span>
-            <button type="button" className="link-quiet" onClick={signOut}>
+            <span className="user-chip" title={session.user.email}>
+              <span className="user-chip__avatar" aria-hidden="true">
+                {(session.user.name ?? session.user.email).trim().charAt(0).toUpperCase()}
+              </span>
+              <span className="user-chip__name">{session.user.name ?? session.user.email}</span>
+            </span>
+            <button type="button" className="btn btn--ghost btn--sm signout" onClick={signOut}>
               Sign out
             </button>
           </div>

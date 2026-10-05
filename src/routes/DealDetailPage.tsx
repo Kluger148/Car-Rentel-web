@@ -11,7 +11,8 @@ const num = (s: string) => Number.parseFloat(s);
 
 /** Coloured ▼/▲ against the previous scan; nothing on the first one. */
 function Delta({ from, to }: { from?: string; to: string }) {
-  if (!from) return <span className="muted">—</span>;
+  // The oldest scan has nothing to compare against.
+  if (!from) return <span className="muted">first seen</span>;
   const pct = percentDelta(from, to);
   if (pct === null || Math.abs(pct) < 0.05) return <span className="muted">no change</span>;
   const down = pct < 0;
@@ -186,10 +187,17 @@ export function DealDetailPage() {
           </section>
 
           <section className="card section" style={{ padding: 0 }}>
-            <div className="section__head" style={{ padding: '16px 18px 0' }}>
-              <h2>Every scan</h2>
-              <span className="muted">Cheapest offer found for this car in each scan</span>
-            </div>
+            <header className="table-head">
+              <div>
+                <h2 className="table-head__title">
+                  Every scan
+                  <span className="table-head__count">
+                    {points.length} {points.length === 1 ? 'scan' : 'scans'}
+                  </span>
+                </h2>
+                <p className="table-head__sub">Cheapest offer found for this car in each scan, newest first</p>
+              </div>
+            </header>
             <div className="table-wrap">
               <table className="data">
                 <thead>

@@ -404,6 +404,30 @@ function toQuery(params: Record<string, string | number | undefined>): string {
   return s ? `?${s}` : '';
 }
 
+/** What "Run now" would cost, worked out by the API before anything is charged. */
+export interface RunEstimate {
+  savedSearchId: number;
+  actorId: string;
+  /** Places the run will search (at most: some new places may not be recognised). */
+  places: number;
+  /** New places name-checked first with a 1-offer search. */
+  nameChecks: number;
+  perPlaceUsd: number | null;
+  /** 'history' = average of past scans; 'price-list' = the actor's Apify prices and the offer cap. */
+  basis: 'history' | 'price-list' | null;
+  historyRuns: number;
+  perNameCheckUsd: number | null;
+  expectedUsd: number | null;
+  /** What the configured caps let the run spend. */
+  limitUsd: number;
+  perSearchCapUsd: number;
+  runCapUsd: number;
+  maxResultsPerPlace: number;
+  price: { startUsd: number; perItemUsd: number } | null;
+  priceError: string | null;
+  scanRunning: boolean;
+}
+
 const post = <T>(path: string, body: unknown) => request<T>(path, { method: 'POST', body: JSON.stringify(body) });
 
 export const api = {
@@ -420,6 +444,7 @@ export const api = {
   createSearch: (input: SearchInput) => post<SearchDetail>('/api/searches', input),
   setSearchActive: (id: number, active: boolean) =>
     request<SearchDetail>(`/api/searches/${id}`, { method: 'PATCH', body: JSON.stringify({ active }) }),
+  estimateRun: (id: number) => request<RunEstimate>(`/api/searches/${id}/estimate`),
   runSearch: (id: number) => post<{ started: boolean }>(`/api/searches/${id}/run`, {}),
 
   runs: (limit = 20, searchId?: number) => request<Run[]>(`/api/runs${toQuery({ limit, searchId })}`),
