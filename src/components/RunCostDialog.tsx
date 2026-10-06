@@ -12,12 +12,18 @@ function usd(value: number): string {
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
 function basisText(e: RunEstimate): string {
-  if (e.basis === 'history') return `Based on the average of the last ${plural(e.historyRuns, 'scan')}.`;
+  if (e.basis === 'history') {
+    return e.pastRuns
+      ? `The average of this search's last ${plural(e.historyRuns, 'scan')}.`
+      : `This search has not run yet: based on the average of ${plural(e.historyRuns, 'scan')} of other searches.`;
+  }
   if (e.basis === 'price-list') {
-    return `Based on the Apify price list, with up to ${e.maxResultsPerPlace} offers per place.`;
+    return `Based on the Apify price list, if every place returns all ${e.maxResultsPerPlace} offers. Usually a little less.`;
   }
   return 'No past scans or Apify price list to estimate from yet.';
 }
+
+const resetDay = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
 
 interface Props {
   searchId: number;
@@ -47,6 +53,10 @@ export function RunCostDialog({ searchId, open, onClose, onConfirm }: Props) {
   });
   const e = estimate.data;
   const busy = e?.scanRunning ?? false;
+  const past = e?.pastRuns ?? null;
+  const account = e?.apifyAccount ?? null;
+  // With an offer cap the run has a real ceiling; without one only the safety caps bound it.
+  const hasCeiling = e !== undefined && e.maxUsd !== undefined && e.maxUsd < e.limitUsd;
 
   return (
     <dialog
@@ -101,19 +111,45 @@ export function RunCostDialog({ searchId, open, onClose, onConfirm }: Props) {
                   </dd>
                 </div>
               )}
-              <div>
-                <dt>Spend limit</dt>
-                <dd>{usd(e.limitUsd)}</dd>
-              </div>
+              {past && (
+                <div>
+                  <dt>Past scans of this search</dt>
+                  <dd>
+                    {past.minUsd === past.maxUsd ? usd(past.minUsd) : `${usd(past.minUsd)} – ${usd(past.maxUsd)}`}
+                    {past.count > 1 && <span className="muted"> · last {usd(past.lastUsd)}</span>}
+                  </dd>
+                </div>
+              )}
+              {hasCeiling && e.maxUsd !== undefined && (
+                <div>
+                  <dt>Most it can cost</dt>
+                  <dd>{usd(e.maxUsd)}</dd>
+                </div>
+              )}
             </dl>
 
             <p className="cost-estimate__note">
-              {e.runCapUsd > 0
-                ? `No new place starts once a run has spent ${usd(e.runCapUsd)}; places already running still finish. `
-                : ''}
-              Each place is capped at {usd(e.perSearchCapUsd)}.
-              {e.nameChecks > 0 && ' Places Skyscanner does not recognise are skipped, so the real cost can be lower.'}
+              {hasCeiling
+                ? `A place costs less when it returns fewer than ${e.maxResultsPerPlace} offers, so scans vary a little. `
+                : 'The cost depends on how many offers each place returns. '}
+              {e.nameChecks > 0 && 'Places Skyscanner does not recognise are skipped, which lowers the cost. '}
+              Safety cap: {e.runCapUsd > 0 ? `a run stops starting new places at ${usd(e.runCapUsd)}, and ` : ''}
+              one place can never charge more than {usd(e.perSearchCapUsd)}.
             </p>
+
+            {account?.limitReached && (
+              <p className="cost-estimate__warn cost-estimate__warn--block" role="alert">
+                <AlertIcon size={14} /> Apify has paused this account: its monthly usage limit of {usd(account.limitUsd)}{' '}
+                is used up ({usd(account.usedUsd)}). This scan will fail until the limit is raised in Apify
+                {account.resetsAt ? ` or the new billing period starts after ${resetDay.format(new Date(account.resetsAt))}` : ''}.
+              </p>
+            )}
+            {account && !account.limitReached && e.expectedUsd !== null && account.usedUsd + e.expectedUsd > account.limitUsd && (
+              <p className="cost-estimate__warn">
+                <AlertIcon size={14} /> Only {usd(Math.max(0, account.limitUsd - account.usedUsd))} is left of the Apify
+                account's {usd(account.limitUsd)} monthly limit, so this scan may stop part-way.
+              </p>
+            )}
 
             {e.priceError && (
               <p className="cost-estimate__warn">

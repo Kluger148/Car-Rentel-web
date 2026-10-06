@@ -472,6 +472,12 @@ export interface RunEstimate {
   historyRuns: number;
   perNameCheckUsd: number | null;
   expectedUsd: number | null;
+  /** The most this run can cost: every place returning the full offer cap. Missing on older backends. */
+  maxUsd?: number;
+  /** What this search's own past scans cost; null when it has none yet. */
+  pastRuns?: { count: number; minUsd: number; maxUsd: number; lastUsd: number } | null;
+  /** The Apify account's usage against its monthly limit; null when it could not be read. */
+  apifyAccount?: { usedUsd: number; limitUsd: number; limitReached: boolean; resetsAt: string | null } | null;
   /** What the configured caps let the run spend. */
   limitUsd: number;
   perSearchCapUsd: number;

@@ -1486,3 +1486,4 @@ table.data .num {
 .scheduler-bar__cost { margin-left: auto; font-variant-numeric: tabular-nums; }
 .scheduler-bar__warn { flex-basis: 100%; color: var(--amber-600); font-size: 13px; }
 .select--sm { padding: 5px 8px; font-size: 13px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); color: var(--text); }
+.cost-estimate__warn--block { padding: 10px 12px; border-radius: var(--radius-sm); background: var(--red-100); color: var(--red-600); font-weight: 600; }
