@@ -7,7 +7,7 @@ import { RunCostDialog } from '../components/RunCostDialog';
 import { ScanProgress } from '../components/ScanProgress';
 import { SearchPanel } from '../components/SearchPanel';
 import { DealSkeleton, ErrorState, NoMatchesState } from '../components/States';
-import { AlertIcon, HeartIcon } from '../components/icons';
+import { HeartIcon } from '../components/icons';
 import { api, type Deal, type DealsResponse } from '../lib/api';
 import type { DealsSearch } from '../router';
 import type { DealFilters } from '../lib/filters';
@@ -136,8 +136,6 @@ export function DealsPage() {
   const allDeals = dealsQuery.data?.deals ?? NO_DEALS;
   const facets = useMemo(() => buildFacets(allDeals), [allDeals]);
   const visible = useMemo(() => applyFilters(allDeals, filters), [allDeals, filters]);
-  const shownRun = detailQuery.data?.runs.find((r) => r.id === dealsQuery.data?.runId);
-  const warnings = shownRun?.meta?.warnings ?? [];
   const s = detailQuery.data?.search;
   const running = latestRun?.status === 'running' || runNow.isPending || awaitingNewerThan !== null;
 
@@ -252,20 +250,6 @@ export function DealsPage() {
                 </label>
               </div>
             </div>
-
-            {warnings.length > 0 && (
-              <div className="banner banner--warn">
-                <AlertIcon size={18} />
-                <div>
-                  <strong>Scan warning</strong>
-                  <ul>
-                    {warnings.map((w) => (
-                      <li key={w}>{w}</li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-            )}
 
             {dealsQuery.isPending && <DealSkeleton />}
 

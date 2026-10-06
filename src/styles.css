@@ -1323,9 +1323,11 @@ table.data .num {
 .dc-fav:hover { color: var(--red-600); transform: scale(1.08); }
 .dc-fav.is-on { color: var(--red-600); border-color: var(--red-600); }
 .results__controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.chip--fav { display: inline-flex; align-items: center; gap: 6px; }
-.chip--fav.is-on { background: var(--red-100); border-color: var(--red-600); color: var(--red-600); }
-.chip--fav .chip__count { background: var(--red-600); color: #fff; }
+/* Sits on the results card, not the dark hero, so it takes the theme's own colours. */
+.chip--fav { display: inline-flex; align-items: center; gap: 6px; border-color: var(--border-strong); background: var(--surface); color: var(--text); cursor: pointer; }
+.chip--fav:hover { background: var(--surface-2); }
+.chip--fav.is-on, .chip--fav.is-on:hover { background: var(--red-100); border-color: var(--red-600); color: var(--red-600); }
+.chip--fav .chip__count { min-width: 20px; margin-left: 2px; padding: 1px 6px; border-radius: 999px; background: var(--red-600); color: #fff; font-size: 12px; font-weight: 700; line-height: 1.5; text-align: center; opacity: 1; }
 
 /* ---- scan history: run cards ------------------------------------------------------------- */
 .pill--ok { background: var(--green-100); color: var(--green-600); }
