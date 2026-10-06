@@ -238,11 +238,11 @@ export function SearchesPage() {
             <tbody>
               {searches.map((s) => (
                 <tr key={s.id} className={s.active ? undefined : 'is-off'}>
-                  <td>
+                  <td className="cell-wrap">
                     <strong>{s.name}</strong>
                     {s.notes && <div className="muted">{s.notes}</div>}
                   </td>
-                  <td>
+                  <td className="cell-wrap">
                     ZIP {s.zip} · {s.radiusMiles} mi{s.states.length > 0 && ` · ${s.states.join(', ')}`}
                     {s.suppliers && s.suppliers.length > 0 && (
                       <div className="muted">Only {s.suppliers.join(', ')}</div>

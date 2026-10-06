@@ -2,9 +2,11 @@ import { createRootRoute, createRoute, createRouter } from '@tanstack/react-rout
 import { Layout } from './components/Layout';
 import { VEHICLE_CLASSES, type VehicleClass } from './lib/api';
 import type { SortKey } from './lib/filters';
+import { AccountPage } from './routes/AccountPage';
 import { DealDetailPage } from './routes/DealDetailPage';
 import { DealsPage } from './routes/DealsPage';
 import { FavouritesPage } from './routes/FavouritesPage';
+import { ProfilePage } from './routes/ProfilePage';
 import { RunsPage } from './routes/RunsPage';
 import { SearchesPage } from './routes/SearchesPage';
 
@@ -93,7 +95,27 @@ const dealDetailRoute = createRoute({
   component: DealDetailPage,
 });
 
-const routeTree = rootRoute.addChildren([searchesRoute, dealsRoute, runsRoute, favouritesRoute, dealDetailRoute]);
+const profileRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/profile',
+  component: ProfilePage,
+});
+
+const accountRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/account',
+  component: AccountPage,
+});
+
+const routeTree = rootRoute.addChildren([
+  searchesRoute,
+  dealsRoute,
+  runsRoute,
+  favouritesRoute,
+  dealDetailRoute,
+  profileRoute,
+  accountRoute,
+]);
 
 export const router = createRouter({
   routeTree,

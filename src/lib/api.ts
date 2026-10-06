@@ -15,6 +15,22 @@ export interface User {
   email: string;
   name: string | null;
   lastLoginAt: string | null;
+  /** Missing in sessions stored before the account pages existed. */
+  createdAt?: string;
+}
+
+/** This month's Apify spend against the shared budget. Scheduled scans stop while it is exceeded. */
+export interface Budget {
+  /** Null = no budget set. */
+  monthlyBudgetUsd: number | null;
+  spentUsd: number;
+  remainingUsd: number | null;
+  exceeded: boolean;
+  periodStart: string;
+  /** When the spend resets (start of next month, UTC). */
+  periodEnd: string;
+  updatedAt: string | null;
+  updatedBy: string | null;
 }
 
 export interface LoginResponse {
@@ -435,6 +451,16 @@ export const api = {
   login: (email: string, password: string) => post<LoginResponse>('/api/auth/login', { email, password }),
   me: () => request<User>('/api/auth/me'),
   config: () => request<ScannerConfig>('/api/config'),
+
+  profile: () => request<User>('/api/account/profile'),
+  updateProfile: (patch: { name?: string | null; email?: string }) =>
+    request<User>('/api/account/profile', { method: 'PATCH', body: JSON.stringify(patch) }),
+  changePassword: (currentPassword: string, newPassword: string) =>
+    post<{ changed: boolean }>('/api/account/password', { currentPassword, newPassword }),
+  budget: () => request<Budget>('/api/account/budget'),
+  /** Null removes the budget. */
+  setBudget: (monthlyBudgetUsd: number | null) =>
+    request<Budget>('/api/account/budget', { method: 'PUT', body: JSON.stringify({ monthlyBudgetUsd }) }),
 
   searches: () => request<SavedSearch[]>('/api/searches'),
   /** Rental companies seen in past scans, most offers first. */

@@ -3,6 +3,7 @@ import { Link, Outlet, useRouterState } from '@tanstack/react-router';
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { auth } from '../lib/api';
 import { LoginPage } from '../routes/LoginPage';
+import { UserMenu } from './UserMenu';
 import { CalendarIcon, HeartIcon, MoonIcon, SearchIcon, SunIcon, VanIcon } from './icons';
 
 type Theme = 'light' | 'dark';
@@ -94,15 +95,11 @@ export function Layout() {
             </Link>
           </nav>
           <div className="topbar__meta">
-            <span className="user-chip" title={session.user.email}>
-              <span className="user-chip__avatar" aria-hidden="true">
-                {(session.user.name ?? session.user.email).trim().charAt(0).toUpperCase()}
-              </span>
-              <span className="user-chip__name">{session.user.name ?? session.user.email}</span>
-            </span>
-            <button type="button" className="btn btn--ghost btn--sm signout" onClick={signOut}>
-              Sign out
-            </button>
+            <UserMenu
+              user={session.user}
+              active={pathname.startsWith('/profile') || pathname.startsWith('/account')}
+              onSignOut={signOut}
+            />
           </div>
           {themeButton}
         </div>
