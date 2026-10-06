@@ -57,6 +57,8 @@ function DetailsForm({ user }: { user: User }) {
 
 function BudgetForm({ budget }: { budget: Budget }) {
   const queryClient = useQueryClient();
+  const scheduler = useQuery({ queryKey: ['scheduler'], queryFn: () => api.scheduler(), staleTime: 30_000 });
+  const planned = scheduler.data && scheduler.data.searches.length > 0 ? scheduler.data.monthlyUsd : null;
   const [amount, setAmount] = useState(budget.monthlyBudgetUsd === null ? '' : String(budget.monthlyBudgetUsd));
 
   const save = useMutation({
@@ -115,6 +117,14 @@ function BudgetForm({ budget }: { budget: Budget }) {
           )
         )}
       </div>
+
+      {planned !== null && (
+        <p className="muted">
+          The searches switched on now are expected to cost about <strong>{money(planned, 'USD', 2)}</strong> per
+          month at their current schedules
+          {limit !== null && planned > limit ? ', which is above this budget.' : '.'}
+        </p>
+      )}
 
       <div className="form-grid">
         <label className="field">

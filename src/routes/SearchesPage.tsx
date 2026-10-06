@@ -1,9 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import { useState, type FormEvent } from 'react';
+import { SchedulerBar } from '../components/SchedulerBar';
 import { StatePicker, TagPicker } from '../components/TagPicker';
 import { ErrorState } from '../components/States';
-import { api, type SearchInput, type SearchPreview } from '../lib/api';
+import { INTERVAL_OPTIONS, api, intervalLabel, type SearchInput, type SearchPreview } from '../lib/api';
 import { STATUS_LABEL, fullDate, relativeTime } from '../lib/format';
 
 function tomorrowIso(): string {
@@ -27,6 +28,7 @@ function NewSearchForm({ onCreated }: { onCreated: (id: number) => void }) {
     hint: `${c.count.toLocaleString('en-US')} offers`,
   }));
   const [pickup, setPickup] = useState(tomorrowIso());
+  const [intervalDays, setIntervalDays] = useState(1);
   const [name, setName] = useState('');
   const [notes, setNotes] = useState('');
   const [preview, setPreview] = useState<SearchPreview | null>(null);
@@ -38,6 +40,7 @@ function NewSearchForm({ onCreated }: { onCreated: (id: number) => void }) {
     states,
     suppliers,
     pickupDate: pickup,
+    intervalDays,
     name: name.trim() || undefined,
     notes: notes.trim() || undefined,
   });
@@ -131,6 +134,16 @@ function NewSearchForm({ onCreated }: { onCreated: (id: number) => void }) {
           <input id="ns-pickup" type="date" required min={tomorrowIso()} value={pickup} onChange={(e) => { setPickup(e.target.value); changed(); }} />
         </label>
         <label className="field">
+          <span className="field__label">Repeat</span>
+          <select id="ns-interval" value={intervalDays} onChange={(e) => setIntervalDays(Number(e.target.value))}>
+            {INTERVAL_OPTIONS.map((o) => (
+              <option key={o.days} value={o.days}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="field">
           <span className="field__label">Name (optional)</span>
           <input id="ns-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Customer or request" />
         </label>
@@ -186,12 +199,19 @@ export function SearchesPage() {
   const [showForm, setShowForm] = useState(false);
   const searchesQuery = useQuery({ queryKey: ['searches'], queryFn: () => api.searches(), staleTime: 30_000 });
   const searches = searchesQuery.data ?? [];
+  const refresh = (id: number) => {
+    void queryClient.invalidateQueries({ queryKey: ['searches'] });
+    void queryClient.invalidateQueries({ queryKey: ['search', id] });
+    // Switching a search or changing how often it repeats changes the scheduler's expected cost.
+    void queryClient.invalidateQueries({ queryKey: ['scheduler'] });
+  };
   const toggleActive = useMutation({
     mutationFn: ({ id, active }: { id: number; active: boolean }) => api.setSearchActive(id, active),
-    onSuccess: (_d, { id }) => {
-      void queryClient.invalidateQueries({ queryKey: ['searches'] });
-      void queryClient.invalidateQueries({ queryKey: ['search', id] });
-    },
+    onSuccess: (_d, { id }) => refresh(id),
+  });
+  const changeInterval = useMutation({
+    mutationFn: ({ id, days }: { id: number; days: number }) => api.setSearchInterval(id, days),
+    onSuccess: (_d, { id }) => refresh(id),
   });
 
   return (
@@ -199,7 +219,7 @@ export function SearchesPage() {
       <div className="page-head page-head--row">
         <div>
           <h1>Saved searches</h1>
-          <p>Each search looks for complete 330-day rentals on Skyscanner and re-runs every day.</p>
+          <p>Each search looks for complete 330-day rentals on Skyscanner and re-runs on its own schedule.</p>
         </div>
         <button type="button" className="btn btn--primary" onClick={() => setShowForm((v) => !v)}>
           {showForm ? 'Close' : 'New search'}
@@ -211,14 +231,22 @@ export function SearchesPage() {
           onCreated={() => {
             setShowForm(false);
             void queryClient.invalidateQueries({ queryKey: ['searches'] });
+            void queryClient.invalidateQueries({ queryKey: ['scheduler'] });
           }}
         />
       )}
+
+      {searches.length > 0 && <SchedulerBar />}
 
       {searchesQuery.isError && <ErrorState error={searchesQuery.error} onRetry={() => void searchesQuery.refetch()} />}
       {toggleActive.isError && (
         <p className="form-error" role="alert">
           {toggleActive.error.message}
+        </p>
+      )}
+      {changeInterval.isError && (
+        <p className="form-error" role="alert">
+          {changeInterval.error.message}
         </p>
       )}
 
@@ -231,7 +259,8 @@ export function SearchesPage() {
                 <th>Area</th>
                 <th>Pickup → return</th>
                 <th>Last scan</th>
-                <th>Status</th>
+                <th>Scheduled</th>
+                <th>Repeat</th>
                 <th />
               </tr>
             </thead>
@@ -267,13 +296,32 @@ export function SearchesPage() {
                       role="switch"
                       className="switch"
                       aria-checked={s.active}
-                      aria-label={`Daily scan for ${s.name}`}
+                      aria-label={`Scheduled scan for ${s.name}`}
                       disabled={toggleActive.isPending && toggleActive.variables?.id === s.id}
                       onClick={() => toggleActive.mutate({ id: s.id, active: !s.active })}
                     >
                       <span className="switch__track" />
-                      {s.active ? 'Daily' : 'Off'}
+                      {s.active ? 'On' : 'Off'}
                     </button>
+                  </td>
+                  <td className="cell-switch">
+                    <select
+                      className="select select--sm"
+                      aria-label={`How often ${s.name} repeats`}
+                      title={intervalLabel(s.intervalDays)}
+                      value={s.intervalDays ?? 1}
+                      disabled={changeInterval.isPending && changeInterval.variables?.id === s.id}
+                      onChange={(e) => changeInterval.mutate({ id: s.id, days: Number(e.target.value) })}
+                    >
+                      {INTERVAL_OPTIONS.map((o) => (
+                        <option key={o.days} value={o.days}>
+                          {o.label}
+                        </option>
+                      ))}
+                      {!INTERVAL_OPTIONS.some((o) => o.days === (s.intervalDays ?? 1)) && (
+                        <option value={s.intervalDays}>{intervalLabel(s.intervalDays)}</option>
+                      )}
+                    </select>
                   </td>
                   <td>
                     <Link to="/search/$id" params={{ id: String(s.id) }}>

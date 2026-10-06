@@ -1477,3 +1477,10 @@ table.data .num {
 .budget--over .budget__bar span { background: var(--red-600); }
 .budget__note { margin: 0; font-size: 13px; color: var(--text-muted); }
 .budget__note--over { color: var(--red-600); font-weight: 600; }
+
+/* ---- scheduler bar and repeat interval ---------------------------------------------------- */
+.scheduler-bar { display: flex; align-items: center; gap: 8px 18px; flex-wrap: wrap; padding: 12px 16px; margin-bottom: 16px; font-size: 14px; }
+.scheduler-bar__state { color: var(--text-muted); }
+.scheduler-bar__cost { margin-left: auto; font-variant-numeric: tabular-nums; }
+.scheduler-bar__warn { flex-basis: 100%; color: var(--amber-600); font-size: 13px; }
+.select--sm { padding: 5px 8px; font-size: 13px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); color: var(--text); }

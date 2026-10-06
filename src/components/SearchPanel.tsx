@@ -3,6 +3,7 @@ import type { DealFilters } from '../lib/filters';
 import type { Facets } from '../lib/filters';
 import { CLASS_LABEL } from '../lib/format';
 import { Autocomplete } from './Autocomplete';
+import { stateName } from './TagPicker';
 import { SearchIcon } from './icons';
 
 interface SearchPanelProps {
@@ -51,7 +52,7 @@ export function SearchPanel({ filters, facets, totalCount, searchId, runId, titl
               )}
               {facets.states.map((s) => (
                 <option key={s.value} value={s.value}>
-                  {s.value}
+                  {stateName(s.value)} ({s.value}) · {s.count}
                 </option>
               ))}
             </select>

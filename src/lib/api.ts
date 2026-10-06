@@ -261,6 +261,8 @@ export interface SavedSearch {
   returnDate: string;
   rentalDays: number;
   active: boolean;
+  /** Days between scheduled scans: 1 daily, 7 weekly, 15, 30. Missing on older backends. */
+  intervalDays?: number;
   createdAt: string;
   lastRun?: Run | null;
 }
@@ -285,8 +287,44 @@ export interface SearchInput {
   states: string[];
   suppliers: string[];
   pickupDate: string;
+  intervalDays?: number;
   name?: string;
   notes?: string;
+}
+
+/** How often a search can repeat. */
+export const INTERVAL_OPTIONS = [
+  { days: 1, label: 'Daily' },
+  { days: 7, label: 'Weekly' },
+  { days: 15, label: 'Every 15 days' },
+  { days: 30, label: 'Every 30 days' },
+] as const;
+
+export function intervalLabel(days: number | undefined): string {
+  const d = days ?? 1;
+  return INTERVAL_OPTIONS.find((o) => o.days === d)?.label ?? `Every ${d} days`;
+}
+
+/** The scheduler's master switch, next run and expected cost of the scheduled scans. */
+export interface Scheduler {
+  enabled: boolean;
+  /** False when the server has no cron set: nothing runs automatically. */
+  configured: boolean;
+  cron: string | null;
+  nextRunAt: string | null;
+  searches: Array<{
+    savedSearchId: number;
+    name: string;
+    intervalDays: number;
+    perRunUsd: number | null;
+    runsPerMonth: number;
+    monthlyUsd: number | null;
+  }>;
+  /** Expected cost if every switched-on search ran once. */
+  perCycleUsd: number;
+  /** Expected cost of a 30-day month at each search's interval. */
+  monthlyUsd: number;
+  unknownCosts: number;
 }
 
 export interface SearchPreview {
@@ -470,6 +508,11 @@ export const api = {
   createSearch: (input: SearchInput) => post<SearchDetail>('/api/searches', input),
   setSearchActive: (id: number, active: boolean) =>
     request<SearchDetail>(`/api/searches/${id}`, { method: 'PATCH', body: JSON.stringify({ active }) }),
+  setSearchInterval: (id: number, intervalDays: number) =>
+    request<SearchDetail>(`/api/searches/${id}`, { method: 'PATCH', body: JSON.stringify({ intervalDays }) }),
+  scheduler: () => request<Scheduler>('/api/scheduler'),
+  setSchedulerEnabled: (enabled: boolean) =>
+    request<Scheduler>('/api/scheduler', { method: 'PUT', body: JSON.stringify({ enabled }) }),
   estimateRun: (id: number) => request<RunEstimate>(`/api/searches/${id}/estimate`),
   runSearch: (id: number) => post<{ started: boolean }>(`/api/searches/${id}/run`, {}),
 

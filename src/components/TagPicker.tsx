@@ -178,6 +178,9 @@ export function TagPicker({
   );
 }
 
+/** "GA" -> "Georgia"; the code itself when it is not a US state. */
+export const stateName = (code: string): string => US_STATES.find(([c]) => c === code)?.[1] ?? code;
+
 const STATE_OPTIONS: TagOption[] = US_STATES.map(([code, name]) => ({ value: code, code, label: name }));
 const upper = (s: string) => s.trim().toUpperCase();
 
