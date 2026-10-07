@@ -4,7 +4,7 @@ import { useState, type FormEvent } from 'react';
 import { SchedulerBar } from '../components/SchedulerBar';
 import { StatePicker, TagPicker } from '../components/TagPicker';
 import { ErrorState } from '../components/States';
-import { INTERVAL_OPTIONS, api, intervalLabel, type SearchInput, type SearchPreview } from '../lib/api';
+import { INTERVAL_OPTIONS, api, intervalLabel, type SavedSearch, type SearchInput, type SearchPreview } from '../lib/api';
 import { STATUS_LABEL, fullDate, relativeTime } from '../lib/format';
 
 function tomorrowIso(): string {
@@ -198,7 +198,8 @@ export function SearchesPage() {
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
   const searchesQuery = useQuery({ queryKey: ['searches'], queryFn: () => api.searches(), staleTime: 30_000 });
-  const searches = searchesQuery.data ?? [];
+  // The API lists switched-on searches first. Newest first keeps each row in place when its switch changes.
+  const searches = [...(searchesQuery.data ?? [])].sort((a, b) => b.id - a.id);
   const refresh = (id: number) => {
     void queryClient.invalidateQueries({ queryKey: ['searches'] });
     void queryClient.invalidateQueries({ queryKey: ['search', id] });
@@ -207,7 +208,13 @@ export function SearchesPage() {
   };
   const toggleActive = useMutation({
     mutationFn: ({ id, active }: { id: number; active: boolean }) => api.setSearchActive(id, active),
-    onSuccess: (_d, { id }) => refresh(id),
+    onSuccess: (_d, { id, active }) => {
+      // Show the new state straight away; the refetch below confirms it.
+      queryClient.setQueryData<SavedSearch[]>(['searches'], (rows) =>
+        rows?.map((s) => (s.id === id ? { ...s, active } : s)),
+      );
+      refresh(id);
+    },
   });
   const changeInterval = useMutation({
     mutationFn: ({ id, days }: { id: number; days: number }) => api.setSearchInterval(id, days),
