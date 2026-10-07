@@ -59,13 +59,13 @@ export function DealsPage() {
         sort: next.sort === DEFAULT_FILTERS.sort ? undefined : next.sort,
         run: search.run,
       };
-      void navigate({ search: nextSearch, replace: true });
+      void navigate({ search: nextSearch, replace: true, resetScroll: false });
     },
     [filters, navigate, search.run],
   );
 
   const resetFilters = useCallback(() => {
-    void navigate({ search: { run: search.run }, replace: true });
+    void navigate({ search: { run: search.run }, replace: true, resetScroll: false });
   }, [navigate, search.run]);
 
   // After "Run now", the id of the run that was latest at the click (0 = none). Polling

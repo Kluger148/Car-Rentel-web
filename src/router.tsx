@@ -1,6 +1,6 @@
 import { createRootRoute, createRoute, createRouter } from '@tanstack/react-router';
 import { Layout } from './components/Layout';
-import { VEHICLE_CLASSES, type VehicleClass } from './lib/api';
+import { RUN_RANGES, RUN_STATUSES, VEHICLE_CLASSES, type RunRange, type RunStatus, type VehicleClass } from './lib/api';
 import type { SortKey } from './lib/filters';
 import { AccountPage } from './routes/AccountPage';
 import { DealDetailPage } from './routes/DealDetailPage';
@@ -45,6 +45,14 @@ function asStringArray(v: unknown): string[] | undefined {
   return s ? s.split(',').filter(Boolean) : undefined;
 }
 
+/** The scan history's page and filters, kept in the URL. */
+export interface RunsSearch {
+  page?: number;
+  search?: number;
+  status?: RunStatus;
+  range?: RunRange;
+}
+
 const rootRoute = createRootRoute({ component: Layout });
 
 const searchesRoute = createRoute({
@@ -81,6 +89,18 @@ const runsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/runs',
   component: RunsPage,
+  validateSearch: (search: Record<string, unknown>): RunsSearch => {
+    const page = asNumber(search.page);
+    const searchId = asNumber(search.search);
+    const status = asString(search.status);
+    const range = asString(search.range);
+    return {
+      page: page && page > 1 ? Math.floor(page) : undefined,
+      search: searchId && searchId > 0 ? Math.floor(searchId) : undefined,
+      status: status && RUN_STATUSES.includes(status as RunStatus) ? (status as RunStatus) : undefined,
+      range: range && RUN_RANGES.includes(range as RunRange) ? (range as RunRange) : undefined,
+    };
+  },
 });
 
 const favouritesRoute = createRoute({

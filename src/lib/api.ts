@@ -9,6 +9,18 @@ export type VehicleClass = (typeof VEHICLE_CLASSES)[number];
 
 export type DealChangeType = 'NEW' | 'PRICE_DOWN' | 'PRICE_UP' | 'GONE';
 export type RunStatus = 'running' | 'succeeded' | 'partial' | 'failed';
+export const RUN_STATUSES: RunStatus[] = ['succeeded', 'partial', 'failed', 'running'];
+
+/** Periods the scan history can be narrowed to. */
+export const RUN_RANGES = ['7d', '30d', 'month'] as const;
+export type RunRange = (typeof RUN_RANGES)[number];
+
+/** Narrows the scan history: one saved search, one status, started on or after a moment (ISO). */
+export interface RunFilters {
+  searchId?: number;
+  status?: RunStatus;
+  from?: string;
+}
 
 export interface User {
   id: number;
@@ -305,6 +317,14 @@ export function intervalLabel(days: number | undefined): string {
   return INTERVAL_OPTIONS.find((o) => o.days === d)?.label ?? `Every ${d} days`;
 }
 
+/** Totals over the scans matching the filters, for the page count and the figures above the scan history. */
+export interface RunsSummary {
+  total: number;
+  costUsd: number;
+  /** Most recent completed scan among them. */
+  latest: Run | null;
+}
+
 /** The scheduler's master switch, next run and expected cost of the scheduled scans. */
 export interface Scheduler {
   enabled: boolean;
@@ -522,7 +542,9 @@ export const api = {
   estimateRun: (id: number) => request<RunEstimate>(`/api/searches/${id}/estimate`),
   runSearch: (id: number) => post<{ started: boolean }>(`/api/searches/${id}/run`, {}),
 
-  runs: (limit = 20, searchId?: number) => request<Run[]>(`/api/runs${toQuery({ limit, searchId })}`),
+  runs: (limit = 20, filters: RunFilters = {}, offset?: number) =>
+    request<Run[]>(`/api/runs${toQuery({ limit, ...filters, offset: offset || undefined })}`),
+  runsSummary: (filters: RunFilters = {}) => request<RunsSummary>(`/api/runs/summary${toQuery({ ...filters })}`),
   run: (id: number) => request<RunDetail>(`/api/runs/${id}`),
 
   /** Every deal of a run; filters are applied in the browser so they feel instant. */

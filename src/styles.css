@@ -1336,6 +1336,11 @@ table.data .num {
 .pill--run { background: var(--sky-100); color: var(--sky-600); }
 
 .run-list { display: grid; gap: 12px; margin-top: 4px; }
+.run-filters { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+.run-filters .select { width: auto; max-width: 100%; }
+.run-filters__clear { font-size: 13px; }
+.pager { display: flex; align-items: center; justify-content: center; gap: 14px; margin-top: 16px; font-size: 14px; }
+.pager .btn[aria-disabled='true'] { opacity: 0.45; pointer-events: none; }
 .run-card { padding: 0; overflow: hidden; }
 .run-card--bad { box-shadow: inset 3px 0 0 var(--red-600), var(--shadow-sm); }
 .run-card__head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 14px 18px; border-bottom: 1px solid var(--border); }

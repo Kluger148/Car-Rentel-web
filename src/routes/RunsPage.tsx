@@ -1,9 +1,10 @@
-import { useQuery } from '@tanstack/react-query';
-import { Link } from '@tanstack/react-router';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { Link, getRouteApi } from '@tanstack/react-router';
 import { useMemo } from 'react';
 import { ErrorState } from '../components/States';
 import { AlertIcon, CalendarIcon, ExternalIcon, PinIcon, SearchIcon } from '../components/icons';
-import { api, type DealChangeType, type Run } from '../lib/api';
+import { RUN_STATUSES, api, type DealChangeType, type Run, type RunFilters, type RunRange, type RunStatus } from '../lib/api';
+import type { RunsSearch } from '../router';
 import { CHANGE_LABEL, STATUS_LABEL, dateTime, money, relativeTime } from '../lib/format';
 
 const STATUS_TONE: Record<Run['status'], string> = {
@@ -48,8 +49,54 @@ function Stat({ label, value, hint }: { label: string; value: string; hint?: str
   );
 }
 
+const route = getRouteApi('/runs');
+const PAGE_SIZE = 20;
+
+const RANGE_LABEL: Record<RunRange, string> = {
+  '7d': 'Last 7 days',
+  '30d': 'Last 30 days',
+  month: 'This month',
+};
+
+/** Start of a period, at local midnight so it stays the same all day. */
+function rangeStart(range: RunRange): string {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  if (range === 'month') d.setDate(1);
+  else d.setDate(d.getDate() - (range === '7d' ? 7 : 30));
+  return d.toISOString();
+}
+
 export function RunsPage() {
-  const runsQuery = useQuery({ queryKey: ['runs', 'list'], queryFn: () => api.runs(50), staleTime: 30_000 });
+  const search = route.useSearch();
+  const navigate = route.useNavigate();
+  const page = search.page ?? 1;
+  const filters: RunFilters = useMemo(
+    () => ({
+      searchId: search.search,
+      status: search.status,
+      from: search.range ? rangeStart(search.range) : undefined,
+    }),
+    [search.search, search.status, search.range],
+  );
+  const filtered = search.search !== undefined || search.status !== undefined || search.range !== undefined;
+  // Changing a filter goes back to the first page.
+  const setFilter = (patch: Partial<RunsSearch>) =>
+    void navigate({ search: (prev) => ({ ...prev, ...patch, page: undefined }), resetScroll: false });
+
+  const runsQuery = useQuery({
+    queryKey: ['runs', 'list', filters, page],
+    queryFn: () => api.runs(PAGE_SIZE, filters, (page - 1) * PAGE_SIZE),
+    staleTime: 30_000,
+    // Keeps the current page on screen while the next one loads.
+    placeholderData: keepPreviousData,
+  });
+  const summaryQuery = useQuery({
+    queryKey: ['runs', 'summary', filters],
+    queryFn: () => api.runsSummary(filters),
+    staleTime: 30_000,
+    placeholderData: keepPreviousData,
+  });
   const searchesQuery = useQuery({ queryKey: ['searches'], queryFn: () => api.searches(), staleTime: 60_000 });
 
   const runs = runsQuery.data ?? [];
@@ -57,8 +104,9 @@ export function RunsPage() {
     () => new Map((searchesQuery.data ?? []).map((s) => [s.id, s.name])),
     [searchesQuery.data],
   );
-  const latest = runs.find((r) => r.status === 'succeeded' || r.status === 'partial');
-  const totalSpend = runs.reduce((a, r) => a + Number.parseFloat(r.costUsd), 0);
+  const summary = summaryQuery.data;
+  const latest = summary?.latest;
+  const pageCount = Math.max(1, Math.ceil((summary?.total ?? 0) / PAGE_SIZE));
   const searchName = (id: number) => nameById.get(id) ?? `Search #${id}`;
 
   return (
@@ -68,20 +116,98 @@ export function RunsPage() {
         <p>Every scan of every saved search — places searched, offers stored and what it cost.</p>
       </div>
 
+      <div className="run-filters">
+        <select
+          className="select select--sm"
+          aria-label="Saved search"
+          value={search.search ?? ''}
+          onChange={(e) => setFilter({ search: e.target.value ? Number(e.target.value) : undefined })}
+        >
+          <option value="">All searches</option>
+          {(searchesQuery.data ?? []).map((s) => (
+            <option key={s.id} value={s.id}>
+              {s.name}
+            </option>
+          ))}
+          {search.search !== undefined && !nameById.has(search.search) && (
+            <option value={search.search}>{searchName(search.search)}</option>
+          )}
+        </select>
+        <select
+          className="select select--sm"
+          aria-label="Status"
+          value={search.status ?? ''}
+          onChange={(e) => setFilter({ status: (e.target.value || undefined) as RunStatus | undefined })}
+        >
+          <option value="">Any status</option>
+          {RUN_STATUSES.map((s) => (
+            <option key={s} value={s}>
+              {STATUS_LABEL[s]}
+            </option>
+          ))}
+        </select>
+        <select
+          className="select select--sm"
+          aria-label="Period"
+          value={search.range ?? ''}
+          onChange={(e) => setFilter({ range: (e.target.value || undefined) as RunRange | undefined })}
+        >
+          <option value="">All time</option>
+          {(Object.keys(RANGE_LABEL) as RunRange[]).map((r) => (
+            <option key={r} value={r}>
+              {RANGE_LABEL[r]}
+            </option>
+          ))}
+        </select>
+        {filtered && (
+          <Link to="/runs" className="run-filters__clear">
+            Clear filters
+          </Link>
+        )}
+      </div>
+
       {runsQuery.isError && <ErrorState error={runsQuery.error} onRetry={() => void runsQuery.refetch()} />}
 
-      {latest && (
+      {summary && summary.total > 0 && (
         <div className="stat-grid">
-          <Stat label="Latest scan" value={`#${latest.id}`} hint={searchName(latest.savedSearchId)} />
-          <Stat label="Offers stored" value={latest.quotesCount.toLocaleString('en-US')} hint={`${latest.jobsSucceeded}/${latest.jobsPlanned} places searched`} />
-          <Stat label="Last run" value={relativeTime(latest.startedAt)} hint={dateTime(latest.startedAt)} />
-          <Stat label="Spend, last 50 runs" value={money(totalSpend, "USD", 2)} hint={`${runs.length} scans recorded`} />
+          {latest && (
+            <>
+              <Stat label="Latest scan" value={`#${latest.id}`} hint={searchName(latest.savedSearchId)} />
+              <Stat label="Offers stored" value={latest.quotesCount.toLocaleString('en-US')} hint={`${latest.jobsSucceeded}/${latest.jobsPlanned} places searched`} />
+              <Stat label="Last run" value={relativeTime(latest.startedAt)} hint={dateTime(latest.startedAt)} />
+            </>
+          )}
+          <Stat
+            label={filtered ? 'Spend, filtered' : 'Total spend'}
+            value={money(summary.costUsd, "USD", 2)}
+            hint={`${summary.total.toLocaleString('en-US')} scans ${filtered ? 'match' : 'recorded'}`}
+          />
         </div>
       )}
 
       {runsQuery.isPending && <div className="card skeleton" style={{ height: 120, marginTop: 4 }} />}
 
-      {!runsQuery.isPending && runs.length === 0 && (
+      {!runsQuery.isPending && runs.length === 0 && page > 1 && (
+        <div className="card state">
+          <h2>No scans on this page</h2>
+          <p className="muted">
+            <Link to="/runs" search={(prev) => ({ ...prev, page: undefined })}>
+              Back to the latest scans
+            </Link>
+          </p>
+        </div>
+      )}
+
+      {!runsQuery.isPending && runs.length === 0 && page === 1 && filtered && (
+        <div className="card state">
+          <h2>No scans match these filters</h2>
+          <p className="muted">
+            <Link to="/runs">Clear filters</Link>
+          </p>
+        </div>
+      )}
+
+      {!runsQuery.isPending && runs.length === 0 && page === 1 && !filtered && (
         <div className="card state">
           <h2>No scans yet</h2>
           <p className="muted">Open a saved search and press “Run now”, or wait for the daily run.</p>
@@ -169,6 +295,20 @@ export function RunsPage() {
           );
         })}
       </div>
+
+      {summary && pageCount > 1 && (
+        <nav className="pager" aria-label="Scan history pages">
+          <Link className="btn btn--ghost btn--sm" to="/runs" search={(prev) => ({ ...prev, page: page - 1 })} disabled={page <= 1}>
+            Previous
+          </Link>
+          <span className="muted">
+            Page {page} of {pageCount}
+          </span>
+          <Link className="btn btn--ghost btn--sm" to="/runs" search={(prev) => ({ ...prev, page: page + 1 })} disabled={page >= pageCount}>
+            Next
+          </Link>
+        </nav>
+      )}
     </div>
   );
 }
