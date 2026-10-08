@@ -557,6 +557,31 @@ h4 {
   position: sticky;
   top: 16px;
   padding: 18px;
+  /* Taller than the screen? Scroll the filters on their own instead of hiding the bottom ones. */
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  /* A slim, subtle scrollbar instead of the thick default one. */
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+.sidebar::-webkit-scrollbar {
+  width: 8px;
+}
+.sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.sidebar::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 999px;
+  /* Inset the thumb so it reads as a thin pill with breathing room on both sides. */
+  border: 2px solid var(--surface);
+  background-clip: padding-box;
+}
+.sidebar::-webkit-scrollbar-thumb:hover {
+  background: var(--text-faint);
+  background-clip: padding-box;
+  border: 2px solid var(--surface);
 }
 
 .sidebar__head {
@@ -564,6 +589,13 @@ h4 {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 6px;
+  /* Keep Filters and Reset pinned while the list below scrolls. */
+  position: sticky;
+  top: -18px;
+  margin: -18px -18px 6px;
+  padding: 18px 18px 8px;
+  background: var(--surface);
+  z-index: 1;
 }
 
 .sidebar h2 {
@@ -1165,6 +1197,12 @@ table.data .num {
     grid-template-columns: 1fr;
   }
   .sidebar {
+    position: static;
+    /* Full-width below the results on narrow screens: let it grow with the page. */
+    max-height: none;
+    overflow-y: visible;
+  }
+  .sidebar__head {
     position: static;
   }
 }
