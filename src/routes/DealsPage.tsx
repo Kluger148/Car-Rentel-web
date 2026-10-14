@@ -8,11 +8,11 @@ import { ScanProgress } from '../components/ScanProgress';
 import { SearchPanel } from '../components/SearchPanel';
 import { DealSkeleton, ErrorState, NoMatchesState } from '../components/States';
 import { HeartIcon } from '../components/icons';
-import { api, type Deal, type DealsResponse } from '../lib/api';
+import { api, intervalLabel, type Deal, type DealsResponse } from '../lib/api';
 import type { DealsSearch } from '../router';
 import type { DealFilters } from '../lib/filters';
 import { DEFAULT_FILTERS, SORT_OPTIONS, applyFilters, buildFacets } from '../lib/filters';
-import { STATUS_LABEL, dateTime, fullDate, money } from '../lib/format';
+import { STATUS_LABEL, dateTime, fullDate, money, relativeTime } from '../lib/format';
 
 // Typed accessors for the route without importing the router (avoids a cycle).
 const route = getRouteApi('/search/$id');
@@ -139,6 +139,25 @@ export function DealsPage() {
   const s = detailQuery.data?.search;
   const running = latestRun?.status === 'running' || runNow.isPending || awaitingNewerThan !== null;
 
+  // The saved search's dates already point at its next scan; the deals shown are from an earlier one.
+  const shownRun = detailQuery.data?.runs.find((r) => r.id === dealsQuery.data?.runId);
+  const shownPickup = shownRun?.meta?.pickupDate ?? allDeals[0]?.pickupDate ?? s?.pickupDate;
+  const shownReturn = shownRun?.meta?.returnDate ?? allDeals[0]?.dropoffDate ?? s?.returnDate;
+  const nextDatesDiffer = !!s && !!shownPickup && shownPickup !== s.pickupDate;
+
+  const scheduler = useQuery({ queryKey: ['scheduler'], queryFn: () => api.scheduler(), staleTime: 30_000 });
+  const schedulerOn = scheduler.data ? scheduler.data.configured && scheduler.data.enabled : true;
+  const repeat = intervalLabel(s?.intervalDays).toLowerCase();
+  const scheduleText = !s?.active
+    ? 'automatic runs off'
+    : schedulerOn
+      ? `re-runs ${repeat}`
+      : `set to ${repeat}, but the scheduler is off`;
+  // Older than one interval plus a day of slack: the prices on screen are no longer being tracked.
+  const [openedAt] = useState(() => Date.now());
+  const ageDays = dealsQuery.data ? (openedAt - new Date(dealsQuery.data.runStartedAt).getTime()) / 86_400_000 : 0;
+  const stale = !search.run && ageDays > (s?.intervalDays ?? 1) + 1;
+
   return (
     <>
       <SearchPanel
@@ -150,7 +169,7 @@ export function DealsPage() {
         title={s ? s.name : 'Deals'}
         subtitle={
           s
-            ? `ZIP ${s.zip} (${s.zipCity}, ${s.zipState}) · within ${s.radiusMiles} miles${s.states.length ? ` · ${s.states.join(', ')}` : ''} · pickup ${fullDate(s.pickupDate)}, return ${fullDate(s.returnDate)} (${s.rentalDays} days, same location). Target ${money(dealsQuery.data?.targetMonthly ?? 1100)} per 30 days.`
+            ? `ZIP ${s.zip} (${s.zipCity}, ${s.zipState}) · within ${s.radiusMiles} miles${s.states.length ? ` · ${s.states.join(', ')}` : ''} · pickup ${fullDate(shownPickup ?? s.pickupDate)}, return ${fullDate(shownReturn ?? s.returnDate)} (${s.rentalDays} days, same location)${nextDatesDiffer ? ` · next scan: pickup ${fullDate(s.pickupDate)}` : ''}. Target ${money(dealsQuery.data?.targetMonthly ?? 1100)} per 30 days.`
             : ''
         }
         onChange={patchFilters}
@@ -164,7 +183,7 @@ export function DealsPage() {
             </Link>
             <div className="results__sub">
               {detailQuery.data
-                ? `${latestRun ? `${latestRun.jobsPlanned} ${latestRun.jobsPlanned === 1 ? 'place' : 'places'} searched in last scan · ` : ''}${detailQuery.data.placesInRange} places in range · ${s?.active ? 're-runs daily' : 'switched off'}`
+                ? `${latestRun ? `${latestRun.jobsPlanned} ${latestRun.jobsPlanned === 1 ? 'place' : 'places'} searched in last scan · ` : ''}${detailQuery.data.placesInRange} places in range · ${scheduleText}`
                 : ''}
               {latestRun && ` · last scan ${STATUS_LABEL[latestRun.status].toLowerCase()} ${dateTime(latestRun.startedAt)} · $${Number.parseFloat(latestRun.costUsd).toFixed(2)}`}
             </div>
@@ -177,7 +196,7 @@ export function DealsPage() {
                 disabled={toggleActive.isPending}
                 onClick={() => toggleActive.mutate(!s.active)}
               >
-                {s.active ? 'Stop daily runs' : 'Resume daily runs'}
+                {s.active ? 'Stop automatic runs' : 'Turn on automatic runs'}
               </button>
             )}
             <button type="button" className="btn btn--primary" disabled={running} onClick={() => setConfirmOpen(true)}>
@@ -199,6 +218,18 @@ export function DealsPage() {
           <p className="form-error" role="alert">
             {runNow.error.message}
           </p>
+        )}
+        {stale && !running && dealsQuery.data && (
+          <div className="banner banner--warn" role="status">
+            <div>
+              <strong>These prices are from {relativeTime(dealsQuery.data.runStartedAt)}.</strong>
+              {!s?.active
+                ? 'Automatic runs are off for this search, so prices are not being tracked. Turn on automatic runs or use "Run now".'
+                : !schedulerOn
+                  ? 'The scheduler is switched off on the Searches page, so this search does not re-run on its own.'
+                  : 'No scheduled scan has run since. The next one is due at the scheduler\'s next run time.'}
+            </div>
+          </div>
         )}
 
         <div className="layout">

@@ -250,6 +250,10 @@ export interface Run {
     changes?: Record<string, number>;
     quotesDropped?: number;
     fallbackUsed?: number;
+    /** The rental this scan searched for (YYYY-MM-DD); the saved search's own dates move on to the next scan. */
+    pickupDate?: string;
+    returnDate?: string;
+    rentalDays?: number;
     [key: string]: unknown;
   } | null;
 }

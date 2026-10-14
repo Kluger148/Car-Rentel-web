@@ -22,7 +22,8 @@ export function SchedulerBar() {
   if (!s.configured) state = 'Not set up on the server (SCAN_CRON), so nothing runs automatically.';
   else if (!s.enabled) state = 'Off. No search runs automatically; "Run now" still works.';
   else if (b?.exceeded) state = "Stopped: this month's budget is reached.";
-  else if (s.searches.length === 0) state = 'On, but no search is switched on.';
+  else if (s.searches.length === 0)
+    state = 'On, but no search is switched on, so nothing re-runs. Switch a search on in the Scheduled column below.';
   else state = s.nextRunAt ? `Next run ${dateTime(s.nextRunAt)}` : 'On';
 
   return (
