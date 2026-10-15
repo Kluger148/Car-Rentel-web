@@ -8,8 +8,9 @@ export const VEHICLE_CLASSES = ['MINIVAN', 'PASSENGER_VAN', 'LARGE_SUV', 'OTHER'
 export type VehicleClass = (typeof VEHICLE_CLASSES)[number];
 
 export type DealChangeType = 'NEW' | 'PRICE_DOWN' | 'PRICE_UP' | 'GONE';
-export type RunStatus = 'running' | 'succeeded' | 'partial' | 'failed';
-export const RUN_STATUSES: RunStatus[] = ['succeeded', 'partial', 'failed', 'running'];
+/** 'stopped' = a user stopped it; 'interrupted' = the server restarted. Both keep the searches that finished. */
+export type RunStatus = 'running' | 'succeeded' | 'partial' | 'failed' | 'stopped' | 'interrupted';
+export const RUN_STATUSES: RunStatus[] = ['succeeded', 'partial', 'failed', 'running', 'stopped', 'interrupted'];
 
 /** Periods the scan history can be narrowed to. */
 export const RUN_RANGES = ['7d', '30d', 'month'] as const;
@@ -156,6 +157,12 @@ export interface DealsResponse {
   savedSearchId: number;
   runId: number;
   runStartedAt: string;
+  /** The run's status: 'stopped' or 'interrupted' means it covers only part of the area. Missing on older backends. */
+  runStatus?: RunStatus;
+  jobsDone?: number;
+  jobsPlanned?: number;
+  /** The last full scan, when the run shown ended early. */
+  lastFullRun?: { id: number; startedAt: string } | null;
   targetMonthly: number;
   total: number;
   favouriteCount: number;
@@ -284,6 +291,8 @@ export interface SavedSearch {
   intervalDays?: number;
   /** Flexible pickup: also price pickup dates every 7 days up to this many days later. Missing on older backends. */
   pickupFlexDays?: number;
+  /** Places this search scans, largest first; null = the server default. Missing on older backends. */
+  maxPlaces?: number | null;
   createdAt: string;
   lastRun?: Run | null;
 }
@@ -310,6 +319,7 @@ export interface SearchInput {
   pickupDate: string;
   intervalDays?: number;
   pickupFlexDays?: number;
+  maxPlaces?: number;
   name?: string;
   notes?: string;
 }
@@ -321,6 +331,30 @@ export const INTERVAL_OPTIONS = [
   { days: 15, label: 'Every 15 days' },
   { days: 30, label: 'Every 30 days' },
 ] as const;
+
+/** How many places a search can scan, largest first. Values above the server limit are hidden. */
+export const PLACES_OPTIONS = [15, 30, 50, 100] as const;
+
+export function placesOptions(serverMax: number | undefined): number[] {
+  const max = serverMax ?? 100;
+  const opts = PLACES_OPTIONS.filter((n) => n <= max) as number[];
+  return opts.includes(max) ? opts : [...opts, max];
+}
+
+/** A scan's searches, time and cost before it runs: places x pickup dates, in waves of the concurrency. */
+export function scanEstimate(input: {
+  places: number;
+  pickupDates: number;
+  perSearchUsd: number | null | undefined;
+  concurrency: number | undefined;
+  secondsPerSearch: number | undefined;
+}): { searches: number; minutes: number; usd: number | null } {
+  const searches = input.places * input.pickupDates;
+  const waves = Math.ceil(searches / Math.max(1, input.concurrency ?? 5));
+  const minutes = searches === 0 ? 0 : Math.max(1, Math.round((waves * (input.secondsPerSearch ?? 45)) / 60));
+  const usd = input.perSearchUsd == null ? null : searches * input.perSearchUsd;
+  return { searches, minutes, usd };
+}
 
 /** How many weeks after the chosen date a search may also price. */
 export const PICKUP_FLEX_OPTIONS = [
@@ -378,6 +412,8 @@ export interface SearchPreview {
   rentalDays: number;
   /** Every pickup date priced (flexible pickup). Missing on older backends. */
   pickupDates?: string[];
+  /** Places the search will scan. Missing on older backends. */
+  maxPlaces?: number;
   placesInRange: number;
   searched: Array<{ location: { key: string; query: string }; distanceMiles: number; zipCount: number }>;
   maxLocationsPerSearch: number;
@@ -392,7 +428,9 @@ export interface ScannerConfig {
     minLeadDays: number;
   };
   deals: { targetMonthly: number };
-  providers: { primary: string; fallback: string | null; available: string[] };
+  providers: { primary: string; fallback: string | null; available: string[]; maxConcurrency?: number };
+  /** For the live scan estimate. Missing on older backends. */
+  estimate?: { perSearchUsd: number | null; secondsPerSearch: number };
 }
 
 export interface Health {
@@ -529,6 +567,11 @@ export interface RunEstimate {
   /** Places the run searches, and pickup dates priced per place. Missing on older backends. */
   placesSearched?: number;
   pickupDates?: number;
+  /** Rough minutes the run takes. Missing on older backends. */
+  estimatedMinutes?: number;
+  /** Every search the run makes, and how many of them come with a name check at no extra cost. */
+  searchesTotal?: number;
+  coveredByNameChecks?: number;
   maxResultsPerPlace: number;
   price: { startUsd: number; perItemUsd: number } | null;
   priceError: string | null;
@@ -563,6 +606,11 @@ export const api = {
     request<SearchDetail>(`/api/searches/${id}`, { method: 'PATCH', body: JSON.stringify({ active }) }),
   setSearchInterval: (id: number, intervalDays: number) =>
     request<SearchDetail>(`/api/searches/${id}`, { method: 'PATCH', body: JSON.stringify({ intervalDays }) }),
+  /** Changes any of a saved search's settings except its area (ZIP, distance, states). */
+  updateSearch: (id: number, patch: Partial<SearchInput>) =>
+    request<SearchDetail>(`/api/searches/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
+  setSearchMaxPlaces: (id: number, maxPlaces: number) =>
+    request<SearchDetail>(`/api/searches/${id}`, { method: 'PATCH', body: JSON.stringify({ maxPlaces }) }),
   setSearchPickupFlex: (id: number, pickupFlexDays: number) =>
     request<SearchDetail>(`/api/searches/${id}`, { method: 'PATCH', body: JSON.stringify({ pickupFlexDays }) }),
   scheduler: () => request<Scheduler>('/api/scheduler'),
@@ -570,6 +618,8 @@ export const api = {
     request<Scheduler>('/api/scheduler', { method: 'PUT', body: JSON.stringify({ enabled }) }),
   estimateRun: (id: number) => request<RunEstimate>(`/api/searches/${id}/estimate`),
   runSearch: (id: number) => post<{ started: boolean }>(`/api/searches/${id}/run`, {}),
+  /** Stops a running scan: no new searches start, finished ones are kept. */
+  stopScan: (id: number) => post<{ stopping: boolean; runId: number }>(`/api/searches/${id}/stop`, {}),
 
   runs: (limit = 20, filters: RunFilters = {}, offset?: number) =>
     request<Run[]>(`/api/runs${toQuery({ limit, ...filters, offset: offset || undefined })}`),

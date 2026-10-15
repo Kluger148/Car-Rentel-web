@@ -26,6 +26,8 @@ export const STATUS_LABEL: Record<RunStatus, string> = {
   succeeded: 'Succeeded',
   partial: 'Partial',
   failed: 'Failed',
+  stopped: 'Stopped',
+  interrupted: 'Interrupted',
 };
 
 const currencyCache = new Map<string, Intl.NumberFormat>();

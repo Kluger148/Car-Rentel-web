@@ -105,17 +105,28 @@ export function RunCostDialog({ searchId, open, onClose, onConfirm }: Props) {
                       {e.placesSearched} places × {e.pickupDates} pickup dates ={' '}
                     </span>
                   )}
-                  {e.places}
+                  {e.searchesTotal ?? e.places}
                   {e.perPlaceUsd !== null && <span className="muted"> × ~{usd(e.perPlaceUsd)}</span>}
                 </dd>
               </div>
               {e.nameChecks > 0 && (
                 <div>
-                  <dt>New places to name-check</dt>
+                  <dt>
+                    New places to name-check
+                    {(e.coveredByNameChecks ?? 0) > 0 && (
+                      <span className="muted"> (each is also that place's first search)</span>
+                    )}
+                  </dt>
                   <dd>
                     {e.nameChecks}
                     {e.perNameCheckUsd !== null && <span className="muted"> × {usd(e.perNameCheckUsd)}</span>}
                   </dd>
+                </div>
+              )}
+              {e.estimatedMinutes !== undefined && (
+                <div>
+                  <dt>Time</dt>
+                  <dd>about {e.estimatedMinutes} min</dd>
                 </div>
               )}
               {past && (

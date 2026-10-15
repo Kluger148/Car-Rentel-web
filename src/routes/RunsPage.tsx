@@ -12,6 +12,8 @@ const STATUS_TONE: Record<Run['status'], string> = {
   partial: 'warn',
   failed: 'bad',
   running: 'run',
+  stopped: 'warn',
+  interrupted: 'warn',
 };
 
 const CHANGE_TONE: Record<DealChangeType, string> = {

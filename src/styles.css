@@ -20,6 +20,8 @@
   --amber-100: #fef3c7;
 
   --bg: #f8fafc;
+  /* Top band behind page titles: a dark band over the light page. */
+  --hero-bg: linear-gradient(160deg, var(--navy-900) 0%, var(--navy-700) 100%);
   --surface: #ffffff;
   --surface-2: #f1f5f9;
   --surface-hover: #f8fafc;
@@ -33,7 +35,7 @@
 
   --accent: var(--sky-500);
   --accent-hover: var(--sky-600);
-  --header-bg: rgba(255, 255, 255, 0.75);
+  --header-bg: rgba(255, 255, 255, 0.97); /* near-opaque: the dark hero's white title must not show through */
   --header-text: var(--navy-900);
 
   --radius-sm: 8px;
@@ -52,6 +54,8 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
     --bg: #0b1220;
+    /* Dark page: the band fades into the page instead of ending in a hard edge. */
+    --hero-bg: linear-gradient(180deg, var(--navy-900) 0%, #111b2e 55%, var(--bg) 100%);
     --surface: #131c2b;
     --surface-2: #182234;
     --surface-hover: #1d2941;
@@ -64,7 +68,7 @@
 
     --accent: var(--sky-400);
     --accent-hover: #5aa5f2;
-    --header-bg: rgba(11, 18, 32, 0.85);
+    --header-bg: rgba(11, 18, 32, 0.97);
     --header-text: var(--text);
     --sky-100: #14304f;
     --green-100: #10352a;
@@ -84,6 +88,7 @@
 
 :root[data-theme='dark'] {
   --bg: #0b1220;
+  --hero-bg: linear-gradient(180deg, var(--navy-900) 0%, #111b2e 55%, var(--bg) 100%);
   --surface: #131c2b;
   --surface-2: #182234;
   --surface-hover: #1d2941;
@@ -96,7 +101,7 @@
 
   --accent: var(--sky-400);
   --accent-hover: #5aa5f2;
-  --header-bg: rgba(11, 18, 32, 0.85);
+  --header-bg: rgba(11, 18, 32, 0.97);
   --header-text: var(--text);
   --sky-100: #14304f;
   --green-100: #10352a;
@@ -364,7 +369,7 @@ h4 {
 
 /* --------------------------------- Hero --------------------------------- */
 .hero {
-  background: linear-gradient(160deg, var(--navy-900) 0%, var(--navy-700) 100%);
+  background: var(--hero-bg);
   color: #fff;
   padding: 30px 0 74px;
 }
@@ -1533,3 +1538,34 @@ table.data .num {
 
 /* Small labelled select in a toolbar (flexible pickup on the deals page) */
 .inline-select { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; }
+
+/* Live runs / time / cost line under the new-search fields */
+.scan-estimate { margin: 4px 0 0; font-size: 13.5px; color: var(--text-muted, inherit); }
+
+/* Row actions on the searches table: "Open deals" and "Edit" */
+.cell-actions { white-space: nowrap; }
+.cell-actions .link-btn { margin-left: 12px; }
+.link-btn { background: none; border: 0; padding: 0; font: inherit; color: var(--accent); cursor: pointer; }
+.link-btn:hover { text-decoration: underline; }
+.link-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 2px; }
+.field input:disabled, .field select:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* Stop scan: button row and in-page confirmation in the progress box */
+.scan-progress__foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.scan-progress__foot .scan-progress__hint { margin: 0; flex: 1 1 320px; }
+.scan-progress__confirm { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 10px; font-size: 14px; }
+
+/* Search form title with its help icon, and the help dialog */
+.search-form__head { display: flex; align-items: center; gap: 8px; }
+.search-form__head h2 { margin: 0; }
+.icon-btn { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border: 0; border-radius: 999px; background: transparent; color: var(--text-muted); cursor: pointer; }
+.icon-btn:hover { background: var(--surface-2); color: var(--accent); }
+.icon-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.dialog--wide { width: min(640px, calc(100vw - 32px)); max-height: calc(100vh - 48px); }
+.dialog--wide .dialog__body { max-height: calc(100vh - 150px); overflow-y: auto; }
+.help-list { display: grid; gap: 12px; margin: 0; }
+.help-list__item dt { font-weight: 700; font-size: 14px; }
+.help-list__item dd { margin: 2px 0 0; font-size: 13.5px; line-height: 1.5; color: var(--text-muted); }
+.help-list__tip { display: block; margin-top: 3px; color: var(--text); font-size: 13px; }
+.help-list__tip::before { content: 'Tip: '; font-weight: 600; color: var(--accent); }
+.help-note { display: grid; gap: 4px; margin: 16px 0 6px; padding: 12px 14px; border-radius: var(--radius); background: var(--surface-2); font-size: 13.5px; line-height: 1.5; }

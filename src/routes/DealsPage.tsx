@@ -8,7 +8,16 @@ import { ScanProgress } from '../components/ScanProgress';
 import { SearchPanel } from '../components/SearchPanel';
 import { DealSkeleton, ErrorState, NoMatchesState } from '../components/States';
 import { HeartIcon } from '../components/icons';
-import { PICKUP_FLEX_OPTIONS, api, intervalLabel, pickupFlexLabel, type Deal, type DealsResponse } from '../lib/api';
+import {
+  PICKUP_FLEX_OPTIONS,
+  api,
+  intervalLabel,
+  pickupFlexLabel,
+  placesOptions,
+  scanEstimate,
+  type Deal,
+  type DealsResponse,
+} from '../lib/api';
 import type { DealsSearch } from '../router';
 import type { DealFilters } from '../lib/filters';
 import { DEFAULT_FILTERS, SORT_OPTIONS, applyFilters, buildFacets } from '../lib/filters';
@@ -16,6 +25,9 @@ import { STATUS_LABEL, dateTime, fullDate, money, relativeTime } from '../lib/fo
 
 // Typed accessors for the route without importing the router (avoids a cycle).
 const route = getRouteApi('/search/$id');
+
+/** Deals per page of the result list. */
+const PAGE_SIZE = 25;
 
 /** Stable empty array so the memoized derivations below do not rerun every render. */
 const NO_DEALS: Deal[] = [];
@@ -94,11 +106,23 @@ export function DealsPage() {
   });
 
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const stopScan = useMutation({
+    mutationFn: () => api.stopScan(searchId),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['search', searchId] }),
+  });
   const runNow = useMutation({
     mutationFn: () => api.runSearch(searchId),
     onMutate: () => setAwaitingNewerThan(latestRun?.id ?? 0),
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['search', searchId] }),
     onError: () => setAwaitingNewerThan(null),
+  });
+  const setMaxPlaces = useMutation({
+    mutationFn: (n: number) => api.setSearchMaxPlaces(searchId, n),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['search', searchId] });
+      void queryClient.invalidateQueries({ queryKey: ['searches'] });
+      void queryClient.invalidateQueries({ queryKey: ['scheduler'] });
+    },
   });
   const setPickupFlex = useMutation({
     mutationFn: (days: number) => api.setSearchPickupFlex(searchId, days),
@@ -144,6 +168,15 @@ export function DealsPage() {
   const allDeals = dealsQuery.data?.deals ?? NO_DEALS;
   const facets = useMemo(() => buildFacets(allDeals), [allDeals]);
   const visible = useMemo(() => applyFilters(allDeals, filters), [allDeals, filters]);
+  // Filters, sort and class live in the URL without a page, so changing any of them starts at page 1.
+  // A page past the end (fewer matches after a new scan, or a favourite removed) shows the last page.
+  const pageCount = Math.max(1, Math.ceil(visible.length / PAGE_SIZE));
+  const page = Math.min(search.page ?? 1, pageCount);
+  const pageDeals = visible.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const goToPage = (p: number) => {
+    void navigate({ search: (prev: DealsSearch) => ({ ...prev, page: p > 1 ? p : undefined }), resetScroll: false });
+    document.querySelector('section[aria-label="Deals"]')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
   const s = detailQuery.data?.search;
   const running = latestRun?.status === 'running' || runNow.isPending || awaitingNewerThan !== null;
 
@@ -153,6 +186,16 @@ export function DealsPage() {
   const shownReturn = shownRun?.meta?.returnDate ?? allDeals[0]?.dropoffDate ?? s?.returnDate;
   const nextDatesDiffer = !!s && !!shownPickup && shownPickup !== s.pickupDate;
   const flexDays = s?.pickupFlexDays ?? 0;
+  const configQuery = useQuery({ queryKey: ['config'], queryFn: () => api.config(), staleTime: 300_000 });
+  const serverMaxPlaces = configQuery.data?.search.maxLocationsPerSearch;
+  const placesSetting = Math.min(s?.maxPlaces ?? serverMaxPlaces ?? 100, serverMaxPlaces ?? Infinity);
+  const nextScan = scanEstimate({
+    places: placesSetting,
+    pickupDates: 1 + flexDays / 7,
+    perSearchUsd: configQuery.data?.estimate?.perSearchUsd,
+    concurrency: configQuery.data?.providers.maxConcurrency,
+    secondsPerSearch: configQuery.data?.estimate?.secondsPerSearch,
+  });
   // Places, not searches: a flexible search runs every place once per pickup date.
   const placesInLastScan = Array.isArray(latestRun?.meta?.placesSearched)
     ? (latestRun.meta.placesSearched as unknown[]).length
@@ -194,14 +237,47 @@ export function DealsPage() {
             <Link to="/" className="link-quiet">
               ← All searches
             </Link>
+            {s && (
+              <>
+                {' · '}
+                <Link to="/" search={{ edit: s.id }} className="link-quiet">
+                  Edit search
+                </Link>
+              </>
+            )}
             <div className="results__sub">
               {detailQuery.data
                 ? `${latestRun && placesInLastScan !== undefined ? `${placesInLastScan} ${placesInLastScan === 1 ? 'place' : 'places'} searched in last scan · ` : ''}${detailQuery.data.placesInRange} places in range · ${scheduleText}`
                 : ''}
               {latestRun && ` · last scan ${STATUS_LABEL[latestRun.status].toLowerCase()} ${dateTime(latestRun.startedAt)} · $${Number.parseFloat(latestRun.costUsd).toFixed(2)}`}
             </div>
+            {s && (
+              <div className="results__sub">
+                Next scan: up to {placesSetting} places × {1 + flexDays / 7} {flexDays > 0 ? 'pickup dates' : 'pickup date'} ={' '}
+                {nextScan.searches} searches · about {nextScan.minutes} min
+                {nextScan.usd !== null && ` · about $${nextScan.usd.toFixed(2)}`}
+              </div>
+            )}
           </div>
           <div className="form-actions">
+            {s && (
+              <label className="inline-select">
+                <span className="muted">Places</span>
+                <select
+                  id="max-places"
+                  className="select--sm"
+                  value={placesSetting}
+                  disabled={setMaxPlaces.isPending}
+                  onChange={(e) => setMaxPlaces.mutate(Number(e.target.value))}
+                >
+                  {placesOptions(serverMaxPlaces).map((n) => (
+                    <option key={n} value={n}>
+                      Up to {n}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
             {s && (
               <label className="inline-select">
                 <span className="muted">Flexible pickup</span>
@@ -244,7 +320,33 @@ export function DealsPage() {
             runNow.mutate();
           }}
         />
-        {running && <ScanProgress run={latestRun?.status === 'running' ? latestRun : null} />}
+        {running && (
+          <ScanProgress
+            run={latestRun?.status === 'running' ? latestRun : null}
+            onStop={() => stopScan.mutate()}
+            stopping={stopScan.isSuccess && latestRun?.status === 'running'}
+            stopError={stopScan.isError ? stopScan.error.message : null}
+          />
+        )}
+        {!running && dealsQuery.data && (dealsQuery.data.runStatus === 'stopped' || dealsQuery.data.runStatus === 'interrupted') && (
+          <div className="banner banner--warn" role="status">
+            <div>
+              <strong>
+                {dealsQuery.data.runStatus === 'stopped' ? 'This scan was stopped' : 'This scan was cut off by a server restart'} after{' '}
+                {dealsQuery.data.jobsDone ?? 0} of {dealsQuery.data.jobsPlanned ?? 0} searches.
+              </strong>
+              It shows only part of the area. Prices are real; change badges are not shown for this scan.
+              {dealsQuery.data.lastFullRun && (
+                <>
+                  {' '}
+                  <Link to="/search/$id" params={{ id: String(searchId) }} search={{ run: dealsQuery.data.lastFullRun.id }}>
+                    View the last full scan ({dateTime(dealsQuery.data.lastFullRun.startedAt)})
+                  </Link>
+                </>
+              )}
+            </div>
+          </div>
+        )}
         {runNow.isError && (
           <p className="form-error" role="alert">
             {runNow.error.message}
@@ -278,6 +380,7 @@ export function DealsPage() {
                 {dealsQuery.data && (
                   <div className="results__sub">
                     Scan #{dealsQuery.data.runId} · {dateTime(dealsQuery.data.runStartedAt)}
+                    {pageCount > 1 && ` · showing ${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, visible.length)}`}
                   </div>
                 )}
               </div>
@@ -339,7 +442,7 @@ export function DealsPage() {
 
             {visible.length > 0 && (
               <ul className="deal-list">
-                {visible.map((deal) => (
+                {pageDeals.map((deal) => (
                   <DealCard
                     key={deal.fingerprint}
                     deal={deal}
@@ -348,6 +451,20 @@ export function DealsPage() {
                   />
                 ))}
               </ul>
+            )}
+            {pageCount > 1 && (
+              <nav className="pager" aria-label="Deal pages">
+                <button type="button" className="btn btn--ghost btn--sm" disabled={page <= 1} onClick={() => goToPage(page - 1)}>
+                  Previous
+                </button>
+                <span className="muted">
+                  Page {page} of {pageCount} · deals {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, visible.length)} of{' '}
+                  {visible.length}
+                </span>
+                <button type="button" className="btn btn--ghost btn--sm" disabled={page >= pageCount} onClick={() => goToPage(page + 1)}>
+                  Next
+                </button>
+              </nav>
             )}
           </section>
         </div>

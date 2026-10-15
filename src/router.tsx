@@ -23,6 +23,8 @@ export interface DealsSearch {
   q?: string;
   sort?: SortKey;
   run?: number;
+  /** Page of the deal list (25 per page); missing = page 1. Any filter change goes back to page 1. */
+  page?: number;
 }
 
 const SORT_KEYS: SortKey[] = ['monthly', 'total', 'distance', 'seats'];
@@ -55,10 +57,19 @@ export interface RunsSearch {
 
 const rootRoute = createRootRoute({ component: Layout });
 
+/** ?edit=<id> opens that search's edit form. */
+export interface SearchesSearch {
+  edit?: number;
+}
+
 const searchesRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/',
   component: SearchesPage,
+  validateSearch: (search: Record<string, unknown>): SearchesSearch => {
+    const id = asNumber(search.edit);
+    return { edit: id && id > 0 ? Math.floor(id) : undefined };
+  },
 });
 
 const dealsRoute = createRoute({
@@ -81,6 +92,10 @@ const dealsRoute = createRoute({
       q: asString(search.q),
       sort: sort && SORT_KEYS.includes(sort as SortKey) ? (sort as SortKey) : undefined,
       run: asNumber(search.run),
+      page: (() => {
+        const p = asNumber(search.page);
+        return p && p > 1 ? Math.floor(p) : undefined;
+      })(),
     };
   },
 });

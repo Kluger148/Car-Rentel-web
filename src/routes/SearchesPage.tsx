@@ -1,7 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Link } from '@tanstack/react-router';
-import { useState, type FormEvent } from 'react';
+import { Link, getRouteApi } from '@tanstack/react-router';
+import { useEffect, useState, type FormEvent } from 'react';
 import { SchedulerBar } from '../components/SchedulerBar';
+import { SearchHelpDialog } from '../components/SearchHelpDialog';
+import { InfoIcon } from '../components/icons';
 import { StatePicker, TagPicker } from '../components/TagPicker';
 import { ErrorState } from '../components/States';
 import {
@@ -10,6 +12,8 @@ import {
   api,
   intervalLabel,
   pickupFlexLabel,
+  placesOptions,
+  scanEstimate,
   type SavedSearch,
   type SearchInput,
   type SearchPreview,
@@ -24,23 +28,53 @@ function tomorrowIso(): string {
 
 const RADIUS_OPTIONS = [50, 100, 200, 300, 500, 1000, 2000];
 
-function NewSearchForm({ onCreated }: { onCreated: (id: number) => void }) {
-  const [zip, setZip] = useState('');
-  const [radius, setRadius] = useState('50');
-  const [customRadius, setCustomRadius] = useState(false);
-  const [states, setStates] = useState<string[]>([]);
-  const [suppliers, setSuppliers] = useState<string[]>([]);
+// Typed access to ?edit=<id>, without importing the router (avoids a cycle).
+const route = getRouteApi('/');
+
+/**
+ * Creates a search, or edits one when `editing` is given. The area (ZIP, distance, states) is
+ * fixed once saved: changing it would mix two areas' prices in one search's history.
+ */
+export function SearchForm({
+  editing,
+  onSaved,
+  onCancel,
+}: {
+  editing?: SavedSearch;
+  onSaved: (id: number) => void;
+  onCancel?: () => void;
+}) {
+  const isEdit = editing !== undefined;
+  const [helpOpen, setHelpOpen] = useState(false);
+  const [zip, setZip] = useState(editing?.zip ?? '');
+  const [radius, setRadius] = useState(String(editing?.radiusMiles ?? 50));
+  const [customRadius, setCustomRadius] = useState(
+    editing !== undefined && !RADIUS_OPTIONS.includes(editing.radiusMiles),
+  );
+  const [states, setStates] = useState<string[]>(editing?.states ?? []);
+  const [suppliers, setSuppliers] = useState<string[]>(editing?.suppliers ?? []);
   const companiesQuery = useQuery({ queryKey: ['companies'], queryFn: () => api.companies(), staleTime: 300_000 });
   const companyOptions = (companiesQuery.data ?? []).map((c) => ({
     value: c.name,
     label: c.name,
     hint: `${c.count.toLocaleString('en-US')} offers`,
   }));
-  const [pickup, setPickup] = useState(tomorrowIso());
-  const [intervalDays, setIntervalDays] = useState(1);
-  const [pickupFlexDays, setPickupFlexDays] = useState(0);
-  const [name, setName] = useState('');
-  const [notes, setNotes] = useState('');
+  const [pickup, setPickup] = useState(editing?.pickupDate ?? tomorrowIso());
+  const [intervalDays, setIntervalDays] = useState(editing?.intervalDays ?? 1);
+  const [pickupFlexDays, setPickupFlexDays] = useState(editing?.pickupFlexDays ?? 0);
+  const configQuery = useQuery({ queryKey: ['config'], queryFn: () => api.config(), staleTime: 300_000 });
+  const serverMaxPlaces = configQuery.data?.search.maxLocationsPerSearch;
+  const [maxPlaces, setMaxPlaces] = useState<number | null>(editing?.maxPlaces ?? null);
+  const places = maxPlaces ?? serverMaxPlaces ?? 100;
+  const live = scanEstimate({
+    places,
+    pickupDates: 1 + pickupFlexDays / 7,
+    perSearchUsd: configQuery.data?.estimate?.perSearchUsd,
+    concurrency: configQuery.data?.providers.maxConcurrency,
+    secondsPerSearch: configQuery.data?.estimate?.secondsPerSearch,
+  });
+  const [name, setName] = useState(editing?.name ?? '');
+  const [notes, setNotes] = useState(editing?.notes ?? '');
   const [preview, setPreview] = useState<SearchPreview | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -52,6 +86,7 @@ function NewSearchForm({ onCreated }: { onCreated: (id: number) => void }) {
     pickupDate: pickup,
     intervalDays,
     pickupFlexDays,
+    maxPlaces: places,
     name: name.trim() || undefined,
     notes: notes.trim() || undefined,
   });
@@ -67,33 +102,64 @@ function NewSearchForm({ onCreated }: { onCreated: (id: number) => void }) {
       setError(e.message);
     },
   });
-  const createMutation = useMutation({
-    mutationFn: () => api.createSearch(input()),
-    onSuccess: (d) => onCreated(d.search.id),
+  const saveMutation = useMutation({
+    mutationFn: () => {
+      if (!editing) return api.createSearch(input());
+      const patch: Partial<SearchInput> = {
+        suppliers,
+        intervalDays,
+        pickupFlexDays,
+        maxPlaces: places,
+        notes: notes.trim(),
+      };
+      if (name.trim()) patch.name = name.trim();
+      // Only a changed date is sent: an unchanged one may already be in the past and still valid.
+      if (pickup !== editing.pickupDate) patch.pickupDate = pickup;
+      return api.updateSearch(editing.id, patch);
+    },
+    onSuccess: (d) => onSaved(d.search.id),
     onError: (e) => setError(e.message),
   });
+  const lockedHint = isEdit ? 'Fixed once saved. Create a new search for a different area.' : undefined;
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
-    previewMutation.mutate();
+    if (isEdit) saveMutation.mutate();
+    else previewMutation.mutate();
   };
   const changed = () => setPreview(null);
 
   return (
     <form className="card section search-form" onSubmit={submit}>
-      <h2>New search</h2>
+      <div className="search-form__head">
+        <h2>{isEdit ? `Edit search: ${editing.name}` : 'New search'}</h2>
+        <button
+          type="button"
+          className="icon-btn"
+          aria-label="How the search fields work"
+          title="How the search fields work"
+          onClick={() => setHelpOpen(true)}
+        >
+          <InfoIcon size={18} />
+        </button>
+      </div>
+      <SearchHelpDialog open={helpOpen} onClose={() => setHelpOpen(false)} />
       <p className="muted">
-        Enter the customer's requirements. The return date is set to 330 days after pickup, at the same location.
+        {isEdit
+          ? 'Changes apply from the next scan. The area (ZIP, distance and states) cannot be changed.'
+          : "Enter the customer's requirements. The return date is set to 330 days after pickup, at the same location."}
       </p>
       <div className="form-grid">
         <label className="field">
           <span className="field__label">Starting ZIP</span>
-          <input id="ns-zip" inputMode="numeric" required value={zip} onChange={(e) => { setZip(e.target.value); changed(); }} placeholder="30303" />
+          <input id="ns-zip" inputMode="numeric" required disabled={isEdit} title={lockedHint} value={zip} onChange={(e) => { setZip(e.target.value); changed(); }} placeholder="30303" />
         </label>
         <label className="field">
           <span className="field__label">Max distance (miles)</span>
           <select
             id="ns-radius"
+            disabled={isEdit}
+            title={lockedHint}
             value={customRadius ? 'custom' : radius}
             onChange={(e) => {
               if (e.target.value === 'custom') {
@@ -118,6 +184,7 @@ function NewSearchForm({ onCreated }: { onCreated: (id: number) => void }) {
               type="number"
               min={1}
               required
+              disabled={isEdit}
               value={radius}
               onChange={(e) => { setRadius(e.target.value); changed(); }}
               placeholder="Miles, e.g. 750"
@@ -125,14 +192,21 @@ function NewSearchForm({ onCreated }: { onCreated: (id: number) => void }) {
             />
           )}
         </label>
-        <StatePicker
-          label="States (optional)"
-          value={states}
-          onChange={(next) => {
-            setStates(next);
-            changed();
-          }}
-        />
+        {isEdit ? (
+          <label className="field">
+            <span className="field__label">States</span>
+            <input id="ns-states" disabled title={lockedHint} value={states.length > 0 ? states.join(', ') : 'Any state'} />
+          </label>
+        ) : (
+          <StatePicker
+            label="States (optional)"
+            value={states}
+            onChange={(next) => {
+              setStates(next);
+              changed();
+            }}
+          />
+        )}
         <TagPicker
           label="Rental companies (optional)"
           value={suppliers}
@@ -142,7 +216,7 @@ function NewSearchForm({ onCreated }: { onCreated: (id: number) => void }) {
         />
         <label className="field">
           <span className="field__label">Pickup date</span>
-          <input id="ns-pickup" type="date" required min={tomorrowIso()} value={pickup} onChange={(e) => { setPickup(e.target.value); changed(); }} />
+          <input id="ns-pickup" type="date" required min={isEdit && pickup === editing.pickupDate ? undefined : tomorrowIso()} value={pickup} onChange={(e) => { setPickup(e.target.value); changed(); }} />
         </label>
         <label className="field">
           <span className="field__label">Flexible pickup</span>
@@ -157,6 +231,23 @@ function NewSearchForm({ onCreated }: { onCreated: (id: number) => void }) {
             {PICKUP_FLEX_OPTIONS.map((o) => (
               <option key={o.days} value={o.days}>
                 {o.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="field">
+          <span className="field__label">Places to search</span>
+          <select
+            id="ns-places"
+            value={places}
+            onChange={(e) => {
+              setMaxPlaces(Number(e.target.value));
+              changed();
+            }}
+          >
+            {placesOptions(serverMaxPlaces).map((n) => (
+              <option key={n} value={n}>
+                Up to {n} places
               </option>
             ))}
           </select>
@@ -181,6 +272,19 @@ function NewSearchForm({ onCreated }: { onCreated: (id: number) => void }) {
         </label>
       </div>
 
+      <p className="scan-estimate" aria-live="polite">
+        Each scan: up to {places} places × {1 + pickupFlexDays / 7}{' '}
+        {pickupFlexDays > 0 ? 'pickup dates' : 'pickup date'} = <strong>{live.searches} searches</strong> · about{' '}
+        <strong>{live.minutes} min</strong>
+        {live.usd !== null && (
+          <>
+            {' '}
+            · about <strong>${live.usd < 0.01 ? live.usd.toFixed(3) : live.usd.toFixed(2)}</strong>
+          </>
+        )}
+        . The first scan also checks each new place once; each check also counts as that place's first search.
+      </p>
+
       {error && (
         <p className="form-error" role="alert">
           {error}
@@ -201,7 +305,7 @@ function NewSearchForm({ onCreated }: { onCreated: (id: number) => void }) {
             </p>
           )}
           <p className="muted">
-            Up to {Math.min(preview.maxLocationsPerSearch, preview.searched.length)} of {preview.placesInRange} places
+            Up to {Math.min(preview.maxPlaces ?? preview.maxLocationsPerSearch, preview.searched.length)} of {preview.placesInRange} places
             within {preview.radiusMiles} miles will be searched, largest first. Places Skyscanner does not recognise
             are skipped.
           </p>
@@ -216,16 +320,24 @@ function NewSearchForm({ onCreated }: { onCreated: (id: number) => void }) {
       )}
 
       <div className="form-actions">
-        <button type="submit" className="btn btn--ghost" disabled={previewMutation.isPending}>
-          {previewMutation.isPending ? 'Checking…' : 'Preview places'}
-        </button>
+        {isEdit ? (
+          onCancel && (
+            <button type="button" className="btn btn--ghost" onClick={onCancel}>
+              Cancel
+            </button>
+          )
+        ) : (
+          <button type="submit" className="btn btn--ghost" disabled={previewMutation.isPending}>
+            {previewMutation.isPending ? 'Checking…' : 'Preview places'}
+          </button>
+        )}
         <button
           type="button"
           className="btn btn--primary"
-          disabled={createMutation.isPending}
-          onClick={() => createMutation.mutate()}
+          disabled={saveMutation.isPending}
+          onClick={() => saveMutation.mutate()}
         >
-          {createMutation.isPending ? 'Saving…' : 'Save search'}
+          {saveMutation.isPending ? 'Saving…' : isEdit ? 'Save changes' : 'Save search'}
         </button>
       </div>
     </form>
@@ -235,9 +347,23 @@ function NewSearchForm({ onCreated }: { onCreated: (id: number) => void }) {
 export function SearchesPage() {
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
+  const { edit: editParam } = route.useSearch();
+  // "Edit search" on a deals page links here with ?edit=<id>, which opens that search's form.
+  const [editingId, setEditingId] = useState<number | null>(() => editParam ?? null);
+  const navigate = route.useNavigate();
   const searchesQuery = useQuery({ queryKey: ['searches'], queryFn: () => api.searches(), staleTime: 30_000 });
   // The API lists switched-on searches first. Newest first keeps each row in place when its switch changes.
   const searches = [...(searchesQuery.data ?? [])].sort((a, b) => b.id - a.id);
+  const editing = searches.find((s) => s.id === editingId);
+  // Drop ?edit from the address once the form is open, so a reload does not reopen it.
+  useEffect(() => {
+    if (editParam !== undefined) void navigate({ search: {}, replace: true });
+  }, [editParam, navigate]);
+  const startEdit = (id: number) => {
+    setShowForm(false);
+    setEditingId(id);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
   const refresh = (id: number) => {
     void queryClient.invalidateQueries({ queryKey: ['searches'] });
     void queryClient.invalidateQueries({ queryKey: ['search', id] });
@@ -266,14 +392,33 @@ export function SearchesPage() {
           <h1>Saved searches</h1>
           <p>Each search looks for complete 330-day rentals on Skyscanner and re-runs on its own schedule.</p>
         </div>
-        <button type="button" className="btn btn--primary" onClick={() => setShowForm((v) => !v)}>
+        <button
+          type="button"
+          className="btn btn--primary"
+          onClick={() => {
+            setEditingId(null);
+            setShowForm((v) => !v);
+          }}
+        >
           {showForm ? 'Close' : 'New search'}
         </button>
       </div>
 
-      {(showForm || (searchesQuery.isSuccess && searches.length === 0)) && (
-        <NewSearchForm
-          onCreated={() => {
+      {editing && (
+        <SearchForm
+          key={editing.id}
+          editing={editing}
+          onCancel={() => setEditingId(null)}
+          onSaved={(id) => {
+            setEditingId(null);
+            refresh(id);
+          }}
+        />
+      )}
+
+      {!editing && (showForm || (searchesQuery.isSuccess && searches.length === 0)) && (
+        <SearchForm
+          onSaved={() => {
             setShowForm(false);
             void queryClient.invalidateQueries({ queryKey: ['searches'] });
             void queryClient.invalidateQueries({ queryKey: ['scheduler'] });
@@ -318,6 +463,7 @@ export function SearchesPage() {
                   </td>
                   <td className="cell-wrap">
                     ZIP {s.zip} · {s.radiusMiles} mi{s.states.length > 0 && ` · ${s.states.join(', ')}`}
+                    {s.maxPlaces != null && <span className="muted"> · up to {s.maxPlaces} places</span>}
                     {s.suppliers && s.suppliers.length > 0 && (
                       <div className="muted">Only {s.suppliers.join(', ')}</div>
                     )}
@@ -369,10 +515,13 @@ export function SearchesPage() {
                       )}
                     </select>
                   </td>
-                  <td>
+                  <td className="cell-actions">
                     <Link to="/search/$id" params={{ id: String(s.id) }}>
                       Open deals
                     </Link>
+                    <button type="button" className="link-btn" onClick={() => startEdit(s.id)}>
+                      Edit
+                    </button>
                   </td>
                 </tr>
               ))}
