@@ -102,6 +102,9 @@ export interface DealOffer {
   /** The pickup place this offer came from; the same car can be offered from several towns. */
   place: string;
   distanceMiles: number;
+  /** The pickup date this offer is for (searches with a flexible pickup price several). Missing on older backends. */
+  pickupDate?: string;
+  dropoffDate?: string;
   totalPrice: string;
   monthlyRate: string;
   deeplink: string;
@@ -279,6 +282,8 @@ export interface SavedSearch {
   active: boolean;
   /** Days between scheduled scans: 1 daily, 7 weekly, 15, 30. Missing on older backends. */
   intervalDays?: number;
+  /** Flexible pickup: also price pickup dates every 7 days up to this many days later. Missing on older backends. */
+  pickupFlexDays?: number;
   createdAt: string;
   lastRun?: Run | null;
 }
@@ -304,6 +309,7 @@ export interface SearchInput {
   suppliers: string[];
   pickupDate: string;
   intervalDays?: number;
+  pickupFlexDays?: number;
   name?: string;
   notes?: string;
 }
@@ -315,6 +321,18 @@ export const INTERVAL_OPTIONS = [
   { days: 15, label: 'Every 15 days' },
   { days: 30, label: 'Every 30 days' },
 ] as const;
+
+/** How many weeks after the chosen date a search may also price. */
+export const PICKUP_FLEX_OPTIONS = [
+  { days: 0, label: 'Exact date only' },
+  { days: 7, label: 'Up to 1 week later' },
+  { days: 14, label: 'Up to 2 weeks later' },
+  { days: 21, label: 'Up to 3 weeks later' },
+] as const;
+
+export function pickupFlexLabel(days: number | undefined): string {
+  return PICKUP_FLEX_OPTIONS.find((o) => o.days === (days ?? 0))?.label ?? `Up to ${days} days later`;
+}
 
 export function intervalLabel(days: number | undefined): string {
   const d = days ?? 1;
@@ -358,6 +376,8 @@ export interface SearchPreview {
   pickupDate: string;
   returnDate: string;
   rentalDays: number;
+  /** Every pickup date priced (flexible pickup). Missing on older backends. */
+  pickupDates?: string[];
   placesInRange: number;
   searched: Array<{ location: { key: string; query: string }; distanceMiles: number; zipCount: number }>;
   maxLocationsPerSearch: number;
@@ -506,6 +526,9 @@ export interface RunEstimate {
   limitUsd: number;
   perSearchCapUsd: number;
   runCapUsd: number;
+  /** Places the run searches, and pickup dates priced per place. Missing on older backends. */
+  placesSearched?: number;
+  pickupDates?: number;
   maxResultsPerPlace: number;
   price: { startUsd: number; perItemUsd: number } | null;
   priceError: string | null;
@@ -540,6 +563,8 @@ export const api = {
     request<SearchDetail>(`/api/searches/${id}`, { method: 'PATCH', body: JSON.stringify({ active }) }),
   setSearchInterval: (id: number, intervalDays: number) =>
     request<SearchDetail>(`/api/searches/${id}`, { method: 'PATCH', body: JSON.stringify({ intervalDays }) }),
+  setSearchPickupFlex: (id: number, pickupFlexDays: number) =>
+    request<SearchDetail>(`/api/searches/${id}`, { method: 'PATCH', body: JSON.stringify({ pickupFlexDays }) }),
   scheduler: () => request<Scheduler>('/api/scheduler'),
   setSchedulerEnabled: (enabled: boolean) =>
     request<Scheduler>('/api/scheduler', { method: 'PUT', body: JSON.stringify({ enabled }) }),

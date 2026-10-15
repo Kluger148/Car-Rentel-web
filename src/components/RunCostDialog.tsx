@@ -18,7 +18,9 @@ function basisText(e: RunEstimate): string {
       : `This search has not run yet: based on the average of ${plural(e.historyRuns, 'scan')} of other searches.`;
   }
   if (e.basis === 'price-list') {
-    return `Based on the Apify price list, if every place returns all ${e.maxResultsPerPlace} offers. Usually a little less.`;
+    return e.maxResultsPerPlace === 1
+      ? 'Based on the Apify price list: each search is billed as one row.'
+      : `Based on the Apify price list, if every place returns all ${e.maxResultsPerPlace} offers. Usually a little less.`;
   }
   return 'No past scans or Apify price list to estimate from yet.';
 }
@@ -71,7 +73,7 @@ export function RunCostDialog({ searchId, open, onClose, onConfirm }: Props) {
         <h2 id="run-cost-title" className="dialog__title">
           Run this scan now?
         </h2>
-        <p className="dialog__sub">Each place is a paid Skyscanner search on Apify.</p>
+        <p className="dialog__sub">Each place is a paid Skyscanner search on Apify, once per pickup date.</p>
 
         {estimate.isPending && (
           <div className="cost-estimate" aria-busy="true">
@@ -96,8 +98,13 @@ export function RunCostDialog({ searchId, open, onClose, onConfirm }: Props) {
 
             <dl className="cost-estimate__rows">
               <div>
-                <dt>Places to search</dt>
+                <dt>{(e.pickupDates ?? 1) > 1 ? 'Searches' : 'Places to search'}</dt>
                 <dd>
+                  {(e.pickupDates ?? 1) > 1 && (
+                    <span className="muted">
+                      {e.placesSearched} places × {e.pickupDates} pickup dates ={' '}
+                    </span>
+                  )}
                   {e.places}
                   {e.perPlaceUsd !== null && <span className="muted"> × ~{usd(e.perPlaceUsd)}</span>}
                 </dd>
@@ -129,9 +136,11 @@ export function RunCostDialog({ searchId, open, onClose, onConfirm }: Props) {
             </dl>
 
             <p className="cost-estimate__note">
-              {hasCeiling
-                ? `A place costs less when it returns fewer than ${e.maxResultsPerPlace} offers, so scans vary a little. `
-                : 'The cost depends on how many offers each place returns. '}
+              {e.maxResultsPerPlace === 1
+                ? 'Every offer is kept, but each search is billed as one row, so the cost barely varies. '
+                : hasCeiling
+                  ? `A place costs less when it returns fewer than ${e.maxResultsPerPlace} offers, so scans vary a little. `
+                  : 'The cost depends on how many offers each place returns. '}
               {e.nameChecks > 0 && 'Places Skyscanner does not recognise are skipped, which lowers the cost. '}
               Safety cap: {e.runCapUsd > 0 ? `a run stops starting new places at ${usd(e.runCapUsd)}, and ` : ''}
               one place can never charge more than {usd(e.perSearchCapUsd)}.

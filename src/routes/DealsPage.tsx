@@ -8,7 +8,7 @@ import { ScanProgress } from '../components/ScanProgress';
 import { SearchPanel } from '../components/SearchPanel';
 import { DealSkeleton, ErrorState, NoMatchesState } from '../components/States';
 import { HeartIcon } from '../components/icons';
-import { api, intervalLabel, type Deal, type DealsResponse } from '../lib/api';
+import { PICKUP_FLEX_OPTIONS, api, intervalLabel, pickupFlexLabel, type Deal, type DealsResponse } from '../lib/api';
 import type { DealsSearch } from '../router';
 import type { DealFilters } from '../lib/filters';
 import { DEFAULT_FILTERS, SORT_OPTIONS, applyFilters, buildFacets } from '../lib/filters';
@@ -100,6 +100,14 @@ export function DealsPage() {
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['search', searchId] }),
     onError: () => setAwaitingNewerThan(null),
   });
+  const setPickupFlex = useMutation({
+    mutationFn: (days: number) => api.setSearchPickupFlex(searchId, days),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['search', searchId] });
+      void queryClient.invalidateQueries({ queryKey: ['searches'] });
+      void queryClient.invalidateQueries({ queryKey: ['scheduler'] });
+    },
+  });
   const toggleActive = useMutation({
     mutationFn: (active: boolean) => api.setSearchActive(searchId, active),
     onSuccess: () => {
@@ -144,6 +152,11 @@ export function DealsPage() {
   const shownPickup = shownRun?.meta?.pickupDate ?? allDeals[0]?.pickupDate ?? s?.pickupDate;
   const shownReturn = shownRun?.meta?.returnDate ?? allDeals[0]?.dropoffDate ?? s?.returnDate;
   const nextDatesDiffer = !!s && !!shownPickup && shownPickup !== s.pickupDate;
+  const flexDays = s?.pickupFlexDays ?? 0;
+  // Places, not searches: a flexible search runs every place once per pickup date.
+  const placesInLastScan = Array.isArray(latestRun?.meta?.placesSearched)
+    ? (latestRun.meta.placesSearched as unknown[]).length
+    : latestRun?.jobsPlanned;
 
   const scheduler = useQuery({ queryKey: ['scheduler'], queryFn: () => api.scheduler(), staleTime: 30_000 });
   const schedulerOn = scheduler.data ? scheduler.data.configured && scheduler.data.enabled : true;
@@ -169,7 +182,7 @@ export function DealsPage() {
         title={s ? s.name : 'Deals'}
         subtitle={
           s
-            ? `ZIP ${s.zip} (${s.zipCity}, ${s.zipState}) · within ${s.radiusMiles} miles${s.states.length ? ` · ${s.states.join(', ')}` : ''} · pickup ${fullDate(shownPickup ?? s.pickupDate)}, return ${fullDate(shownReturn ?? s.returnDate)} (${s.rentalDays} days, same location)${nextDatesDiffer ? ` · next scan: pickup ${fullDate(s.pickupDate)}` : ''}. Target ${money(dealsQuery.data?.targetMonthly ?? 1100)} per 30 days.`
+            ? `ZIP ${s.zip} (${s.zipCity}, ${s.zipState}) · within ${s.radiusMiles} miles${s.states.length ? ` · ${s.states.join(', ')}` : ''} · pickup ${fullDate(shownPickup ?? s.pickupDate)}, return ${fullDate(shownReturn ?? s.returnDate)} (${s.rentalDays} days, same location)${flexDays > 0 ? ` · flexible pickup: ${pickupFlexLabel(flexDays).toLowerCase()}` : ''}${nextDatesDiffer ? ` · next scan: pickup ${fullDate(s.pickupDate)}` : ''}. Target ${money(dealsQuery.data?.targetMonthly ?? 1100)} per 30 days.`
             : ''
         }
         onChange={patchFilters}
@@ -183,12 +196,30 @@ export function DealsPage() {
             </Link>
             <div className="results__sub">
               {detailQuery.data
-                ? `${latestRun ? `${latestRun.jobsPlanned} ${latestRun.jobsPlanned === 1 ? 'place' : 'places'} searched in last scan · ` : ''}${detailQuery.data.placesInRange} places in range · ${scheduleText}`
+                ? `${latestRun && placesInLastScan !== undefined ? `${placesInLastScan} ${placesInLastScan === 1 ? 'place' : 'places'} searched in last scan · ` : ''}${detailQuery.data.placesInRange} places in range · ${scheduleText}`
                 : ''}
               {latestRun && ` · last scan ${STATUS_LABEL[latestRun.status].toLowerCase()} ${dateTime(latestRun.startedAt)} · $${Number.parseFloat(latestRun.costUsd).toFixed(2)}`}
             </div>
           </div>
           <div className="form-actions">
+            {s && (
+              <label className="inline-select">
+                <span className="muted">Flexible pickup</span>
+                <select
+                  id="flex-pickup"
+                  className="select--sm"
+                  value={flexDays}
+                  disabled={setPickupFlex.isPending}
+                  onChange={(e) => setPickupFlex.mutate(Number(e.target.value))}
+                >
+                  {PICKUP_FLEX_OPTIONS.map((o) => (
+                    <option key={o.days} value={o.days}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
             {s && (
               <button
                 type="button"

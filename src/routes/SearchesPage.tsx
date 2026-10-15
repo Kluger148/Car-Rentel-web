@@ -4,7 +4,16 @@ import { useState, type FormEvent } from 'react';
 import { SchedulerBar } from '../components/SchedulerBar';
 import { StatePicker, TagPicker } from '../components/TagPicker';
 import { ErrorState } from '../components/States';
-import { INTERVAL_OPTIONS, api, intervalLabel, type SavedSearch, type SearchInput, type SearchPreview } from '../lib/api';
+import {
+  INTERVAL_OPTIONS,
+  PICKUP_FLEX_OPTIONS,
+  api,
+  intervalLabel,
+  pickupFlexLabel,
+  type SavedSearch,
+  type SearchInput,
+  type SearchPreview,
+} from '../lib/api';
 import { STATUS_LABEL, fullDate, relativeTime } from '../lib/format';
 
 function tomorrowIso(): string {
@@ -29,6 +38,7 @@ function NewSearchForm({ onCreated }: { onCreated: (id: number) => void }) {
   }));
   const [pickup, setPickup] = useState(tomorrowIso());
   const [intervalDays, setIntervalDays] = useState(1);
+  const [pickupFlexDays, setPickupFlexDays] = useState(0);
   const [name, setName] = useState('');
   const [notes, setNotes] = useState('');
   const [preview, setPreview] = useState<SearchPreview | null>(null);
@@ -41,6 +51,7 @@ function NewSearchForm({ onCreated }: { onCreated: (id: number) => void }) {
     suppliers,
     pickupDate: pickup,
     intervalDays,
+    pickupFlexDays,
     name: name.trim() || undefined,
     notes: notes.trim() || undefined,
   });
@@ -134,6 +145,23 @@ function NewSearchForm({ onCreated }: { onCreated: (id: number) => void }) {
           <input id="ns-pickup" type="date" required min={tomorrowIso()} value={pickup} onChange={(e) => { setPickup(e.target.value); changed(); }} />
         </label>
         <label className="field">
+          <span className="field__label">Flexible pickup</span>
+          <select
+            id="ns-flex"
+            value={pickupFlexDays}
+            onChange={(e) => {
+              setPickupFlexDays(Number(e.target.value));
+              changed();
+            }}
+          >
+            {PICKUP_FLEX_OPTIONS.map((o) => (
+              <option key={o.days} value={o.days}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="field">
           <span className="field__label">Repeat</span>
           <select id="ns-interval" value={intervalDays} onChange={(e) => setIntervalDays(Number(e.target.value))}>
             {INTERVAL_OPTIONS.map((o) => (
@@ -167,12 +195,22 @@ function NewSearchForm({ onCreated }: { onCreated: (id: number) => void }) {
             </strong>{' '}
             · pickup {fullDate(preview.pickupDate)} → return {fullDate(preview.returnDate)} ({preview.rentalDays} days)
           </p>
+          {preview.pickupDates && preview.pickupDates.length > 1 && (
+            <p className="muted">
+              Prices {preview.pickupDates.length} pickup dates: {preview.pickupDates.map((d) => fullDate(d)).join(' · ')}
+            </p>
+          )}
           <p className="muted">
-            {preview.searched.length} of {preview.placesInRange} places within {preview.radiusMiles} miles will be
-            searched daily (largest first, limit {preview.maxLocationsPerSearch}):
+            Up to {Math.min(preview.maxLocationsPerSearch, preview.searched.length)} of {preview.placesInRange} places
+            within {preview.radiusMiles} miles will be searched, largest first. Places Skyscanner does not recognise
+            are skipped.
           </p>
           <p className="preview__places">
-            {preview.searched.map((s) => `${s.location.query} (${Math.round(s.distanceMiles)} mi)`).join(' · ')}
+            {preview.searched
+              .slice(0, 40)
+              .map((s) => `${s.location.query} (${Math.round(s.distanceMiles)} mi)`)
+              .join(' · ')}
+            {preview.searched.length > 40 && ` · and ${preview.searched.length - 40} more`}
           </p>
         </div>
       )}
@@ -286,6 +324,7 @@ export function SearchesPage() {
                   </td>
                   <td>
                     {fullDate(s.pickupDate)} → {fullDate(s.returnDate)}
+                    {(s.pickupFlexDays ?? 0) > 0 && <div className="muted">{pickupFlexLabel(s.pickupFlexDays)}</div>}
                   </td>
                   <td>
                     {s.lastRun ? (

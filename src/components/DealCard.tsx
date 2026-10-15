@@ -129,9 +129,13 @@ export function DealCard({
           )}
           {deal.transmission && <span className="dc-chip">{deal.transmission}</span>}
           {deal.bodyStyle && <span className="dc-chip">{deal.bodyStyle}</span>}
-          {mileage && (
+          {mileage ? (
             <span className={`dc-chip${isUnlimitedMileage(deal.mileagePolicy) ? ' dc-chip--good' : ''}`}>
               <RoadIcon size={14} /> {mileage}
+            </span>
+          ) : (
+            <span className="dc-chip" title="The booking site did not say how many miles are included">
+              <RoadIcon size={14} /> Mileage not stated
             </span>
           )}
         </div>
@@ -212,6 +216,7 @@ export function DealCard({
                 <strong>{o.bookingProvider ?? 'Unknown provider'}</strong> <Stars rating={o.rating} reviews={o.reviews} />
                 <div className="dc-muted">
                   {o.place} · {Math.round(o.distanceMiles)} mi
+                  {o.pickupDate && o.dropoffDate && ` · ${dateRange(o.pickupDate, o.dropoffDate)}`}
                 </div>
                 {o.freeCancellation && <div className="dc-good">✓ Free cancellation</div>}
               </div>
