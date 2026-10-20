@@ -1500,8 +1500,10 @@ table.data .num {
 .fav-list { display: grid; gap: 14px; }
 .fav-card { display: grid; grid-template-columns: 180px minmax(0, 1fr) 180px; gap: 18px; padding: 16px; align-items: start; }
 .fav-card--gone { opacity: 0.8; }
-.fav-card__media { height: 110px; border-radius: var(--radius-sm); background: var(--surface-2); display: grid; place-items: center; overflow: hidden; }
-.fav-card__media img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.fav-card__media { position: relative; height: 110px; border-radius: var(--radius-sm); background: var(--surface-2); display: grid; place-items: center; overflow: hidden; }
+/* Pinned to the box: a max-height of 100% does nothing inside the grid's auto-height row, so photos
+   used to show at full size and lose their bottom half. The whole car is scaled to fit instead. */
+.fav-card__media img { position: absolute; inset: 0; width: 100%; height: 100%; padding: 8px; object-fit: contain; }
 .fav-card__body { display: grid; gap: 10px; min-width: 0; }
 .fav-card__head { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
 .fav-card__head .dc-fav { position: static; flex: none; }
@@ -1525,7 +1527,7 @@ table.data .num {
 .fav-note__status.is-error { color: var(--red-600); }
 @media (max-width: 760px) {
   .fav-card { grid-template-columns: 1fr; gap: 14px; padding: 14px; }
-  .fav-card__media { height: 120px; }
+  .fav-card__media { height: 160px; }
   .fav-card__price { text-align: left; justify-items: start; }
   .fav-card__price .btn { justify-self: stretch; }
 }
@@ -1826,4 +1828,303 @@ table.data .num {
 /* Touch screens: taller rows in the filter lists, easier to hit with a finger. */
 @media (pointer: coarse) {
   .check { padding: 8px 0; }
+}
+
+/* ==== Phone app layout: deals page ========================================================== */
+/* Phones only. The deals page reads like an app: a compact header with a search pill, filters and
+   the search's settings in bottom sheets, a one-line scan status and compact deal cards. Nothing is
+   removed: the sheets hold the same controls as the tablet and desktop layouts. */
+
+/* Phone-only parts, hidden on tablets and desktop. */
+.hero__back,
+.hero__more,
+.hero__meta,
+.searchbar__filters,
+.scan-strip,
+.sheet-head,
+.search-actions__summary,
+.sheet-close,
+.sheet-foot,
+.sheet-backdrop { display: none; }
+.hero__top { display: flex; align-items: flex-start; gap: 10px; }
+.hero__heading { flex: 1; min-width: 0; }
+
+@keyframes sheet-fade { from { opacity: 0; } }
+
+@media (max-width: 760px) {
+  /* Header: back, one-line title with a short summary, ⋯ for details and settings. */
+  .hero { padding: 8px 0 14px; }
+  .hero__top { align-items: center; gap: 4px; margin: 0 -8px; }
+  .hero__icon-btn {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: #fff;
+  }
+  .hero__icon-btn:hover { background: rgba(255, 255, 255, 0.12); text-decoration: none; }
+  .hero__title { font-size: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .hero__meta {
+    display: block;
+    margin: 1px 0 0;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.72);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .hero__subtitle { display: none; }
+
+  /* Search pill and filter button. State and price live in the filter sheet here. */
+  .searchbar {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+    padding: 0;
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+  .searchbar__extra { display: none; }
+  .searchbar > .ac { flex: 1; }
+  .searchbar .ac .field {
+    justify-content: center;
+    height: 46px;
+    padding: 0 40px 0 42px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--surface)
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E")
+      no-repeat 15px center;
+  }
+  /* The label stays for screen readers; the placeholder says it on screen. */
+  .searchbar .ac .field__label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+  .searchbar .ac__clear { transform: translateY(-50%); }
+  .searchbar__filters {
+    position: relative;
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 46px;
+    height: 46px;
+    padding: 0;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--surface);
+    color: var(--text);
+  }
+  .searchbar__badge {
+    position: absolute;
+    top: -3px;
+    right: -3px;
+    min-width: 19px;
+    height: 19px;
+    padding: 0 5px;
+    border-radius: 999px;
+    background: var(--accent);
+    color: var(--on-accent);
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 19px;
+    text-align: center;
+  }
+  .hero .chips { margin-top: 12px; }
+
+  /* One line under the header: when the scan ran, and Run now. */
+  .scan-strip {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 12px 0;
+    padding: 6px 6px 6px 16px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--surface);
+    box-shadow: var(--shadow-sm);
+    font-size: 13.5px;
+    color: var(--text-muted);
+  }
+  .scan-strip__text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .scan-strip .btn { padding: 8px 16px; border-radius: 999px; }
+
+  /* Deal count, Favourites and Sort: a light bar instead of a third card. */
+  section[aria-label='Deals'] > .results__head {
+    gap: 10px;
+    margin-bottom: 12px;
+    padding: 0 2px;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+  .results__controls { flex-wrap: nowrap; gap: 8px; }
+  .results__controls .chip--fav { flex: none; padding: 8px 12px; }
+  .sort { font-size: 0; gap: 0; min-width: 0; }
+  .sort select { font-size: 16px; border-radius: 999px; padding: 8px 12px; }
+
+  /* Bottom sheets: the search's details card and the filters. Off-screen until opened. */
+  .sheet-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    background: rgba(10, 15, 29, 0.55);
+    animation: sheet-fade 0.2s ease-out;
+  }
+  .search-actions,
+  .layout > .sidebar {
+    position: fixed;
+    /* top: auto drops the desktop sidebar's sticky offset, so the sheet sits on the bottom edge. */
+    top: auto;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 210;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    flex-wrap: nowrap;
+    gap: 14px;
+    margin: 0;
+    max-height: 88vh;
+    max-height: 88dvh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 0 16px calc(18px + env(safe-area-inset-bottom));
+    border-width: 1px 0 0;
+    border-radius: 22px 22px 0 0;
+    box-shadow: var(--shadow-lg);
+    transform: translateY(100%);
+    visibility: hidden;
+    transition: transform 0.25s ease, visibility 0s linear 0.25s;
+  }
+  .search-actions.is-open,
+  .layout > .sidebar.is-open {
+    transform: none;
+    visibility: visible;
+    transition: transform 0.25s ease;
+  }
+  .layout > .sidebar { gap: 0; padding-bottom: 0; }
+
+  /* Sheet headers stay at the top while the sheet scrolls, with a grab handle above the title. */
+  .sheet-head,
+  .layout > .sidebar .sidebar__head {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 0 -16px;
+    padding: 20px 16px 10px;
+    background: var(--surface);
+  }
+  .sheet-head::before,
+  .layout > .sidebar .sidebar__head::before {
+    content: '';
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    width: 38px;
+    height: 4px;
+    margin-left: -19px;
+    border-radius: 999px;
+    background: var(--border-strong);
+  }
+  .sheet-head h2,
+  .sidebar__head h2 { font-size: 17px; }
+  .search-actions__summary { display: block; margin: 0; font-size: 14px; color: var(--text-muted); }
+  .search-actions .form-actions .btn--primary { padding-inline: 12px; }
+
+  /* Filter sheet: the close button replaces Show/Hide, groups stack in one column. */
+  .sidebar__toggle { display: none; }
+  .sheet-close { display: inline-flex; }
+  .layout > .sidebar .sidebar__body { display: block; margin-top: 0; }
+  .layout > .sidebar .sidebar__body > .filter-group:first-of-type { border-top: 0; }
+  .sheet-foot {
+    display: block;
+    position: sticky;
+    bottom: 0;
+    margin: 4px -16px 0;
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+  }
+  .sheet-foot__btn { width: 100%; padding: 13px; border-radius: 999px; font-size: 15px; }
+
+  /* Compact deal card: thumbnail beside the details, price and buttons in a row underneath. */
+  .dc { position: relative; grid-template-columns: 96px minmax(0, 1fr); }
+  .dc-media {
+    position: static;
+    min-height: 0;
+    justify-content: flex-start;
+    align-items: stretch;
+    gap: 6px;
+    padding: 12px 0 0 12px;
+    background: transparent;
+  }
+  .dc-media img,
+  .dc-media__placeholder {
+    display: grid;
+    place-items: center;
+    width: 84px;
+    height: 64px;
+    max-height: none;
+    padding: 4px;
+    border-radius: 12px;
+    background: var(--surface-2);
+    object-fit: contain;
+  }
+  /* Scoped to .dc: the deal detail and Favorites pages reuse some of these class names. */
+  .dc .dc-company {
+    position: static;
+    align-self: flex-start;
+    max-width: 84px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 11px;
+  }
+  /* The heart moves to the card's top corner; the first lines keep clear of it. */
+  .dc .dc-fav { top: 10px; right: 10px; }
+  .dc-main { gap: 6px; padding: 12px 12px 10px; }
+  .dc-main > .deal__badges:not(:empty),
+  .dc-main > .deal__badges:empty + .dc-title { padding-right: 40px; }
+  .dc-main > .deal__badges { margin-bottom: 0; }
+  .dc .dc-title { font-size: 16px; }
+  .dc .dc-sub { font-size: 13px; }
+  .dc .dc-chip { font-size: 12px; }
+  .dc .dc-place { font-size: 13.5px; }
+  .dc .dc-price {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    align-items: flex-end;
+    gap: 12px;
+    padding: 12px;
+  }
+  .dc .dc-price__info { flex: 1; min-width: 0; }
+  .dc .dc-price__actions { flex: 0 0 42%; min-width: 0; }
+  .dc .dc-price__actions .btn { padding-inline: 10px; }
+  .dc .dc-price__big { font-size: 24px; }
+}
+
+@media (max-width: 760px) and (prefers-reduced-motion: reduce) {
+  .search-actions,
+  .layout > .sidebar,
+  .search-actions.is-open,
+  .layout > .sidebar.is-open { transition: none; }
+  .sheet-backdrop { animation: none; }
 }

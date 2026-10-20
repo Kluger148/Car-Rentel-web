@@ -1,10 +1,11 @@
+import { Link } from '@tanstack/react-router';
 import type { VehicleClass } from '../lib/api';
 import type { DealFilters } from '../lib/filters';
 import type { Facets } from '../lib/filters';
 import { CLASS_LABEL } from '../lib/format';
 import { Autocomplete } from './Autocomplete';
 import { stateName } from './TagPicker';
-import { SearchIcon } from './icons';
+import { ArrowLeftIcon, DotsIcon, SearchIcon, SlidersIcon } from './icons';
 
 interface SearchPanelProps {
   filters: DealFilters;
@@ -14,18 +15,65 @@ interface SearchPanelProps {
   runId?: number;
   title: string;
   subtitle: string;
+  /** Short line under the title on phones ("30303 · 100 mi · Oct 21"); the full subtitle moves to the details sheet. */
+  meta?: string;
   onChange: (patch: Partial<DealFilters>) => void;
+  /** Phones: the filter button beside the search box opens the filter sheet. */
+  filterCount: number;
+  filtersOpen: boolean;
+  filtersPanelId: string;
+  onOpenFilters: () => void;
+  /** Phones: the ⋯ button opens the search's details and settings sheet. */
+  detailsOpen: boolean;
+  detailsPanelId: string;
+  onOpenDetails: () => void;
 }
 
 const CLASS_ORDER: VehicleClass[] = ['MINIVAN', 'PASSENGER_VAN', 'LARGE_SUV', 'OTHER'];
 
-export function SearchPanel({ filters, facets, totalCount, searchId, runId, title, subtitle, onChange }: SearchPanelProps) {
+export function SearchPanel({
+  filters,
+  facets,
+  totalCount,
+  searchId,
+  runId,
+  title,
+  subtitle,
+  meta,
+  onChange,
+  filterCount,
+  filtersOpen,
+  filtersPanelId,
+  onOpenFilters,
+  detailsOpen,
+  detailsPanelId,
+  onOpenDetails,
+}: SearchPanelProps) {
   const countFor = (cls: VehicleClass) => facets.classes.find((c) => c.value === cls)?.count ?? 0;
 
   return (
     <section className="hero">
       <div className="container">
-        <h1 className="hero__title">{title}</h1>
+        {/* The back arrow, short meta line and ⋯ button show on phones only (CSS). */}
+        <div className="hero__top">
+          <Link to="/" className="hero__icon-btn hero__back" aria-label="All searches">
+            <ArrowLeftIcon size={20} />
+          </Link>
+          <div className="hero__heading">
+            <h1 className="hero__title">{title}</h1>
+            {meta && <p className="hero__meta">{meta}</p>}
+          </div>
+          <button
+            type="button"
+            className="hero__icon-btn hero__more"
+            aria-label="Search details and settings"
+            aria-controls={detailsPanelId}
+            aria-expanded={detailsOpen}
+            onClick={onOpenDetails}
+          >
+            <DotsIcon size={20} />
+          </button>
+        </div>
         <p className="hero__subtitle">{subtitle}</p>
 
         <div className="searchbar">
@@ -38,7 +86,8 @@ export function SearchPanel({ filters, facets, totalCount, searchId, runId, titl
             onChange={(q) => onChange({ query: q })}
           />
 
-          <label className="field">
+          {/* State, price and the count stay in the filter sheet on phones (states and price there). */}
+          <label className="field searchbar__extra">
             <span className="field__label">Pickup state</span>
             <select
               value={filters.states.length === 0 ? 'ALL' : filters.states.length === 1 ? filters.states[0] : 'MANY'}
@@ -58,7 +107,7 @@ export function SearchPanel({ filters, facets, totalCount, searchId, runId, titl
             </select>
           </label>
 
-          <label className="field">
+          <label className="field searchbar__extra">
             <span className="field__label">Max per 30 days</span>
             <select
               value={filters.maxMonthly ?? ''}
@@ -72,10 +121,26 @@ export function SearchPanel({ filters, facets, totalCount, searchId, runId, titl
             </select>
           </label>
 
-          <span className="btn btn--primary" aria-hidden="true">
+          <span className="btn btn--primary searchbar__extra" aria-hidden="true">
             <SearchIcon />
             {totalCount} deals
           </span>
+
+          <button
+            type="button"
+            className="searchbar__filters"
+            aria-label={filterCount > 0 ? `Filters, ${filterCount} on` : 'Filters'}
+            aria-controls={filtersPanelId}
+            aria-expanded={filtersOpen}
+            onClick={onOpenFilters}
+          >
+            <SlidersIcon size={20} />
+            {filterCount > 0 && (
+              <span className="searchbar__badge" aria-hidden="true">
+                {filterCount}
+              </span>
+            )}
+          </button>
         </div>
 
         <div className="chips">

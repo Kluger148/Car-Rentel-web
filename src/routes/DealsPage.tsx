@@ -1,13 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, getRouteApi } from '@tanstack/react-router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { DealCard } from '../components/DealCard';
 import { FilterSidebar } from '../components/FilterSidebar';
 import { RunCostDialog } from '../components/RunCostDialog';
 import { ScanProgress } from '../components/ScanProgress';
 import { SearchPanel } from '../components/SearchPanel';
 import { DealSkeleton, ErrorState, NoMatchesState } from '../components/States';
-import { HeartIcon } from '../components/icons';
+import { CloseIcon, HeartIcon } from '../components/icons';
+import { useMobileSheet } from '../components/useMobileSheet';
 import {
   PICKUP_FLEX_OPTIONS,
   api,
@@ -20,8 +21,8 @@ import {
 } from '../lib/api';
 import type { DealsSearch } from '../router';
 import type { DealFilters } from '../lib/filters';
-import { DEFAULT_FILTERS, SORT_OPTIONS, applyFilters, buildFacets } from '../lib/filters';
-import { STATUS_LABEL, dateTime, fullDate, money, relativeTime } from '../lib/format';
+import { DEFAULT_FILTERS, SORT_OPTIONS, applyFilters, buildFacets, countActiveFilters } from '../lib/filters';
+import { STATUS_LABEL, dateTime, fullDate, money, relativeTime, shortDate } from '../lib/format';
 
 // Typed accessors for the route without importing the router (avoids a cycle).
 const route = getRouteApi('/search/$id');
@@ -214,6 +215,35 @@ export function DealsPage() {
   const ageDays = dealsQuery.data ? (openedAt - new Date(dealsQuery.data.runStartedAt).getTime()) / 86_400_000 : 0;
   const stale = !search.run && ageDays > (s?.intervalDays ?? 1) + 1;
 
+  // Phones: filters and the search's details/settings open as bottom sheets. On wider screens the
+  // filters fold inline (tablets) or sit in the sidebar (desktop), and the details card is always shown.
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const filtersPanelId = useId();
+  const detailsPanelId = useId();
+  const closeDetails = useCallback(() => setDetailsOpen(false), []);
+  const detailsCloseRef = useRef<HTMLButtonElement>(null);
+  useMobileSheet(detailsOpen, closeDetails, detailsCloseRef);
+  // The filter button's badge counts what the sheet sets; the search text and Favourites have their own controls.
+  const sheetFilterCount =
+    countActiveFilters(filters) - (filters.query.trim() ? 1 : 0) - (filters.favouritesOnly ? 1 : 0);
+  const openRunDialog = () => {
+    setDetailsOpen(false);
+    setConfirmOpen(true);
+  };
+
+  const subtitle = s
+    ? `ZIP ${s.zip} (${s.zipCity}, ${s.zipState}) · within ${s.radiusMiles} miles${s.states.length ? ` · ${s.states.join(', ')}` : ''} · pickup ${fullDate(shownPickup ?? s.pickupDate)}, return ${fullDate(shownReturn ?? s.returnDate)} (${s.rentalDays} days, same location)${flexDays > 0 ? ` · flexible pickup: ${pickupFlexLabel(flexDays).toLowerCase()}` : ''}${nextDatesDiffer ? ` · next scan: pickup ${fullDate(s.pickupDate)}` : ''}. Target ${money(dealsQuery.data?.targetMonthly ?? 1100)} per 30 days.`
+    : '';
+  const meta = s ? `${s.zip} · ${s.radiusMiles} mi · ${shortDate(shownPickup ?? s.pickupDate)}` : undefined;
+  const stripText = running
+    ? 'Scanning…'
+    : dealsQuery.data
+      ? `Scanned ${relativeTime(dealsQuery.data.runStartedAt)} · ${allDeals.length} ${allDeals.length === 1 ? 'deal' : 'deals'}`
+      : dealsQuery.data === null
+        ? 'No scan yet'
+        : 'Loading deals…';
+
   return (
     <>
       <SearchPanel
@@ -223,16 +253,43 @@ export function DealsPage() {
         searchId={searchId}
         runId={dealsQuery.data?.runId}
         title={s ? s.name : 'Deals'}
-        subtitle={
-          s
-            ? `ZIP ${s.zip} (${s.zipCity}, ${s.zipState}) · within ${s.radiusMiles} miles${s.states.length ? ` · ${s.states.join(', ')}` : ''} · pickup ${fullDate(shownPickup ?? s.pickupDate)}, return ${fullDate(shownReturn ?? s.returnDate)} (${s.rentalDays} days, same location)${flexDays > 0 ? ` · flexible pickup: ${pickupFlexLabel(flexDays).toLowerCase()}` : ''}${nextDatesDiffer ? ` · next scan: pickup ${fullDate(s.pickupDate)}` : ''}. Target ${money(dealsQuery.data?.targetMonthly ?? 1100)} per 30 days.`
-            : ''
-        }
+        subtitle={subtitle}
+        meta={meta}
         onChange={patchFilters}
+        filterCount={sheetFilterCount}
+        filtersOpen={filtersOpen}
+        filtersPanelId={filtersPanelId}
+        onOpenFilters={() => setFiltersOpen(true)}
+        detailsOpen={detailsOpen}
+        detailsPanelId={detailsPanelId}
+        onOpenDetails={() => setDetailsOpen(true)}
       />
 
       <div className="container">
-        <div className="card results__head search-actions">
+        {/* Phones only (CSS): when the scan ran, and Run now. Everything else is in the ⋯ sheet. */}
+        <div className="scan-strip">
+          <span className="scan-strip__text">{stripText}</span>
+          <button type="button" className="btn btn--primary btn--sm" disabled={running} onClick={openRunDialog}>
+            {running ? 'Scanning…' : 'Run now'}
+          </button>
+        </div>
+
+        {/* Phones only (CSS): dims the page behind the details sheet; a tap closes it. */}
+        {detailsOpen && <div className="sheet-backdrop" aria-hidden="true" onClick={closeDetails} />}
+        {/* The search's links, scan status and settings: a card above the deals, a bottom sheet on phones. */}
+        <div
+          id={detailsPanelId}
+          className={`card results__head search-actions${detailsOpen ? ' is-open' : ''}`}
+          aria-label="Search details and settings"
+          role="region"
+        >
+          <div className="sheet-head">
+            <h2>Search details</h2>
+            <button ref={detailsCloseRef} type="button" className="icon-btn" aria-label="Close search details" onClick={closeDetails}>
+              <CloseIcon size={18} />
+            </button>
+          </div>
+          {subtitle && <p className="search-actions__summary">{subtitle}</p>}
           <div>
             <Link to="/" className="link-quiet">
               ← All searches
@@ -306,7 +363,7 @@ export function DealsPage() {
                 {s.active ? 'Stop automatic runs' : 'Turn on automatic runs'}
               </button>
             )}
-            <button type="button" className="btn btn--primary" disabled={running} onClick={() => setConfirmOpen(true)}>
+            <button type="button" className="btn btn--primary" disabled={running} onClick={openRunDialog}>
               {running ? 'Scanning…' : 'Run now'}
             </button>
           </div>
@@ -366,7 +423,16 @@ export function DealsPage() {
         )}
 
         <div className="layout">
-          <FilterSidebar filters={filters} facets={facets} onChange={patchFilters} onReset={resetFilters} />
+          <FilterSidebar
+            filters={filters}
+            facets={facets}
+            onChange={patchFilters}
+            onReset={resetFilters}
+            open={filtersOpen}
+            onOpenChange={setFiltersOpen}
+            panelId={filtersPanelId}
+            resultCount={visible.length}
+          />
 
           <section aria-label="Deals">
             <div className="card results__head">

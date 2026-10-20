@@ -136,3 +136,32 @@ export const InfoIcon = ({ size = 16, className }: IconProps) => (
     <path d="M12 7.5h.01" />
   </svg>
 );
+
+export const SlidersIcon = ({ size = 16, className }: IconProps) => (
+  <svg {...base(size)} className={className}>
+    <path d="M4 6h10m4 0h2M4 12h4m4 0h8M4 18h12m4 0h0" />
+    <circle cx="16" cy="6" r="2" />
+    <circle cx="10" cy="12" r="2" />
+    <circle cx="18" cy="18" r="2" />
+  </svg>
+);
+
+export const DotsIcon = ({ size = 16, className }: IconProps) => (
+  <svg {...base(size)} className={className}>
+    <circle cx="5" cy="12" r="1" />
+    <circle cx="12" cy="12" r="1" />
+    <circle cx="19" cy="12" r="1" />
+  </svg>
+);
+
+export const ArrowLeftIcon = ({ size = 16, className }: IconProps) => (
+  <svg {...base(size)} className={className}>
+    <path d="M19 12H5m6-6-6 6 6 6" />
+  </svg>
+);
+
+export const CloseIcon = ({ size = 16, className }: IconProps) => (
+  <svg {...base(size)} className={className}>
+    <path d="M6 6l12 12M18 6 6 18" />
+  </svg>
+);
