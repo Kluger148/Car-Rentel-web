@@ -167,20 +167,26 @@ export function PriceChart({ points, target, currency = 'USD', height: fullHeigh
           ),
         )}
 
-        {/* Invisible hit areas so the whole column is hoverable, not just the dot. */}
-        {points.map((p, i) => (
-          <rect
-            key={`hit-${p.runId}`}
-            x={x(i) - plotW / Math.max(points.length * 2, 2) - 6}
-            y={pad.top}
-            width={plotW / Math.max(points.length, 1) + 12}
-            height={plotH}
-            fill="transparent"
-            // Pointer events cover mouse, pen and touch: a tap shows that scan's price.
-            onPointerEnter={() => setHover(i)}
-            onPointerDown={() => setHover(i)}
-          />
-        ))}
+        {/* Invisible hit areas so the whole column is hoverable, not just the dot. Kept inside the
+            chart's width: with few scans the outer columns would otherwise reach past the screen edge. */}
+        {points.map((p, i) => {
+          const half = plotW / Math.max(points.length * 2, 2) + 6;
+          const left = Math.max(0, x(i) - half);
+          const right = Math.min(W, x(i) + half);
+          return (
+            <rect
+              key={`hit-${p.runId}`}
+              x={left}
+              y={pad.top}
+              width={right - left}
+              height={plotH}
+              fill="transparent"
+              // Pointer events cover mouse, pen and touch: a tap shows that scan's price.
+              onPointerEnter={() => setHover(i)}
+              onPointerDown={() => setHover(i)}
+            />
+          );
+        })}
       </svg>
 
       <div className="chart__legend">
