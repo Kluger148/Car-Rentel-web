@@ -943,6 +943,113 @@ input[type='range'] {
   padding-left: 18px;
 }
 
+/* Deals page warnings: one slim amber bar, a line per warning with its fix on the right. */
+.notice-bar {
+  margin-bottom: 14px;
+  padding: 2px 10px 2px 14px;
+  border-radius: var(--radius);
+  background: var(--amber-100);
+  color: var(--amber-600);
+  font-size: 14px;
+}
+.notice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+}
+.notice + .notice {
+  border-top: 1px solid color-mix(in srgb, var(--amber-600) 25%, transparent);
+}
+.notice > svg {
+  flex: none;
+}
+.notice__body {
+  flex: 1;
+  min-width: 0;
+}
+.notice__text,
+.notice__detail {
+  margin: 0;
+}
+.notice__detail {
+  margin-top: 4px;
+  font-size: 13.5px;
+}
+.notice__more {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.notice__action {
+  flex: none;
+  border-color: color-mix(in srgb, var(--amber-600) 40%, transparent);
+  background: var(--surface);
+  color: var(--text);
+}
+.notice__action:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  text-decoration: none;
+}
+/* Desktop only: the search's settings card folds to one row (links, last scan, Run now, Settings). */
+.sa-toggle {
+  display: none;
+}
+@media (min-width: 1041px) {
+  .sa-toggle {
+    display: inline-flex;
+  }
+  .search-actions.is-collapsed {
+    flex-wrap: nowrap;
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
+  .search-actions.is-collapsed .search-actions__info {
+    display: flex;
+    flex: 1;
+    align-items: baseline;
+    gap: 14px;
+    min-width: 0;
+  }
+  .search-actions.is-collapsed .search-actions__links {
+    flex: none;
+    white-space: nowrap;
+  }
+  .search-actions.is-collapsed .search-actions__status {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .search-actions.is-collapsed .search-actions__next,
+  .search-actions.is-collapsed .sa-setting {
+    display: none;
+  }
+  .search-actions.is-collapsed .form-actions {
+    flex: none;
+    flex-wrap: nowrap;
+  }
+}
+
+/* Phones keep the full warning boxes (opened from the amber status line), not the slim bar. */
+.deal-notices__full {
+  display: none;
+}
+@media (max-width: 760px) {
+  .notice-bar {
+    display: none;
+  }
+  .deal-notices__full {
+    display: block;
+  }
+}
+
 /* -------------------------------- States -------------------------------- */
 .state {
   display: flex;
@@ -1680,8 +1787,9 @@ table.data .num {
 /* Last in the file so these win over the base rules above. Breakpoints: 1040 tablet layout,
    900 stacked tables, 760 phone (tab bar), 560 small phone, 420 narrowest phones. */
 
-/* "Scan " before the id, only where table rows become cards. */
-.cell-title__prefix { display: none; }
+/* "Scan " before the id, and the edit icon beside a search's name: only where table rows become cards. */
+.cell-title__prefix,
+.cell-title__edit { display: none; }
 
 /* Wide tables become one card per row: each cell shows its own heading (data-label). */
 @media (max-width: 900px) {
@@ -1714,11 +1822,63 @@ table.data .num {
     text-transform: uppercase;
     color: var(--text-muted);
   }
-  table.data.data--stack td.cell-title,
-  table.data.data--stack td.cell-actions { grid-column: 1 / -1; }
+  table.data.data--stack td.cell-title { grid-column: 1 / -1; }
   table.data--stack td.cell-title { font-size: 15.5px; font-weight: 700; }
   table.data--stack .cell-title__prefix { display: inline; }
-  table.data--stack .cell-actions .link-btn { margin-left: 18px; }
+  /* Edit sits as an icon at the right of the card's title, so the bottom row keeps only Open deals. */
+  table.data--stack .cell-title__row { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+  table.data--stack .cell-title__edit {
+    display: inline-flex;
+    flex: none;
+    width: 34px;
+    height: 34px;
+    margin: -6px -6px 0 0;
+    border: 1px solid var(--border-strong);
+    color: var(--text-muted);
+  }
+  table.data--stack .cell-title__edit:hover { border-color: var(--accent); }
+  table.data.data--stack .cell-actions .link-btn { display: none; }
+  /* Actions take the free cell beside the last field (e.g. next to Repeat), as tappable pills
+     aligned to its bottom edge; on one-column phones they get their own row. */
+  table.data.data--stack td.cell-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-content: flex-end;
+    align-items: flex-end;
+    gap: 8px;
+  }
+  /* The field beside the actions sits on the same bottom line as them. */
+  table.data--stack td[data-label='Repeat'] { align-self: end; }
+  /* Side by side when they fit, else stacked; either way they fill the cell evenly. */
+  table.data--stack .cell-actions a,
+  table.data--stack .cell-actions .link-btn {
+    display: inline-flex;
+    flex: 1 1 auto;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    margin: 0;
+    padding: 8px 14px;
+    border: 1px solid var(--border-strong);
+    border-radius: 999px;
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.2;
+    text-decoration: none;
+  }
+  table.data--stack .cell-actions a:first-child {
+    border-color: transparent;
+    background: color-mix(in srgb, var(--accent) 14%, transparent);
+    color: var(--accent);
+  }
+  table.data--stack .cell-actions a:hover,
+  table.data--stack .cell-actions .link-btn:hover { border-color: var(--accent); color: var(--accent); text-decoration: none; }
+}
+
+/* Tablets: wider fields, so the action buttons fit side by side next to the last field. */
+@media (min-width: 641px) and (max-width: 900px) {
+  table.data--stack tr { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
   /* Clip to the card's rounded corners, so a highlighted row never pokes past them. */
   .card > .table-wrap:last-child,
   .card.table-wrap { overflow: hidden; }
@@ -1819,9 +1979,6 @@ table.data .num {
   .search-actions .inline-select { flex-direction: column; align-items: stretch; gap: 4px; }
   .search-actions .inline-select select { width: 100%; padding: 6px 8px; }
   .search-actions .form-actions .btn { white-space: normal; padding-inline: 12px; }
-  .results__controls { width: 100%; }
-  .sort { flex: 1; }
-  .sort select { flex: 1; min-width: 0; }
 
   /* Scan history */
   .run-filters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
@@ -1881,7 +2038,18 @@ table.data .num {
 .search-actions__summary,
 .sheet-close,
 .sheet-foot,
-.sheet-backdrop { display: none; }
+.sheet-backdrop,
+.results__short,
+.sort__short,
+.dc-m-company,
+.dc-m-chip,
+.dc-m-line,
+.dc-m-price,
+.dc-m-show,
+.dc-m-foot,
+.dc-m-details { display: none; }
+/* Wider screens show the warnings in full, exactly as before; the wrapper only matters on phones. */
+.deal-notices { display: contents; }
 .hero__top { display: flex; align-items: flex-start; gap: 10px; }
 .hero__heading { flex: 1; min-width: 0; }
 
@@ -1997,19 +2165,85 @@ table.data .num {
   .scan-strip__text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .scan-strip .btn { padding: 8px 16px; border-radius: 999px; }
 
-  /* Deal count, Favourites and Sort: a light bar instead of a third card. */
+  /* With warnings the line turns amber; a tap on it opens them in full just below. */
+  .scan-strip--warn {
+    padding-left: 6px;
+    border-color: color-mix(in srgb, var(--amber-600) 35%, transparent);
+    background: var(--amber-100);
+    color: var(--amber-600);
+  }
+  .scan-strip__toggle {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    padding: 6px 4px 6px 8px;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+  }
+  .scan-strip__toggle svg { flex: none; }
+  .scan-strip__count { flex: none; font-size: 12.5px; }
+  /* Narrowest phones: the warning text wraps to a second line instead of being cut off. */
+  @media (max-width: 360px) {
+    .scan-strip--warn { border-radius: 18px; }
+    .scan-strip--warn .scan-strip__text { white-space: normal; line-height: 1.25; }
+    /* "#58 · Oct 15" rather than a cut-off "Scan #58 · Oct…". */
+    .results__short-word { display: none; }
+  }
+  .deal-notices { display: none; }
+  .deal-notices.is-open { display: block; margin-top: -4px; }
+
+  /* Count, Favourites and Sort on one line, instead of a third card. */
   section[aria-label='Deals'] > .results__head {
-    gap: 10px;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 8px;
     margin-bottom: 12px;
     padding: 0 2px;
     border: 0;
     background: transparent;
     box-shadow: none;
   }
-  .results__controls { flex-wrap: nowrap; gap: 8px; }
-  .results__controls .chip--fav { flex: none; padding: 8px 12px; }
-  .sort { font-size: 0; gap: 0; min-width: 0; }
-  .sort select { font-size: 16px; border-radius: 999px; padding: 8px 12px; }
+  section[aria-label='Deals'] > .results__head > div:first-child { flex: 1; min-width: 0; }
+  section[aria-label='Deals'] .results__count { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  /* The long scan line moves to the ⋯ sheet's status; the count's line carries "· #9 · Oct 15". */
+  section[aria-label='Deals'] > .results__head > div:first-child > div.results__sub { display: none; }
+  .results__short { display: block; overflow: hidden; text-overflow: ellipsis; color: var(--text-muted); font-size: 12.5px; font-weight: 400; line-height: 1.3; }
+  .results__controls { flex: none; flex-wrap: nowrap; gap: 6px; }
+  .results__controls .chip--fav { flex: none; padding: 7px 11px; }
+  /* Labels that only screen readers need here. */
+  .chip--fav__label,
+  .sort__label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+  /* Sort: a short pill; the real select sits invisibly on top, so a tap opens the full list. */
+  .sort { position: relative; flex: none; }
+  .sort select { position: absolute; inset: 0; opacity: 0; font-size: 16px; cursor: pointer; }
+  .sort__short {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 7px 12px;
+    border: 1px solid var(--border-strong);
+    border-radius: 999px;
+    background: var(--surface);
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .sort:focus-within .sort__short { outline: 2px solid var(--accent); outline-offset: 2px; }
 
   /* Bottom sheets: the search's details card and the filters. Off-screen until opened. */
   .sheet-backdrop {
@@ -2155,37 +2389,92 @@ table.data .num {
     background: var(--surface-2);
     object-fit: contain;
   }
-  /* Scoped to .dc: the deal detail and Favorites pages reuse some of these class names. */
-  .dc .dc-company {
-    position: static;
-    align-self: flex-start;
-    max-width: 84px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font-size: 11px;
-  }
-  /* The heart moves to the card's top corner; the first lines keep clear of it. */
+  /* Scoped to .dc: the deal detail and Favorites pages reuse some of these class names.
+     The company moves beside the category, so the tag under the photo is hidden. */
+  .dc .dc-media .dc-company { display: none; }
+  .dc-m-company { display: inline; }
+  .dc-m-company .dc-chip { padding: 1px 7px; font-size: 11.5px; font-weight: 600; vertical-align: 1px; }
+  /* The heart sits in the card's top corner; the title keeps clear of it. */
   .dc .dc-fav { top: 10px; right: 10px; }
-  .dc-main { gap: 6px; padding: 12px 12px 10px; }
-  .dc-main > .deal__badges:not(:empty),
-  .dc-main > .deal__badges:empty + .dc-title { padding-right: 40px; }
-  .dc-main > .deal__badges { margin-bottom: 0; }
+  /* The details join the card's grid: name, category and badges beside the photo; key facts and
+     where-and-when use the full width under it. */
+  .dc-main { display: contents; }
+  .dc-media { grid-column: 1; grid-row: 1 / span 3; }
+  .dc-main > .dc-title { grid-column: 2; grid-row: 1; padding: 12px 52px 0 0; }
+  .dc-main > .dc-sub { grid-column: 2; grid-row: 2; padding-right: 12px; }
+  .dc-main > .deal__badges { grid-column: 2; grid-row: 3; align-self: start; margin: 6px 0 0; padding-right: 12px; }
+  .dc-main > .deal__badges:empty { display: none; }
+  .dc-main > .dc-chips { grid-column: 1 / -1; grid-row: 4; padding: 10px 12px 0; }
+  .dc-main > .dc-m-line { grid-column: 1 / -1; grid-row: 5; padding: 8px 12px 10px; }
+  .dc .badge { padding: 2px 8px; font-size: 11px; }
   .dc .dc-title { font-size: 16px; }
-  .dc .dc-sub { font-size: 13px; }
+  .dc .dc-sub { margin: 2px 0 0; font-size: 13px; }
   .dc .dc-chip { font-size: 12px; }
-  .dc .dc-place { font-size: 13.5px; }
+  .dc .dc-chip--body { display: none; }
+  .dc-m-chip { display: inline-flex; }
+  .dc-m-line {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 13px;
+  }
+  .dc-m-line svg { flex: none; margin-top: 2px; }
+  /* The full place, other places, dates and cover rows live under "Details" here. */
+  .dc-main > .dc-place,
+  .dc-main > .dc-conditions { display: none; }
+
+  /* Price row: the short price on the left, View deal / "3 deals" on the right. */
   .dc .dc-price {
     grid-column: 1 / -1;
     flex-direction: row;
-    align-items: flex-end;
+    align-items: center;
     gap: 12px;
-    padding: 12px;
+    padding: 10px 12px;
   }
-  .dc .dc-price__info { flex: 1; min-width: 0; }
-  .dc .dc-price__actions { flex: 0 0 42%; min-width: 0; }
-  .dc .dc-price__actions .btn { padding-inline: 10px; }
-  .dc .dc-price__big { font-size: 24px; }
+  .dc .dc-price__info { display: none; }
+  .dc-m-price { display: block; flex: 1; min-width: 0; font-size: 13px; }
+  .dc-m-price .dc-price__big { font-size: 22px; }
+  .dc .dc-price__actions { flex: none; min-width: 0; margin-top: 0; }
+  .dc .dc-count,
+  .dc .dc-price__actions .link-quiet { display: none; }
+  .dc .dc-toggle { width: auto; padding: 9px 16px; border-radius: 999px; }
+  .dc-m-hide { display: none; }
+  .dc-m-show { display: inline; }
+
+  /* Footer: booking site and rating, Details, Price history. */
+  .dc-m-foot {
+    display: flex;
+    grid-column: 1 / -1;
+    align-items: center;
+    gap: 14px;
+    padding: 0 12px 12px;
+    font-size: 13px;
+  }
+  .dc-m-foot__provider {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    color: var(--text-muted);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .dc-m-foot__provider strong { color: var(--text); }
+  .dc-m-foot .link-btn { flex: none; font-size: 13px; font-weight: 600; }
+  .dc-m-details:not([hidden]) {
+    display: grid;
+    grid-column: 1 / -1;
+    gap: 6px;
+    margin: 0 12px 12px;
+    padding: 10px 12px;
+    border-radius: var(--radius-sm);
+    background: var(--surface-2);
+    font-size: 13px;
+  }
+  .dc-m-details > div { display: grid; grid-template-columns: 62px minmax(0, 1fr); gap: 8px; }
+  .dc-m-details dt { color: var(--text-muted); }
+  .dc-m-details dd { margin: 0; }
 }
 
 @media (max-width: 760px) and (prefers-reduced-motion: reduce) {

@@ -7,7 +7,7 @@ import { RunCostDialog } from '../components/RunCostDialog';
 import { ScanProgress } from '../components/ScanProgress';
 import { SearchPanel } from '../components/SearchPanel';
 import { DealSkeleton, ErrorState, NoMatchesState } from '../components/States';
-import { CloseIcon, HeartIcon } from '../components/icons';
+import { AlertIcon, ClockIcon, CloseIcon, HeartIcon } from '../components/icons';
 import { useMobileSheet } from '../components/useMobileSheet';
 import {
   PICKUP_FLEX_OPTIONS,
@@ -29,6 +29,17 @@ const route = getRouteApi('/search/$id');
 
 /** Deals per page of the result list. */
 const PAGE_SIZE = 25;
+
+/** Remembers whether the desktop settings card is folded. */
+const SETTINGS_COLLAPSED_KEY = 'vanscan.searchSettingsCollapsed';
+
+/** Short sort names for the compact sort pill on phones; the list itself keeps the full names. */
+const SORT_SHORT: Record<DealFilters['sort'], string> = {
+  monthly: 'Lowest 30-day',
+  total: 'Lowest total',
+  distance: 'Nearest',
+  seats: 'Most seats',
+};
 
 /** Stable empty array so the memoized derivations below do not rerun every render. */
 const NO_DEALS: Deal[] = [];
@@ -244,6 +255,41 @@ export function DealsPage() {
         ? 'No scan yet'
         : 'Loading deals…';
 
+  // The two passive warnings (part-area scan, old prices). Phones fold them into the status line,
+  // which turns amber and opens them on tap; wider screens show them in full as before.
+  const partialRun =
+    !running && !!dealsQuery.data && (dealsQuery.data.runStatus === 'stopped' || dealsQuery.data.runStatus === 'interrupted');
+  const staleShown = stale && !running && !!dealsQuery.data;
+  const noticeCount = Number(partialRun) + Number(staleShown);
+  const [noticesOpen, setNoticesOpen] = useState(false);
+  // Desktop: the search's settings card can fold to one row; the choice is remembered in this browser.
+  const [settingsCollapsed, setSettingsCollapsedState] = useState(() => {
+    try {
+      return localStorage.getItem(SETTINGS_COLLAPSED_KEY) === '1';
+    } catch {
+      return false;
+    }
+  });
+  const setSettingsCollapsed = (collapsed: boolean) => {
+    setSettingsCollapsedState(collapsed);
+    try {
+      localStorage.setItem(SETTINGS_COLLAPSED_KEY, collapsed ? '1' : '0');
+    } catch {
+      // Blocked storage: the toggle still works for this visit.
+    }
+  };
+  // "More" on each warning line shows its full explanation.
+  const [moreOpen, setMoreOpen] = useState({ partial: false, stale: false });
+  const noticesId = useId();
+  // Short enough for one line on a phone: "Partial scan · 5 days old".
+  const priceAge = dealsQuery.data ? relativeTime(dealsQuery.data.runStartedAt).replace(/ ago$/, ' old') : '';
+  const noticeText = [
+    partialRun ? (dealsQuery.data?.runStatus === 'stopped' ? 'Partial scan' : 'Scan cut off') : null,
+    staleShown ? (partialRun ? priceAge : `Prices ${priceAge}`) : null,
+  ]
+    .filter(Boolean)
+    .join(' · ');
+
   return (
     <>
       <SearchPanel
@@ -266,9 +312,27 @@ export function DealsPage() {
       />
 
       <div className="container">
-        {/* Phones only (CSS): when the scan ran, and Run now. Everything else is in the ⋯ sheet. */}
-        <div className="scan-strip">
-          <span className="scan-strip__text">{stripText}</span>
+        {/* Phones only (CSS): when the scan ran, and Run now. Everything else is in the ⋯ sheet.
+            With warnings it turns amber and opens them in full below. */}
+        <div className={`scan-strip${noticeCount > 0 ? ' scan-strip--warn' : ''}`}>
+          {noticeCount > 0 ? (
+            <button
+              type="button"
+              className="scan-strip__toggle"
+              aria-expanded={noticesOpen}
+              aria-controls={noticesId}
+              onClick={() => setNoticesOpen((v) => !v)}
+            >
+              <AlertIcon size={15} />
+              <span className="scan-strip__text">{noticeText}</span>
+              <span className="scan-strip__count">
+                {noticeCount} {noticesOpen ? '▴' : '▾'}
+                <span className="sr-only"> {noticeCount === 1 ? 'notice' : 'notices'}</span>
+              </span>
+            </button>
+          ) : (
+            <span className="scan-strip__text">{stripText}</span>
+          )}
           <button type="button" className="btn btn--primary btn--sm" disabled={running} onClick={openRunDialog}>
             {running ? 'Scanning…' : 'Run now'}
           </button>
@@ -279,7 +343,7 @@ export function DealsPage() {
         {/* The search's links, scan status and settings: a card above the deals, a bottom sheet on phones. */}
         <div
           id={detailsPanelId}
-          className={`card results__head search-actions${detailsOpen ? ' is-open' : ''}`}
+          className={`card results__head search-actions${detailsOpen ? ' is-open' : ''}${settingsCollapsed ? ' is-collapsed' : ''}`}
           aria-label="Search details and settings"
           role="region"
         >
@@ -290,26 +354,28 @@ export function DealsPage() {
             </button>
           </div>
           {subtitle && <p className="search-actions__summary">{subtitle}</p>}
-          <div>
-            <Link to="/" className="link-quiet">
-              ← All searches
-            </Link>
-            {s && (
-              <>
-                {' · '}
-                <Link to="/" search={{ edit: s.id }} className="link-quiet">
-                  Edit search
-                </Link>
-              </>
-            )}
-            <div className="results__sub">
+          <div className="search-actions__info">
+            <span className="search-actions__links">
+              <Link to="/" className="link-quiet">
+                ← All searches
+              </Link>
+              {s && (
+                <>
+                  {' · '}
+                  <Link to="/" search={{ edit: s.id }} className="link-quiet">
+                    Edit search
+                  </Link>
+                </>
+              )}
+            </span>
+            <div className="results__sub search-actions__status">
               {detailQuery.data
                 ? `${latestRun && placesInLastScan !== undefined ? `${placesInLastScan} ${placesInLastScan === 1 ? 'place' : 'places'} searched in last scan · ` : ''}${detailQuery.data.placesInRange} places in range · ${scheduleText}`
                 : ''}
               {latestRun && ` · last scan ${STATUS_LABEL[latestRun.status].toLowerCase()} ${dateTime(latestRun.startedAt)} · $${Number.parseFloat(latestRun.costUsd).toFixed(2)}`}
             </div>
             {s && (
-              <div className="results__sub">
+              <div className="results__sub search-actions__next">
                 Next scan: up to {placesSetting} places × {1 + flexDays / 7} {flexDays > 0 ? 'pickup dates' : 'pickup date'} ={' '}
                 {nextScan.searches} searches · about {nextScan.minutes} min
                 {nextScan.usd !== null && ` · about $${nextScan.usd.toFixed(2)}`}
@@ -318,7 +384,7 @@ export function DealsPage() {
           </div>
           <div className="form-actions">
             {s && (
-              <label className="inline-select">
+              <label className="inline-select sa-setting">
                 <span className="muted">Places</span>
                 <select
                   id="max-places"
@@ -336,7 +402,7 @@ export function DealsPage() {
               </label>
             )}
             {s && (
-              <label className="inline-select">
+              <label className="inline-select sa-setting">
                 <span className="muted">Flexible pickup</span>
                 <select
                   id="flex-pickup"
@@ -356,7 +422,7 @@ export function DealsPage() {
             {s && (
               <button
                 type="button"
-                className="btn btn--ghost"
+                className="btn btn--ghost sa-setting"
                 disabled={toggleActive.isPending}
                 onClick={() => toggleActive.mutate(!s.active)}
               >
@@ -365,6 +431,15 @@ export function DealsPage() {
             )}
             <button type="button" className="btn btn--primary" disabled={running} onClick={openRunDialog}>
               {running ? 'Scanning…' : 'Run now'}
+            </button>
+            {/* Desktop only (CSS): folds the card to one row; Run now stays. */}
+            <button
+              type="button"
+              className="btn btn--ghost sa-toggle"
+              aria-expanded={!settingsCollapsed}
+              onClick={() => setSettingsCollapsed(!settingsCollapsed)}
+            >
+              Settings {settingsCollapsed ? '▾' : '▴'}
             </button>
           </div>
         </div>
@@ -385,42 +460,151 @@ export function DealsPage() {
             stopError={stopScan.isError ? stopScan.error.message : null}
           />
         )}
-        {!running && dealsQuery.data && (dealsQuery.data.runStatus === 'stopped' || dealsQuery.data.runStatus === 'interrupted') && (
-          <div className="banner banner--warn" role="status">
-            <div>
-              <strong>
-                {dealsQuery.data.runStatus === 'stopped' ? 'This scan was stopped' : 'This scan was cut off by a server restart'} after{' '}
-                {dealsQuery.data.jobsDone ?? 0} of {dealsQuery.data.jobsPlanned ?? 0} searches.
-              </strong>
-              It shows only part of the area. Prices are real; change badges are not shown for this scan.
-              {dealsQuery.data.lastFullRun && (
-                <>
-                  {' '}
-                  <Link to="/search/$id" params={{ id: String(searchId) }} search={{ run: dealsQuery.data.lastFullRun.id }}>
-                    View the last full scan ({dateTime(dealsQuery.data.lastFullRun.startedAt)})
-                  </Link>
-                </>
-              )}
-            </div>
-          </div>
-        )}
         {runNow.isError && (
           <p className="form-error" role="alert">
             {runNow.error.message}
           </p>
         )}
-        {stale && !running && dealsQuery.data && (
-          <div className="banner banner--warn" role="status">
-            <div>
-              <strong>These prices are from {relativeTime(dealsQuery.data.runStartedAt)}.</strong>
-              {!s?.active
-                ? 'Automatic runs are off for this search, so prices are not being tracked. Turn on automatic runs or use "Run now".'
-                : !schedulerOn
-                  ? 'The scheduler is switched off on the Searches page, so this search does not re-run on its own.'
-                  : 'No scheduled scan has run since. The next one is due at the scheduler\'s next run time.'}
+        {/* The passive warnings. Tablets and desktop: one slim bar, a line each with "More" for the full
+            explanation and the fix on the right. Phones: the full boxes below, opened from the amber status line. */}
+        <div id={noticesId} className={`deal-notices${noticesOpen ? ' is-open' : ''}`}>
+          {noticeCount > 0 && dealsQuery.data && (
+            <div className="notice-bar" role="status">
+              {partialRun && (
+                <div className="notice">
+                  <AlertIcon size={16} />
+                  <div className="notice__body">
+                    <p className="notice__text">
+                      <strong>{dealsQuery.data.runStatus === 'stopped' ? 'Partial scan:' : 'Scan cut off:'}</strong>{' '}
+                      {dealsQuery.data.runStatus === 'stopped' ? 'stopped' : 'cut off by a server restart'} after{' '}
+                      {dealsQuery.data.jobsDone ?? 0} of {dealsQuery.data.jobsPlanned ?? 0} searches, so only part of the area is
+                      shown.{' '}
+                      <button
+                        type="button"
+                        className="notice__more"
+                        aria-expanded={moreOpen.partial}
+                        onClick={() => setMoreOpen((m) => ({ ...m, partial: !m.partial }))}
+                      >
+                        {moreOpen.partial ? 'Less' : 'More'}
+                      </button>
+                    </p>
+                    {moreOpen.partial && (
+                      <p className="notice__detail">
+                        {dealsQuery.data.runStatus === 'stopped' ? 'This scan was stopped' : 'This scan was cut off by a server restart'}{' '}
+                        after {dealsQuery.data.jobsDone ?? 0} of {dealsQuery.data.jobsPlanned ?? 0} searches. It shows only part of the
+                        area. Prices are real; change badges are not shown for this scan.
+                        {dealsQuery.data.lastFullRun &&
+                          ` The last full scan ran ${dateTime(dealsQuery.data.lastFullRun.startedAt)}.`}
+                      </p>
+                    )}
+                  </div>
+                  {dealsQuery.data.lastFullRun && (
+                    <Link
+                      className="btn btn--ghost btn--sm notice__action"
+                      to="/search/$id"
+                      params={{ id: String(searchId) }}
+                      search={{ run: dealsQuery.data.lastFullRun.id }}
+                      title={`Last full scan: ${dateTime(dealsQuery.data.lastFullRun.startedAt)}`}
+                    >
+                      View last full scan
+                    </Link>
+                  )}
+                </div>
+              )}
+              {staleShown && (
+                <div className="notice">
+                  <ClockIcon size={16} />
+                  <div className="notice__body">
+                    <p className="notice__text">
+                      <strong>Prices from {relativeTime(dealsQuery.data.runStartedAt)}:</strong>{' '}
+                      {!s?.active
+                        ? 'automatic runs are off for this search.'
+                        : !schedulerOn
+                          ? 'the scheduler is switched off.'
+                          : 'no scheduled scan has run since.'}{' '}
+                      <button
+                        type="button"
+                        className="notice__more"
+                        aria-expanded={moreOpen.stale}
+                        onClick={() => setMoreOpen((m) => ({ ...m, stale: !m.stale }))}
+                      >
+                        {moreOpen.stale ? 'Less' : 'More'}
+                      </button>
+                    </p>
+                    {moreOpen.stale && (
+                      <p className="notice__detail">
+                        These prices are from {relativeTime(dealsQuery.data.runStartedAt)}.{' '}
+                        {!s?.active
+                          ? 'Automatic runs are off for this search, so prices are not being tracked. Turn on automatic runs or use "Run now".'
+                          : !schedulerOn
+                            ? 'The scheduler is switched off on the Searches page, so this search does not re-run on its own.'
+                            : 'No scheduled scan has run since. The next one is due at the scheduler\'s next run time.'}
+                      </p>
+                    )}
+                  </div>
+                  {!s?.active ? (
+                    <button
+                      type="button"
+                      className="btn btn--ghost btn--sm notice__action"
+                      disabled={toggleActive.isPending}
+                      onClick={() => toggleActive.mutate(true)}
+                    >
+                      Turn on automatic runs
+                    </button>
+                  ) : !schedulerOn ? (
+                    <Link className="btn btn--ghost btn--sm notice__action" to="/">
+                      Scheduler settings
+                    </Link>
+                  ) : (
+                    <button
+                      type="button"
+                      className="btn btn--ghost btn--sm notice__action"
+                      disabled={running}
+                      onClick={openRunDialog}
+                    >
+                      Run now
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
+          )}
+
+          {/* Phones: the original full boxes, shown when the amber status line is opened. */}
+          <div className="deal-notices__full">
+            {partialRun && dealsQuery.data && (
+              <div className="banner banner--warn" role="status">
+                <div>
+                  <strong>
+                    {dealsQuery.data.runStatus === 'stopped' ? 'This scan was stopped' : 'This scan was cut off by a server restart'} after{' '}
+                    {dealsQuery.data.jobsDone ?? 0} of {dealsQuery.data.jobsPlanned ?? 0} searches.
+                  </strong>
+                  It shows only part of the area. Prices are real; change badges are not shown for this scan.
+                  {dealsQuery.data.lastFullRun && (
+                    <>
+                      {' '}
+                      <Link to="/search/$id" params={{ id: String(searchId) }} search={{ run: dealsQuery.data.lastFullRun.id }}>
+                        View the last full scan ({dateTime(dealsQuery.data.lastFullRun.startedAt)})
+                      </Link>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+            {staleShown && dealsQuery.data && (
+              <div className="banner banner--warn" role="status">
+                <div>
+                  <strong>These prices are from {relativeTime(dealsQuery.data.runStartedAt)}.</strong>
+                  {!s?.active
+                    ? 'Automatic runs are off for this search, so prices are not being tracked. Turn on automatic runs or use "Run now".'
+                    : !schedulerOn
+                      ? 'The scheduler is switched off on the Searches page, so this search does not re-run on its own.'
+                      : 'No scheduled scan has run since. The next one is due at the scheduler\'s next run time.'}
+                </div>
+              </div>
+            )}
           </div>
-        )}
+        </div>
 
         <div className="layout">
           <FilterSidebar
@@ -442,6 +626,13 @@ export function DealsPage() {
                   {!dealsQuery.isPending && visible.length !== allDeals.length && (
                     <span className="results__sub"> of {allDeals.length}</span>
                   )}
+                  {/* Phones only: the scan in short, under the count (full date and time in the ⋯ sheet). */}
+                  {dealsQuery.data && (
+                    <span className="results__short">
+                      <span className="results__short-word">Scan </span>#{dealsQuery.data.runId} ·{' '}
+                      {shortDate(dealsQuery.data.runStartedAt)}
+                    </span>
+                  )}
                 </div>
                 {dealsQuery.data && (
                   <div className="results__sub">
@@ -459,13 +650,14 @@ export function DealsPage() {
                   onClick={() => patchFilters({ favouritesOnly: !filters.favouritesOnly })}
                 >
                   <HeartIcon size={14} filled={filters.favouritesOnly} />
-                  Favourites
+                  {/* Visually hidden on phones (heart and count only); still read out by screen readers. */}
+                  <span className="chip--fav__label">Favourites</span>
                   {(dealsQuery.data?.favouriteCount ?? 0) > 0 && (
                     <span className="chip__count">{dealsQuery.data?.favouriteCount}</span>
                   )}
                 </button>
                 <label className="sort">
-                  Sort by
+                  <span className="sort__label">Sort by</span>
                   <select
                     className="select"
                     style={{ width: 'auto' }}
@@ -478,6 +670,10 @@ export function DealsPage() {
                       </option>
                     ))}
                   </select>
+                  {/* Phones only: a short pill over the (invisible) select; a tap opens the full list. */}
+                  <span className="sort__short" aria-hidden="true">
+                    ⇅ {SORT_SHORT[filters.sort]} ▾
+                  </span>
                 </label>
               </div>
             </div>

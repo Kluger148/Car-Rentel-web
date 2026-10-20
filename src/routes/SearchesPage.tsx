@@ -3,7 +3,7 @@ import { Link, getRouteApi } from '@tanstack/react-router';
 import { useEffect, useState, type FormEvent } from 'react';
 import { SchedulerBar } from '../components/SchedulerBar';
 import { SearchHelpDialog } from '../components/SearchHelpDialog';
-import { InfoIcon } from '../components/icons';
+import { InfoIcon, PencilIcon } from '../components/icons';
 import { StatePicker, TagPicker } from '../components/TagPicker';
 import { ErrorState } from '../components/States';
 import {
@@ -459,7 +459,19 @@ export function SearchesPage() {
               {searches.map((s) => (
                 <tr key={s.id} className={s.active ? undefined : 'is-off'}>
                   <td className="cell-wrap cell-title">
-                    <strong>{s.name}</strong>
+                    <div className="cell-title__row">
+                      <strong>{s.name}</strong>
+                      {/* Cards only (phones, tablets): edit beside the name, in place of the Edit button. */}
+                      <button
+                        type="button"
+                        className="icon-btn cell-title__edit"
+                        aria-label={`Edit ${s.name}`}
+                        title="Edit search"
+                        onClick={() => startEdit(s.id)}
+                      >
+                        <PencilIcon size={16} />
+                      </button>
+                    </div>
                     {s.notes && <div className="muted">{s.notes}</div>}
                   </td>
                   <td className="cell-wrap" data-label="Area">

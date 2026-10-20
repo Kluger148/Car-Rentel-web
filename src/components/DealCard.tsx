@@ -1,7 +1,7 @@
 import { Link } from '@tanstack/react-router';
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import type { Deal } from '../lib/api';
-import { CHANGE_LABEL, dateRange, isUnlimitedMileage, mileageLabel, money, percentDelta } from '../lib/format';
+import { CHANGE_LABEL, dateRange, isUnlimitedMileage, mileageLabel, money, percentDelta, shortDate } from '../lib/format';
 import {
   ArrowDownIcon,
   ArrowUpIcon,
@@ -53,6 +53,9 @@ export function DealCard({
 }) {
   const [open, setOpen] = useState(false);
   const [imgFailed, setImgFailed] = useState(false);
+  // Phones only: the compact card keeps the secondary facts under "Details".
+  const [details, setDetails] = useState(false);
+  const detailsId = useId();
   const delta = percentDelta(deal.previousPrice, deal.totalPrice);
   const isDrop = deal.change === 'PRICE_DOWN';
   const isRise = deal.change === 'PRICE_UP';
@@ -63,6 +66,10 @@ export function DealCard({
   const pickupType = typeof deal.conditions.pickupType === 'string' ? cap(deal.conditions.pickupType) : null;
   const best = deal.offers[0];
   const offers = deal.offers.length > 0 ? deal.offers : [];
+  const pickupName = deal.pickupLocationName ?? deal.locationName;
+  // Same rule as the "Same car also at" row: only when the car is offered from more than one place.
+  const otherPlaces = deal.places.length > 1 ? deal.places.filter((p) => p !== pickupName) : [];
+  const showDelta = !!deal.previousPrice && (isDrop || isRise) && delta !== null;
 
   return (
     <li className={`card dc${highlight ? ' dc--highlight' : ''}`}>
@@ -114,7 +121,14 @@ export function DealCard({
           {deal.underTarget && <span className="badge badge--new">At or under target</span>}
         </div>
         <h3 className="dc-title">{deal.vehicleName}</h3>
-        <p className="dc-sub">or similar {deal.category.toLowerCase()}</p>
+        <p className="dc-sub">
+          or similar {deal.category.toLowerCase()}
+          {/* Phones only: the company beside the category (the photo is a small thumbnail there). */}
+          <span className="dc-m-company">
+            {' · '}
+            <span className="dc-chip">{companyLabel(deal.supplier)}</span>
+          </span>
+        </p>
 
         <div className="dc-chips">
           {deal.seats !== null && (
@@ -128,7 +142,7 @@ export function DealCard({
             </span>
           )}
           {deal.transmission && <span className="dc-chip">{deal.transmission}</span>}
-          {deal.bodyStyle && <span className="dc-chip">{deal.bodyStyle}</span>}
+          {deal.bodyStyle && <span className="dc-chip dc-chip--body">{deal.bodyStyle}</span>}
           {mileage ? (
             <span className={`dc-chip${isUnlimitedMileage(deal.mileagePolicy) ? ' dc-chip--good' : ''}`}>
               <RoadIcon size={14} /> {mileage}
@@ -138,7 +152,20 @@ export function DealCard({
               <RoadIcon size={14} /> Mileage not stated
             </span>
           )}
+          {/* Phones only: free cancellation as a key fact (the price column that says it is folded there). */}
+          {deal.conditions.freeCancellation === true && (
+            <span className="dc-chip dc-chip--good dc-m-chip">✓ Free cancel</span>
+          )}
         </div>
+
+        {/* Phones only: where and when in one line; the full rows below move under "Details". */}
+        <p className="dc-m-line">
+          <PinIcon size={14} />
+          <span>
+            {pickupName} · {deal.distanceApprox ? '≈' : ''}
+            {Math.round(deal.distanceMiles)} mi · {shortDate(deal.pickupDate)} – {shortDate(deal.dropoffDate)}
+          </span>
+        </p>
 
         <div className="dc-place">
           <PinIcon size={15} />
@@ -171,6 +198,24 @@ export function DealCard({
       {/* Price and deals */}
       {/* Info and actions are separate so tablets can set them side by side under the card. */}
       <div className="dc-price">
+        {/* Phones only: the price in short; the full column below is folded there (its extras are under "Details"). */}
+        <div className="dc-m-price">
+          <div>
+            <span className="dc-price__big">{money(deal.monthlyRate, deal.currency)}</span>
+            <span className="dc-muted"> /30 days</span>
+          </div>
+          <div className="dc-muted">
+            {money(deal.totalPrice, deal.currency)} total
+            {showDelta && delta !== null && (
+              <>
+                {' · '}
+                <span className={`price__delta price__delta--${isDrop ? 'down' : 'up'}`}>
+                  {isDrop ? '↓' : '↑'} {Math.abs(delta).toFixed(1)}%
+                </span>
+              </>
+            )}
+          </div>
+        </div>
         <div className="dc-price__info">
           <span className="dc-muted">Cheapest · avg per 30 days</span>
           <span className="dc-price__big">{money(deal.monthlyRate, deal.currency)}</span>
@@ -198,7 +243,9 @@ export function DealCard({
                 {deal.places.length > 1 && ` · ${deal.places.length} locations`}
               </span>
               <button type="button" className="btn btn--primary dc-toggle" aria-expanded={open} onClick={() => setOpen((v) => !v)}>
-                {open ? 'Hide deals' : 'Show deals'} {open ? '▴' : '▾'}
+                <span className="dc-m-hide">{open ? 'Hide deals' : 'Show deals'}</span>
+                {/* Phones only: the count on the button, since the count line is folded there. */}
+                <span className="dc-m-show">{offers.length} deals</span> {open ? '▴' : '▾'}
               </button>
             </>
           ) : (
@@ -211,6 +258,73 @@ export function DealCard({
           </Link>
         </div>
       </div>
+
+      {/* Phones only: booking site, Details and Price history under the price row. */}
+      <div className="dc-m-foot">
+        <span className="dc-m-foot__provider">
+          <strong>{deal.bookingProvider ?? 'Booking provider not shown'}</strong>
+          {best && <> <Stars rating={best.rating} reviews={best.reviews} /></>}
+        </span>
+        <button
+          type="button"
+          className="link-btn"
+          aria-expanded={details}
+          aria-controls={detailsId}
+          onClick={() => setDetails((v) => !v)}
+        >
+          Details {details ? '▴' : '▾'}
+        </button>
+        <Link className="link-btn" to="/deal/$fingerprint" params={{ fingerprint: deal.fingerprint }}>
+          Price history
+        </Link>
+      </div>
+
+      {/* Phones only: everything the compact card folds away, as labelled rows. */}
+      <dl className="dc-m-details" id={detailsId} hidden={!details}>
+        {(deal.transmission || deal.bodyStyle) && (
+          <div>
+            <dt>Car</dt>
+            <dd>{[deal.transmission, deal.bodyStyle].filter(Boolean).join(' · ')}</dd>
+          </div>
+        )}
+        <div>
+          <dt>Pick-up</dt>
+          <dd>
+            {pickupName}
+            {pickupType ? ` · ${pickupType}` : ''} · {deal.distanceApprox ? '≈' : ''}
+            {Math.round(deal.distanceMiles)} mi from ZIP · same return location
+          </dd>
+        </div>
+        {otherPlaces.length > 0 && (
+          <div>
+            <dt>Also at</dt>
+            <dd>{otherPlaces.join(', ')}</dd>
+          </div>
+        )}
+        <div>
+          <dt>Dates</dt>
+          <dd>
+            {dateRange(deal.pickupDate, deal.dropoffDate)} · {deal.durationDays} days
+          </dd>
+        </div>
+        {conditions.length > 0 && (
+          <div>
+            <dt>Includes</dt>
+            <dd>{conditions.join(' · ')}</dd>
+          </div>
+        )}
+        <div>
+          <dt>Price</dt>
+          <dd>
+            Cheapest offer · {money(deal.monthlyRate, deal.currency)} avg per 30 days ·{' '}
+            {money(deal.totalPrice, deal.currency)} for 330 days
+            {showDelta && ` · was ${money(deal.previousPrice, deal.currency)}`}
+            {offers.length > 1 && ` · ${offers.length} deals from ${money(offers[0].totalPrice, deal.currency)}`}
+            {deal.places.length > 1 && ` · ${deal.places.length} locations`}
+            {priceNote && <span className="dc-note"> · {priceNote}</span>}
+          </dd>
+        </div>
+      </dl>
 
       {/* Every booking provider for this car */}
       {open && offers.length > 1 && (
