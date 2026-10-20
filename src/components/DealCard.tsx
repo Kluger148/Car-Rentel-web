@@ -169,42 +169,47 @@ export function DealCard({
       </div>
 
       {/* Price and deals */}
+      {/* Info and actions are separate so tablets can set them side by side under the card. */}
       <div className="dc-price">
-        <span className="dc-muted">Cheapest · avg per 30 days</span>
-        <span className="dc-price__big">{money(deal.monthlyRate, deal.currency)}</span>
-        <span className="dc-price__total">
-          {money(deal.totalPrice, deal.currency)} <span className="dc-muted">total for 330 days</span>
-        </span>
-        {deal.previousPrice && (isDrop || isRise) && delta !== null && (
-          <span className={`price__delta price__delta--${isDrop ? 'down' : 'up'}`}>
-            {isDrop ? '↓' : '↑'} {Math.abs(delta).toFixed(1)}% · was {money(deal.previousPrice, deal.currency)}
+        <div className="dc-price__info">
+          <span className="dc-muted">Cheapest · avg per 30 days</span>
+          <span className="dc-price__big">{money(deal.monthlyRate, deal.currency)}</span>
+          <span className="dc-price__total">
+            {money(deal.totalPrice, deal.currency)} <span className="dc-muted">total for 330 days</span>
           </span>
-        )}
-        <div className="dc-provider">
-          <strong>{deal.bookingProvider ?? 'Booking provider not shown'}</strong>
-          {best && <Stars rating={best.rating} reviews={best.reviews} />}
-        </div>
-        {deal.conditions.freeCancellation === true && <span className="dc-good">✓ Free cancellation</span>}
-        {priceNote && <span className="dc-note">{priceNote}</span>}
-
-        {offers.length > 1 ? (
-          <>
-            <span className="dc-count">
-              {offers.length} deals from {money(offers[0].totalPrice, deal.currency)}
-              {deal.places.length > 1 && ` · ${deal.places.length} locations`}
+          {deal.previousPrice && (isDrop || isRise) && delta !== null && (
+            <span className={`price__delta price__delta--${isDrop ? 'down' : 'up'}`}>
+              {isDrop ? '↓' : '↑'} {Math.abs(delta).toFixed(1)}% · was {money(deal.previousPrice, deal.currency)}
             </span>
-            <button type="button" className="btn btn--primary dc-toggle" aria-expanded={open} onClick={() => setOpen((v) => !v)}>
-              {open ? 'Hide deals' : 'Show deals'} {open ? '▴' : '▾'}
-            </button>
-          </>
-        ) : (
-          <a className="btn btn--primary dc-toggle" href={deal.deeplink} target="_blank" rel="noreferrer noopener">
-            View deal <ExternalIcon />
-          </a>
-        )}
-        <Link className="link-quiet" to="/deal/$fingerprint" params={{ fingerprint: deal.fingerprint }}>
-          Price history
-        </Link>
+          )}
+          <div className="dc-provider">
+            <strong>{deal.bookingProvider ?? 'Booking provider not shown'}</strong>
+            {best && <Stars rating={best.rating} reviews={best.reviews} />}
+          </div>
+          {deal.conditions.freeCancellation === true && <span className="dc-good">✓ Free cancellation</span>}
+          {priceNote && <span className="dc-note">{priceNote}</span>}
+        </div>
+
+        <div className="dc-price__actions">
+          {offers.length > 1 ? (
+            <>
+              <span className="dc-count">
+                {offers.length} deals from {money(offers[0].totalPrice, deal.currency)}
+                {deal.places.length > 1 && ` · ${deal.places.length} locations`}
+              </span>
+              <button type="button" className="btn btn--primary dc-toggle" aria-expanded={open} onClick={() => setOpen((v) => !v)}>
+                {open ? 'Hide deals' : 'Show deals'} {open ? '▴' : '▾'}
+              </button>
+            </>
+          ) : (
+            <a className="btn btn--primary dc-toggle" href={deal.deeplink} target="_blank" rel="noreferrer noopener">
+              View deal <ExternalIcon />
+            </a>
+          )}
+          <Link className="link-quiet" to="/deal/$fingerprint" params={{ fingerprint: deal.fingerprint }}>
+            Price history
+          </Link>
+        </div>
       </div>
 
       {/* Every booking provider for this car */}

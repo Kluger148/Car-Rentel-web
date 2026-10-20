@@ -176,7 +176,7 @@ export function DealDetailPage() {
             <div className="section__head">
               <h2>30-day average over time</h2>
               <span className="muted">
-                {points.length} scan{points.length === 1 ? '' : 's'} · hover a point for its price
+                {points.length} scan{points.length === 1 ? '' : 's'} · hover or tap a point for its price
               </span>
             </div>
             <PriceChart
@@ -199,7 +199,8 @@ export function DealDetailPage() {
               </div>
             </header>
             <div className="table-wrap">
-              <table className="data">
+              {/* data-label: each cell's heading when rows stack as cards on small screens. */}
+              <table className="data data--stack">
                 <thead>
                   <tr>
                     <th>Scan</th>
@@ -217,21 +218,23 @@ export function DealDetailPage() {
                     const previous = points[i + 1];
                     return (
                       <tr key={`${p.runId}-${p.at}`}>
-                        <td>#{p.runId}</td>
-                        <td>{dateTime(p.at)}</td>
-                        <td>{p.bookingProvider ?? '—'}</td>
-                        <td>
+                        <td className="cell-title">
+                          <span className="cell-title__prefix">Scan </span>#{p.runId}
+                        </td>
+                        <td data-label="Recorded">{dateTime(p.at)}</td>
+                        <td data-label="Booked via">{p.bookingProvider ?? '—'}</td>
+                        <td className="cell-wrap" data-label="Pickup">
                           {p.place}
                           <div className="muted">{Math.round(p.distanceMiles)} mi from ZIP</div>
                         </td>
-                        <td className="num">{money(p.totalPrice)}</td>
-                        <td className="num">
+                        <td className="num" data-label="330-day total">{money(p.totalPrice)}</td>
+                        <td className="num" data-label="Avg / 30 days">
                           <strong>{money(p.monthlyRate)}</strong>
                         </td>
-                        <td className="num">
+                        <td className="num" data-label="Change">
                           <Delta from={previous?.monthlyRate} to={p.monthlyRate} />
                         </td>
-                        <td>
+                        <td className="cell-actions">
                           <a href={p.deeplink} target="_blank" rel="noreferrer noopener">
                             Open <ExternalIcon size={12} />
                           </a>

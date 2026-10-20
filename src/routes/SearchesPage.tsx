@@ -442,7 +442,8 @@ export function SearchesPage() {
 
       {searches.length > 0 && (
         <div className="card table-wrap">
-          <table className="data">
+          {/* data-label: each cell's heading when rows stack as cards on small screens. */}
+          <table className="data data--stack">
             <thead>
               <tr>
                 <th>Search</th>
@@ -457,22 +458,22 @@ export function SearchesPage() {
             <tbody>
               {searches.map((s) => (
                 <tr key={s.id} className={s.active ? undefined : 'is-off'}>
-                  <td className="cell-wrap">
+                  <td className="cell-wrap cell-title">
                     <strong>{s.name}</strong>
                     {s.notes && <div className="muted">{s.notes}</div>}
                   </td>
-                  <td className="cell-wrap">
+                  <td className="cell-wrap" data-label="Area">
                     ZIP {s.zip} · {s.radiusMiles} mi{s.states.length > 0 && ` · ${s.states.join(', ')}`}
                     {s.maxPlaces != null && <span className="muted"> · up to {s.maxPlaces} places</span>}
                     {s.suppliers && s.suppliers.length > 0 && (
                       <div className="muted">Only {s.suppliers.join(', ')}</div>
                     )}
                   </td>
-                  <td>
+                  <td data-label="Pickup → return">
                     {fullDate(s.pickupDate)} → {fullDate(s.returnDate)}
                     {(s.pickupFlexDays ?? 0) > 0 && <div className="muted">{pickupFlexLabel(s.pickupFlexDays)}</div>}
                   </td>
-                  <td>
+                  <td data-label="Last scan">
                     {s.lastRun ? (
                       <>
                         {STATUS_LABEL[s.lastRun.status]} · {relativeTime(s.lastRun.startedAt)}
@@ -482,7 +483,7 @@ export function SearchesPage() {
                       <span className="muted">Not scanned yet</span>
                     )}
                   </td>
-                  <td className="cell-switch">
+                  <td className="cell-switch" data-label="Scheduled">
                     <button
                       type="button"
                       role="switch"
@@ -496,7 +497,7 @@ export function SearchesPage() {
                       {s.active ? 'On' : 'Off'}
                     </button>
                   </td>
-                  <td className="cell-switch">
+                  <td className="cell-switch" data-label="Repeat">
                     <select
                       className="select select--sm"
                       aria-label={`How often ${s.name} repeats`}

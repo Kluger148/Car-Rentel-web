@@ -44,6 +44,26 @@ export function useSession() {
   return useSyncExternalStore(auth.subscribe, () => auth.session);
 }
 
+/** The three main pages. Rendered twice: in the top bar, and as a bottom tab bar on phones. */
+function NavLinks({ pathname }: { pathname: string }) {
+  return (
+    <>
+      <Link to="/" data-active={pathname === '/' || pathname.startsWith('/search')}>
+        <SearchIcon size={15} />
+        <span>Searches</span>
+      </Link>
+      <Link to="/favourites" data-active={pathname.startsWith('/favourites')}>
+        <HeartIcon size={15} />
+        <span>Favorites</span>
+      </Link>
+      <Link to="/runs" data-active={pathname.startsWith('/runs')}>
+        <CalendarIcon size={15} />
+        <span>Scan history</span>
+      </Link>
+    </>
+  );
+}
+
 export function Layout() {
   const { theme, toggle } = useTheme();
   const session = useSession();
@@ -81,18 +101,7 @@ export function Layout() {
             </span>
           </Link>
           <nav className="topnav" aria-label="Main">
-            <Link to="/" data-active={pathname === '/' || pathname.startsWith('/search')}>
-              <SearchIcon size={15} />
-              <span>Searches</span>
-            </Link>
-            <Link to="/favourites" data-active={pathname.startsWith('/favourites')}>
-              <HeartIcon size={15} />
-              <span>Favorites</span>
-            </Link>
-            <Link to="/runs" data-active={pathname.startsWith('/runs')}>
-              <CalendarIcon size={15} />
-              <span>Scan history</span>
-            </Link>
+            <NavLinks pathname={pathname} />
           </nav>
           <div className="topbar__meta">
             <UserMenu
@@ -115,6 +124,11 @@ export function Layout() {
           review price, mileage and conditions on the booking site before presenting a deal to a customer.
         </div>
       </footer>
+
+      {/* Phones only (CSS). Outside the header: its backdrop-filter would pin a fixed child to the header. */}
+      <nav className="tabbar" aria-label="Main">
+        <NavLinks pathname={pathname} />
+      </nav>
     </div>
   );
 }

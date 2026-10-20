@@ -176,7 +176,9 @@ h4 {
   width: 100%;
   max-width: var(--max-width);
   margin: 0 auto;
-  padding: 0 20px;
+  /* Clear of the notch on landscape phones (viewport-fit=cover). */
+  padding-left: max(20px, env(safe-area-inset-left));
+  padding-right: max(20px, env(safe-area-inset-right));
 }
 
 /* ------------------------------- Top bar -------------------------------- */
@@ -312,6 +314,7 @@ h4 {
   right: 0;
   z-index: 50;
   min-width: 220px;
+  max-width: calc(100vw - 32px);
   padding: 6px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -321,7 +324,7 @@ h4 {
   gap: 2px;
 }
 .user-menu__who { display: grid; gap: 2px; padding: 8px 10px 10px; margin-bottom: 4px; border-bottom: 1px solid var(--border); color: var(--text); font-size: 14px; }
-.user-menu__who span { color: var(--text-muted); font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; }
+.user-menu__who span { color: var(--text-muted); font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .user-menu__item { display: block; width: 100%; padding: 8px 10px; border: none; border-radius: var(--radius-sm); background: none; color: var(--text); font: inherit; font-size: 14px; text-align: left; cursor: pointer; }
 .user-menu__item:hover, .user-menu__item:focus-visible { background: var(--surface-2); text-decoration: none; outline: none; }
 .user-menu__item--danger { color: var(--red-600); }
@@ -560,10 +563,11 @@ h4 {
 .sidebar {
   align-self: start;
   position: sticky;
-  top: 16px;
+  /* Below the 64px sticky top bar, not underneath it. */
+  top: 80px;
   padding: 18px;
   /* Taller than the screen? Scroll the filters on their own instead of hiding the bottom ones. */
-  max-height: calc(100vh - 32px);
+  max-height: calc(100vh - 96px);
   overflow-y: auto;
   overscroll-behavior: contain;
   /* A slim, subtle scrollbar instead of the thick default one. */
@@ -606,6 +610,22 @@ h4 {
 .sidebar h2 {
   font-size: 15px;
   font-weight: 700;
+}
+
+.sidebar__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+/* Only below the desktop layout, where the filters fold. */
+.sidebar__toggle {
+  display: none;
+}
+.sidebar__toggle svg {
+  transition: transform 0.15s ease;
+}
+.sidebar.is-open .sidebar__toggle svg {
+  transform: rotate(180deg);
 }
 
 .filter-group {
@@ -1197,25 +1217,72 @@ table.data .num {
 }
 
 /* ------------------------------ Responsive ------------------------------ */
+/* The phone tab bar is hidden until the phone breakpoint at the end of this file. */
+.tabbar {
+  display: none;
+}
+
+/* Tablets and below: the filters fold into a panel above the deals instead of a side column. */
 @media (max-width: 1040px) {
   .layout {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
   }
   .sidebar {
     position: static;
-    /* Full-width below the results on narrow screens: let it grow with the page. */
     max-height: none;
     overflow-y: visible;
+    padding: 12px 18px;
   }
   .sidebar__head {
     position: static;
+    margin: 0;
+    padding: 0;
+  }
+  .sidebar__toggle {
+    display: inline-flex;
+  }
+  /* Open: groups sit side by side, so the panel stays short. */
+  .sidebar__body {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    column-gap: 28px;
+    margin-top: 6px;
+  }
+  .sidebar:not(.is-open) .sidebar__body {
+    display: none;
+  }
+  .sidebar__body > .filter-group,
+  .sidebar__body > .filter-group:first-of-type {
+    padding: 14px 0;
+    border-top: 1px solid var(--border);
+  }
+
+  /* Search box on its own row; state, price and the count share the next. */
+  .searchbar {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  }
+  .searchbar > .ac {
+    grid-column: 1 / -1;
+  }
+
+  /* Less room in the top bar: links never wrap, the account button keeps its avatar. */
+  .topbar__inner {
+    gap: 14px;
+  }
+  .topnav a {
+    padding: 0 12px;
+    white-space: nowrap;
+  }
+  .user-chip {
+    padding-right: 8px;
+  }
+  .user-chip__name {
+    display: none;
   }
 }
 
 @media (max-width: 760px) {
-  .searchbar {
-    grid-template-columns: 1fr;
-  }
   .deal {
     grid-template-columns: 1fr;
   }
@@ -1224,33 +1291,6 @@ table.data .num {
     text-align: left;
     border-left: none;
     border-top: 1px solid var(--border);
-  }
-  .hero {
-    padding-bottom: 60px;
-  }
-  .hero__title {
-    font-size: 24px;
-  }
-  .topbar__inner {
-    gap: 10px;
-  }
-  .brand__name,
-  .topnav a span {
-    display: none;
-  }
-  .topnav {
-    margin-left: 0;
-  }
-  .topnav a {
-    padding: 0 11px;
-  }
-  /* The menu stays reachable on phones; only the name and caret go. */
-  .user-chip {
-    padding: 3px;
-  }
-  .user-chip__name,
-  .user-chip__caret {
-    display: none;
   }
 }
 
@@ -1290,6 +1330,8 @@ table.data .num {
 .dc-muted { color: var(--text-muted); font-size: 13px; }
 .dc-conditions { margin: 2px 0 0; color: var(--text-muted); font-size: 12.5px; }
 .dc-price { border-left: 1px solid var(--border); padding: 16px 18px; display: flex; flex-direction: column; gap: 5px; }
+.dc-price__info { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.dc-price__actions { display: flex; flex-direction: column; gap: 6px; margin-top: auto; }
 .dc-price__big { font-size: 28px; font-weight: 800; line-height: 1.1; font-variant-numeric: tabular-nums; }
 .dc-price__total { font-weight: 600; font-variant-numeric: tabular-nums; }
 .dc-provider { display: flex; gap: 6px; align-items: baseline; flex-wrap: wrap; margin-top: 6px; }
@@ -1297,18 +1339,33 @@ table.data .num {
 .dc-rating span { color: var(--text-muted); font-weight: 400; }
 .dc-good { color: var(--green-600); font-size: 13px; }
 .dc-note { color: var(--text-faint); font-size: 11.5px; }
-.dc-count { margin-top: auto; padding-top: 8px; font-size: 13px; font-weight: 600; }
+.dc-count { padding-top: 8px; font-size: 13px; font-weight: 600; }
 .dc-toggle { justify-content: center; width: 100%; }
 .dc-offers { grid-column: 1 / -1; list-style: none; margin: 0; padding: 0 18px 12px; border-top: 1px solid var(--border); background: var(--surface-2); }
 .dc-offer { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 14px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
 .dc-offer:last-child { border-bottom: 0; }
 .dc-offer__price { font-variant-numeric: tabular-nums; text-align: right; }
+/* Tablets: photo beside the details, price row underneath with its buttons on the right. */
 @media (max-width: 900px) {
-  .dc { grid-template-columns: 1fr; }
-  .dc-media { min-height: 140px; }
-  .dc-price { border-left: 0; border-top: 1px solid var(--border); }
+  .dc { grid-template-columns: 200px minmax(0, 1fr); }
+  .dc-media { min-height: 0; }
+  .dc-price { grid-column: 1 / -1; flex-direction: row; align-items: flex-end; gap: 20px; border-left: 0; border-top: 1px solid var(--border); }
+  .dc-price__info { flex: 1; }
+  .dc-price__actions { flex: 0 0 240px; margin-top: 0; }
+}
+/* Phones: one column, a shorter photo, each offer stacked. */
+@media (max-width: 640px) {
+  .dc { grid-template-columns: minmax(0, 1fr); }
+  .dc-media { min-height: 120px; padding: 12px; }
+  .dc-media img { max-height: 110px; }
+  .dc-main { padding: 14px 16px; }
+  .dc-title { font-size: 18px; }
+  .dc-price { flex-direction: column; align-items: stretch; gap: 10px; padding: 14px 16px; }
+  .dc-price__actions { flex-basis: auto; }
+  .dc-offers { padding: 0 16px 10px; }
   .dc-offer { grid-template-columns: 1fr; gap: 6px; }
   .dc-offer__price { text-align: left; }
+  .dc-offer .btn { justify-self: start; }
 }
 
 /* Search action bar takes the hero overlap; the filters and deals sit below it. */
@@ -1357,8 +1414,17 @@ table.data .num {
 .chart__legend-price { font-weight: 700; font-variant-numeric: tabular-nums; }
 .chart__badge { background: var(--green-100); color: var(--green-600); border-radius: 999px; padding: 2px 10px; font-size: 12px; font-weight: 600; }
 @media (max-width: 900px) {
-  .dd-hero { grid-template-columns: 1fr; }
-  .dd-hero__price { border-left: 0; border-top: 1px solid var(--border); }
+  .dd-hero { grid-template-columns: 200px minmax(0, 1fr); }
+  .dd-hero__price { grid-column: 1 / -1; border-left: 0; border-top: 1px solid var(--border); }
+  .dd-hero__price .dc-toggle { align-self: flex-start; width: auto; min-width: 220px; margin-top: 6px; }
+}
+@media (max-width: 640px) {
+  .dd-hero { grid-template-columns: minmax(0, 1fr); }
+  .dd-hero__media { min-height: 130px; padding: 12px; }
+  .dd-hero__media img { max-height: 110px; }
+  .dd-hero__main, .dd-hero__price { padding: 14px 16px; }
+  .dd-hero__title { font-size: 22px; }
+  .dd-hero__price .dc-toggle { align-self: stretch; }
 }
 
 /* ---- favourites --------------------------------------------------------------------------- */
@@ -1412,7 +1478,7 @@ table.data .num {
 .run-card__errors { padding: 8px 18px; font-size: 13px; }
 .run-card__errors summary { cursor: pointer; color: var(--red-600); }
 .run-card__errors ul { margin: 8px 0 2px; padding-left: 18px; color: var(--text-muted); }
-.run-card__errors code { font-size: 12px; }
+.run-card__errors code { font-size: 12px; overflow-wrap: anywhere; }
 .run-card__foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 18px; border-top: 1px solid var(--border); background: var(--surface-2); font-size: 13px; }
 @media (max-width: 700px) {
   .run-card__body { flex-direction: column; align-items: flex-start; }
@@ -1430,7 +1496,7 @@ table.data .num {
 .state-picker__code { font-weight: 700; color: var(--text-muted); font-size: 12.5px; }
 
 /* Favorites page */
-.fav-filter { min-width: 240px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 8px 12px; }
+.fav-filter { min-width: min(240px, 100%); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 8px 12px; }
 .fav-list { display: grid; gap: 14px; }
 .fav-card { display: grid; grid-template-columns: 180px minmax(0, 1fr) 180px; gap: 18px; padding: 16px; align-items: start; }
 .fav-card--gone { opacity: 0.8; }
@@ -1458,9 +1524,10 @@ table.data .num {
 .fav-note__status { position: absolute; right: 10px; bottom: 8px; font-size: 11.5px; color: var(--text-faint); pointer-events: none; }
 .fav-note__status.is-error { color: var(--red-600); }
 @media (max-width: 760px) {
-  .fav-card { grid-template-columns: 1fr; }
-  .fav-card__media { height: 140px; }
+  .fav-card { grid-template-columns: 1fr; gap: 14px; padding: 14px; }
+  .fav-card__media { height: 120px; }
   .fav-card__price { text-align: left; justify-items: start; }
+  .fav-card__price .btn { justify-self: stretch; }
 }
 
 /* Run now progress */
@@ -1493,7 +1560,8 @@ table.data .num {
 .dialog__body { padding: 22px 22px 6px; }
 .dialog__title { margin: 0; font-size: 18px; font-weight: 700; letter-spacing: -0.01em; }
 .dialog__sub { margin: 4px 0 16px; font-size: 13.5px; color: var(--text-muted); }
-.dialog__actions { display: flex; justify-content: flex-end; gap: 8px; padding: 14px 22px 20px; }
+/* Pinned to the bottom when a tall dialog scrolls (phones), so its buttons stay in reach. */
+.dialog__actions { position: sticky; bottom: 0; display: flex; justify-content: flex-end; gap: 8px; padding: 14px 22px 20px; background: var(--surface); }
 @keyframes dialog-in { from { opacity: 0; transform: translateY(8px) scale(0.98); } }
 @media (prefers-reduced-motion: reduce) { .dialog[open] { animation: none; } }
 
@@ -1561,11 +1629,201 @@ table.data .num {
 .icon-btn { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border: 0; border-radius: 999px; background: transparent; color: var(--text-muted); cursor: pointer; }
 .icon-btn:hover { background: var(--surface-2); color: var(--accent); }
 .icon-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.dialog--wide { width: min(640px, calc(100vw - 32px)); max-height: calc(100vh - 48px); }
-.dialog--wide .dialog__body { max-height: calc(100vh - 150px); overflow-y: auto; }
+.dialog--wide { width: min(640px, calc(100vw - 32px)); max-height: calc(100vh - 48px); max-height: calc(100dvh - 48px); }
+.dialog--wide .dialog__body { max-height: calc(100vh - 150px); max-height: calc(100dvh - 150px); overflow-y: auto; }
 .help-list { display: grid; gap: 12px; margin: 0; }
 .help-list__item dt { font-weight: 700; font-size: 14px; }
 .help-list__item dd { margin: 2px 0 0; font-size: 13.5px; line-height: 1.5; color: var(--text-muted); }
 .help-list__tip { display: block; margin-top: 3px; color: var(--text); font-size: 13px; }
 .help-list__tip::before { content: 'Tip: '; font-weight: 600; color: var(--accent); }
 .help-note { display: grid; gap: 4px; margin: 16px 0 6px; padding: 12px 14px; border-radius: var(--radius); background: var(--surface-2); font-size: 13.5px; line-height: 1.5; }
+
+/* ==== Responsive: tablets and phones ======================================================== */
+/* Last in the file so these win over the base rules above. Breakpoints: 1040 tablet layout,
+   900 stacked tables, 760 phone (tab bar), 560 small phone, 420 narrowest phones. */
+
+/* "Scan " before the id, only where table rows become cards. */
+.cell-title__prefix { display: none; }
+
+/* Wide tables become one card per row: each cell shows its own heading (data-label). */
+@media (max-width: 900px) {
+  table.data--stack,
+  table.data--stack tbody { display: block; }
+  table.data--stack thead { display: none; }
+  table.data--stack tr {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 12px 18px;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+  }
+  table.data--stack tbody tr:last-child { border-bottom: none; }
+  table.data.data--stack td {
+    display: block;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    white-space: normal;
+    text-align: left;
+  }
+  table.data--stack td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 3px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  table.data.data--stack td.cell-title,
+  table.data.data--stack td.cell-actions { grid-column: 1 / -1; }
+  table.data--stack td.cell-title { font-size: 15.5px; font-weight: 700; }
+  table.data--stack .cell-title__prefix { display: inline; }
+  table.data--stack .cell-actions .link-btn { margin-left: 18px; }
+  /* No sideways scrolling left to round off. */
+  .card > .table-wrap:last-child,
+  .card.table-wrap { overflow-x: visible; }
+}
+
+/* Phones: bottom tab bar, tighter gutters, full-width controls. */
+@media (max-width: 760px) {
+  .container {
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+  }
+
+  /* iOS Safari zooms the page into any field with text under 16px. */
+  input,
+  select,
+  textarea,
+  .field input,
+  .field select,
+  .select,
+  .select--sm,
+  .fav-note__input { font-size: 16px; }
+
+  /* Top bar: brand, account and theme. The pages move to the tab bar at the bottom. */
+  .topbar__inner { height: 56px; gap: 10px; }
+  .topnav { display: none; }
+  .topbar__meta { margin-left: auto; }
+  .user-chip { padding: 3px; }
+  .user-chip__caret { display: none; }
+
+  .tabbar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 100;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 4px;
+    padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+    background: var(--header-bg);
+    backdrop-filter: saturate(160%) blur(16px);
+    -webkit-backdrop-filter: saturate(160%) blur(16px);
+    border-top: 1px solid var(--border);
+  }
+  .tabbar a {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    min-height: 48px;
+    border-radius: var(--radius);
+    color: var(--text-muted);
+    font-size: 11.5px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .tabbar a svg { width: 20px; height: 20px; }
+  .tabbar a:hover { text-decoration: none; color: var(--text); }
+  .tabbar a[data-active='true'] {
+    color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
+  }
+  /* Room for the tab bar, so it never covers the footer or the last card. */
+  .shell { padding-bottom: calc(61px + env(safe-area-inset-bottom)); }
+
+  /* Page headings */
+  .page-head { padding: 20px 0 14px; }
+  .page-head h1 { font-size: 22px; }
+  .page-head p { font-size: 14px; }
+  .page-head--row > .fav-filter { flex: 1 1 100%; }
+  .section { padding: 16px; }
+
+  /* Deals hero */
+  .hero { padding: 22px 0 60px; }
+  .hero__title { font-size: 22px; }
+  .hero__subtitle { font-size: 14px; }
+  .searchbar { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; margin-top: 18px; padding: 8px; }
+  .searchbar > .btn { grid-column: 1 / -1; }
+  /* Class chips scroll sideways instead of stacking three rows deep. */
+  .hero .chips {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    margin-inline: -16px;
+    padding-inline: 16px;
+    scrollbar-width: none;
+  }
+  .hero .chips::-webkit-scrollbar { display: none; }
+  .hero .chip { flex: none; }
+
+  /* Deals toolbars: settings in two even columns, sort fills its row. */
+  .results__head { padding: 14px 16px; }
+  .search-actions .form-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+  .search-actions .inline-select { flex-direction: column; align-items: stretch; gap: 4px; }
+  .search-actions .inline-select select { width: 100%; padding: 6px 8px; }
+  .search-actions .form-actions .btn { white-space: normal; padding-inline: 12px; }
+  .results__controls { width: 100%; }
+  .sort { flex: 1; }
+  .sort select { flex: 1; min-width: 0; }
+
+  /* Scan history */
+  .run-filters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .run-filters > :first-child,
+  .run-filters__clear { grid-column: 1 / -1; }
+  .run-filters .select { width: 100%; }
+  .run-card__head,
+  .run-card__body,
+  .run-card__warn,
+  .run-card__errors,
+  .run-card__foot { padding-inline: 16px; }
+  .run-metrics { gap: 8px 16px; }
+
+  .scheduler-bar__cost { margin-left: 0; flex-basis: 100%; }
+}
+
+@media (max-width: 560px) {
+  .stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .stat { padding: 12px 14px; }
+  .stat__value { font-size: 19px; overflow-wrap: anywhere; }
+
+  /* Page counter on its own line above the buttons. */
+  .pager { flex-wrap: wrap; gap: 10px; }
+  .pager > .muted { flex-basis: 100%; order: -1; text-align: center; }
+
+  .dialog__body { padding: 18px 18px 4px; }
+  .dialog__actions { flex-wrap: wrap; padding: 12px 18px 18px; }
+  .dialog__actions .btn { flex: 1 1 auto; }
+  .cost-estimate__value { font-size: 24px; }
+  .cost-estimate__rows > div { flex-wrap: wrap; }
+
+  .login__card { padding: 22px 18px; }
+}
+
+@media (max-width: 420px) {
+  .searchbar { grid-template-columns: minmax(0, 1fr); }
+  .brand { font-size: 17px; }
+}
+
+/* Touch screens: taller rows in the filter lists, easier to hit with a finger. */
+@media (pointer: coarse) {
+  .check { padding: 8px 0; }
+}
