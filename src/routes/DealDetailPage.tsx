@@ -1,9 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
-import { Link, useParams } from '@tanstack/react-router';
+import { Link, useCanGoBack, useParams, useRouter } from '@tanstack/react-router';
 import { useState } from 'react';
 import { PriceChart } from '../components/PriceChart';
 import { ErrorState } from '../components/States';
-import { CalendarIcon, ExternalIcon, PinIcon, RoadIcon, SeatIcon, VanIcon } from '../components/icons';
+import { ArrowLeftIcon, CalendarIcon, ExternalIcon, PinIcon, RoadIcon, SeatIcon, VanIcon } from '../components/icons';
 import { api } from '../lib/api';
 import { dateRange, dateTime, isUnlimitedMileage, mileageLabel, money, percentDelta } from '../lib/format';
 
@@ -27,6 +27,8 @@ function Delta({ from, to }: { from?: string; to: string }) {
 export function DealDetailPage() {
   const { fingerprint } = useParams({ from: '/deal/$fingerprint' });
   const [imgFailed, setImgFailed] = useState(false);
+  const router = useRouter();
+  const canGoBack = useCanGoBack();
 
   const historyQuery = useQuery({
     queryKey: ['history', fingerprint],
@@ -50,6 +52,26 @@ export function DealDetailPage() {
 
   return (
     <div className="container">
+      {/* Back: returns to the exact page the user came from (deals with their filters, page and
+          scroll position, or Favorites). Opened from a link with no history, it opens the search. */}
+      <div className="detail-nav">
+        {canGoBack ? (
+          <button type="button" className="back-btn" onClick={() => router.history.back()}>
+            <ArrowLeftIcon size={16} />
+            Back
+          </button>
+        ) : (
+          <Link
+            className="back-btn"
+            to={deal ? '/search/$id' : '/'}
+            params={deal ? { id: String(deal.savedSearchId) } : undefined}
+          >
+            <ArrowLeftIcon size={16} />
+            {deal ? 'Back to deals' : 'All searches'}
+          </Link>
+        )}
+      </div>
+
       {historyQuery.isError && <ErrorState error={historyQuery.error} onRetry={() => void historyQuery.refetch()} />}
       {historyQuery.isPending && <div className="card skeleton" style={{ height: 260, marginTop: 24 }} />}
 

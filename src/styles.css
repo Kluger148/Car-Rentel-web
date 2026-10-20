@@ -1391,6 +1391,11 @@ table.data .num {
 .crumbs a { color: var(--accent); text-decoration: none; }
 .crumbs a:hover { text-decoration: underline; }
 .crumbs span { color: var(--text-faint); }
+/* Back to wherever the user came from, above the breadcrumbs. */
+.detail-nav { padding-top: 18px; }
+.detail-nav + .crumbs { padding-top: 10px; }
+.back-btn { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px 7px 10px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); color: var(--text); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; transition: border-color 0.15s ease, color 0.15s ease; }
+.back-btn:hover { border-color: var(--accent); color: var(--accent); text-decoration: none; }
 .dd-hero { display: grid; grid-template-columns: 240px minmax(0, 1fr) 280px; padding: 0; overflow: hidden; margin-bottom: 16px; }
 .dd-hero__media { position: relative; background: var(--surface-2); display: flex; align-items: center; justify-content: center; padding: 18px; min-height: 190px; color: var(--text-faint); }
 .dd-hero__media img { max-width: 100%; max-height: 150px; object-fit: contain; }
@@ -1525,11 +1530,42 @@ table.data .num {
 .fav-note__input:focus { outline: none; border-color: var(--accent); background: var(--surface); }
 .fav-note__status { position: absolute; right: 10px; bottom: 8px; font-size: 11.5px; color: var(--text-faint); pointer-events: none; }
 .fav-note__status.is-error { color: var(--red-600); }
+/* Phones: compact card. Thumbnail beside the name, note and search below, then one price row
+   with View deal on the right. display: contents lets the body's parts join the card's grid. */
 @media (max-width: 760px) {
-  .fav-card { grid-template-columns: 1fr; gap: 14px; padding: 14px; }
-  .fav-card__media { height: 160px; }
-  .fav-card__price { text-align: left; justify-items: start; }
-  .fav-card__price .btn { justify-self: stretch; }
+  .fav-card { grid-template-columns: 92px minmax(0, 1fr); gap: 10px 12px; padding: 12px; }
+  .fav-card__media { height: 70px; }
+  .fav-card__media img { padding: 4px; }
+  .fav-card__body { display: contents; }
+  .fav-card__head { min-width: 0; }
+  .fav-card__title { font-size: 16px; margin-bottom: 2px; }
+  .fav-card__meta { gap: 4px 10px; font-size: 12.5px; }
+  .fav-card .fav-note,
+  .fav-card__foot,
+  .fav-card__price { grid-column: 1 / -1; }
+  .fav-note__input { min-height: 44px; }
+  .fav-card__price {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: baseline;
+    column-gap: 6px;
+    row-gap: 1px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+    text-align: left;
+    justify-items: start;
+  }
+  .fav-card__monthly { grid-column: 1; grid-row: 1; font-size: 22px; line-height: 1.2; }
+  .fav-card__price > .muted:not(.fav-card__seen) { grid-column: 2; grid-row: 1; }
+  .fav-card__total { grid-column: 1 / 3; grid-row: 2; margin-top: 0; }
+  .fav-card__seen { grid-column: 1 / 3; grid-row: 3; margin-bottom: 0; }
+  .fav-card__price .btn {
+    grid-column: 3;
+    grid-row: 1 / 4;
+    align-self: center;
+    justify-self: end;
+    padding: 10px 16px;
+    border-radius: 999px;
+  }
 }
 
 /* Run now progress */
@@ -1683,9 +1719,9 @@ table.data .num {
   table.data--stack td.cell-title { font-size: 15.5px; font-weight: 700; }
   table.data--stack .cell-title__prefix { display: inline; }
   table.data--stack .cell-actions .link-btn { margin-left: 18px; }
-  /* No sideways scrolling left to round off. */
+  /* Clip to the card's rounded corners, so a highlighted row never pokes past them. */
   .card > .table-wrap:last-child,
-  .card.table-wrap { overflow-x: visible; }
+  .card.table-wrap { overflow: hidden; }
 }
 
 /* Phones: bottom tab bar, tighter gutters, full-width controls. */
@@ -2047,7 +2083,38 @@ table.data .num {
   .sheet-head h2,
   .sidebar__head h2 { font-size: 17px; }
   .search-actions__summary { display: block; margin: 0; font-size: 14px; color: var(--text-muted); }
-  .search-actions .form-actions .btn--primary { padding-inline: 12px; }
+
+  /* Settings as a list: one row per setting (label left, choice right), then full-width buttons
+     of one height. Half-width columns cut off the choices and wrapped the longer button label. */
+  .search-actions .form-actions { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .search-actions .inline-select {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .search-actions .inline-select:first-child { border-top: 1px solid var(--border); }
+  .search-actions .inline-select .muted { font-size: 15px; color: var(--text); }
+  .search-actions .inline-select select {
+    flex: 0 1 auto;
+    width: auto;
+    min-width: 0;
+    max-width: 62%;
+    height: 40px;
+    padding: 0 10px;
+    border-radius: var(--radius-sm);
+  }
+  .search-actions .form-actions .btn {
+    width: 100%;
+    min-height: 46px;
+    margin-top: 10px;
+    padding-inline: 16px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .search-actions .form-actions .inline-select + .btn { margin-top: 16px; }
 
   /* Filter sheet: the close button replaces Show/Hide, groups stack in one column. */
   .sidebar__toggle { display: none; }
