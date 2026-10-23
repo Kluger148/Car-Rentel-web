@@ -7,6 +7,11 @@
 export const VEHICLE_CLASSES = ['MINIVAN', 'PASSENGER_VAN', 'LARGE_SUV', 'OTHER'] as const;
 export type VehicleClass = (typeof VEHICLE_CLASSES)[number];
 
+/** Where a saved search looks for prices. */
+export type SearchSource = 'skyscanner' | 'kayak' | 'priceline';
+/** The site an offer was found on, as the API names it. */
+export type OfferSource = 'Skyscanner' | 'KAYAK' | 'Priceline';
+
 export type DealChangeType = 'NEW' | 'PRICE_DOWN' | 'PRICE_UP' | 'GONE';
 /** 'stopped' = a user stopped it; 'interrupted' = the server restarted. Both keep the searches that finished. */
 export type RunStatus = 'running' | 'succeeded' | 'partial' | 'failed' | 'stopped' | 'interrupted';
@@ -92,6 +97,8 @@ export interface Deal {
   bodyStyle: string | null;
   /** Every booking provider's offer for this car, cheapest first. */
   offers: DealOffer[];
+  /** The site the cheapest offer came from. Missing on older backends. */
+  source?: OfferSource;
   /** Every pickup place this same car is offered from. */
   places: string[];
   /** True when the signed-in user has shortlisted this deal. */
@@ -99,6 +106,8 @@ export interface Deal {
 }
 
 export interface DealOffer {
+  /** The site this offer was found on. Missing on older backends (Skyscanner). */
+  source?: OfferSource;
   bookingProvider: string | null;
   /** The pickup place this offer came from; the same car can be offered from several towns. */
   place: string;
@@ -283,6 +292,8 @@ export interface SavedSearch {
   states: string[];
   /** Only offers from these rental companies are kept. Empty = every company. Missing on older backends. */
   suppliers?: string[];
+  /** Where the search looks for prices. Missing on older backends = Skyscanner. */
+  sources?: SearchSource[];
   pickupDate: string;
   returnDate: string;
   rentalDays: number;
@@ -316,6 +327,7 @@ export interface SearchInput {
   radiusMiles: number;
   states: string[];
   suppliers: string[];
+  sources?: SearchSource[];
   pickupDate: string;
   intervalDays?: number;
   pickupFlexDays?: number;
@@ -429,6 +441,21 @@ export interface ScannerConfig {
   };
   deals: { targetMonthly: number };
   providers: { primary: string; fallback: string | null; available: string[]; maxConcurrency?: number };
+  /** Which sources a search can use. Missing on older backends (Skyscanner only). */
+  sources?: {
+    skyscanner: { available: boolean };
+    /** Missing on backends from before KAYAK. */
+    kayak?: { available: boolean; perSearchUsd: number; secondsPerSearch: number; concurrency: number };
+    priceline: {
+      available: boolean;
+      pausedUntil: string | null;
+      secondsPerSearch: number;
+      /** Missing on backends from before Priceline moved to RapidAPI. */
+      perSearchUsd?: number;
+      concurrency?: number;
+      maxRentalDays?: number;
+    };
+  };
   /** For the live scan estimate. Missing on older backends. */
   estimate?: { perSearchUsd: number | null; secondsPerSearch: number };
 }

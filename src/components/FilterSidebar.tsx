@@ -63,6 +63,13 @@ export function FilterSidebar({
     onChange({ suppliers: next });
   };
 
+  const toggleSource = (source: string) => {
+    const next = filters.sources.includes(source)
+      ? filters.sources.filter((s) => s !== source)
+      : [...filters.sources, source];
+    onChange({ sources: next });
+  };
+
   return (
     <>
       {/* Phones only (CSS): dims the page behind the filter sheet; a tap closes it. */}
@@ -218,6 +225,24 @@ export function FilterSidebar({
                     onChange={() => toggleSupplier(s.value)}
                   />
                   {s.value === 'Unknown' || s.value.trim() === '' ? 'Company not stated' : s.value}
+                  <span className="check__count">{s.count}</span>
+                </label>
+              ))}
+            </div>
+          )}
+
+          {/* Only when the deals come from more than one site: Skyscanner-only searches look as before. */}
+          {facets.sources.length > 1 && (
+            <div className="filter-group">
+              <div className="filter-group__title">Found on</div>
+              {facets.sources.map((s) => (
+                <label className="check" key={s.value}>
+                  <input
+                    type="checkbox"
+                    checked={filters.sources.includes(s.value)}
+                    onChange={() => toggleSource(s.value)}
+                  />
+                  {s.value}
                   <span className="check__count">{s.count}</span>
                 </label>
               ))}

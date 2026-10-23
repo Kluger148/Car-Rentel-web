@@ -17,8 +17,29 @@ import {
   type SavedSearch,
   type SearchInput,
   type SearchPreview,
+  type SearchSource,
 } from '../lib/api';
 import { STATUS_LABEL, fullDate, relativeTime } from '../lib/format';
+
+/**
+ * The second site offered beside Skyscanner. KAYAK is hidden for now (its code stays, set this
+ * back to 'kayak' to offer it again); Priceline gives the same prices as the old site.
+ */
+const DIRECT_SOURCE = 'priceline' as 'kayak' | 'priceline';
+const DIRECT_TITLE = DIRECT_SOURCE === 'kayak' ? 'KAYAK' : 'Priceline';
+
+/** The three choices of the "Search prices on" option and the sources each one runs. */
+type SourceChoice = 'skyscanner' | 'direct' | 'both';
+const CHOICE_SOURCES: Record<SourceChoice, SearchSource[]> = {
+  skyscanner: ['skyscanner'],
+  direct: [DIRECT_SOURCE],
+  both: ['skyscanner', DIRECT_SOURCE],
+};
+function choiceFor(sources: SearchSource[] | undefined): SourceChoice {
+  const s = new Set(sources ?? ['skyscanner']);
+  if (s.has('skyscanner') && s.has(DIRECT_SOURCE)) return 'both';
+  return s.has(DIRECT_SOURCE) ? 'direct' : 'skyscanner';
+}
 
 function tomorrowIso(): string {
   const d = new Date();
@@ -66,13 +87,32 @@ export function SearchForm({
   const serverMaxPlaces = configQuery.data?.search.maxLocationsPerSearch;
   const [maxPlaces, setMaxPlaces] = useState<number | null>(editing?.maxPlaces ?? null);
   const places = maxPlaces ?? serverMaxPlaces ?? 100;
+  const kayakSource = configQuery.data?.sources?.[DIRECT_SOURCE];
+  const kayakReady = kayakSource?.available === true;
+  // Not chosen yet: an edited search keeps its own; a new one searches both sites when the second is set up.
+  const [sourceChoice, setSourceChoice] = useState<SourceChoice | null>(editing ? choiceFor(editing.sources) : null);
+  const choice: SourceChoice = sourceChoice ?? (kayakReady ? 'both' : 'skyscanner');
+  const useSky = choice !== 'direct';
+  const useKayak = choice !== 'skyscanner';
+  const pickupDates = 1 + pickupFlexDays / 7;
   const live = scanEstimate({
     places,
-    pickupDates: 1 + pickupFlexDays / 7,
+    pickupDates,
     perSearchUsd: configQuery.data?.estimate?.perSearchUsd,
     concurrency: configQuery.data?.providers.maxConcurrency,
     secondsPerSearch: configQuery.data?.estimate?.secondsPerSearch,
   });
+  // The second site runs beside Skyscanner, so the slower of the two sets the time. KAYAK is charged
+  // per offer (the estimate assumes every search returns the full number); Priceline per call.
+  const kayakMinutes = Math.max(
+    1,
+    Math.round((Math.ceil(live.searches / Math.max(1, kayakSource?.concurrency ?? 3)) * (kayakSource?.secondsPerSearch ?? 30)) / 60),
+  );
+  const kayakUsd = kayakSource?.perSearchUsd !== undefined ? live.searches * kayakSource.perSearchUsd : null;
+  const directMaxDays = configQuery.data?.sources?.priceline?.maxRentalDays ?? 300;
+  const scanSearches = (useSky ? live.searches : 0) + (useKayak ? live.searches : 0);
+  const scanMinutes = Math.max(useSky ? live.minutes : 0, useKayak ? kayakMinutes : 0);
+  const money2 = (usd: number) => `$${usd < 0.01 ? usd.toFixed(3) : usd.toFixed(2)}`;
   const [name, setName] = useState(editing?.name ?? '');
   const [notes, setNotes] = useState(editing?.notes ?? '');
   const [preview, setPreview] = useState<SearchPreview | null>(null);
@@ -83,6 +123,7 @@ export function SearchForm({
     radiusMiles: Number.parseInt(radius, 10),
     states,
     suppliers,
+    sources: CHOICE_SOURCES[choice],
     pickupDate: pickup,
     intervalDays,
     pickupFlexDays,
@@ -108,6 +149,8 @@ export function SearchForm({
       const patch: Partial<SearchInput> = {
         suppliers,
         intervalDays,
+        // Only sent when changed, so an older backend without sources keeps working.
+        ...(sourceChoice !== null && sourceChoice !== choiceFor(editing.sources) ? { sources: CHOICE_SOURCES[sourceChoice] } : {}),
         pickupFlexDays,
         maxPlaces: places,
         notes: notes.trim(),
@@ -149,6 +192,71 @@ export function SearchForm({
           ? 'Changes apply from the next scan. The area (ZIP, distance and states) cannot be changed.'
           : "Enter the customer's requirements. The return date is set to 330 days after pickup, at the same location."}
       </p>
+      <fieldset className="src-choice">
+        <legend className="src-choice__legend">
+          Search prices on <span className="pill pill--new">New</span>
+        </legend>
+        <div className="src-choice__grid">
+          {(
+            [
+              {
+                id: 'skyscanner',
+                title: 'Skyscanner',
+                sub: 'Broker sites (eDreams, Trip.com, QEEQ…) plus Hertz and Sixt direct.',
+                meta: 'Live today',
+                badge: null,
+              },
+              DIRECT_SOURCE === 'kayak'
+                ? {
+                    id: 'direct',
+                    title: 'KAYAK',
+                    sub: "The rental companies' own rates and sites like Priceline: Avis, Budget, Sixt and more.",
+                    meta: kayakReady ? 'Cheapest offers first · charged per offer' : 'Not set up on the server',
+                    badge: 'Direct',
+                  }
+                : {
+                    id: 'direct',
+                    title: 'Priceline',
+                    sub: "Priceline's own rates: Enterprise, Avis, Hertz, Budget and more. The old site's prices.",
+                    meta: kayakReady ? `${directMaxDays}-day rentals, as on the old site` : 'Not set up on the server',
+                    badge: 'Direct',
+                  },
+              {
+                id: 'both',
+                title: 'Both',
+                sub: 'Most deals. The same car shows every price, cheapest first.',
+                meta: kayakReady ? 'Searches each place on both sites' : 'Not set up on the server',
+                badge: 'Recommended',
+              },
+            ] as { id: SourceChoice; title: string; sub: string; meta: string; badge: string | null }[]
+          ).map((o) => {
+            const disabled = o.id !== 'skyscanner' && !kayakReady;
+            return (
+              <label key={o.id} className={`src-opt${disabled ? ' is-disabled' : ''}`}>
+                <input
+                  type="radio"
+                  name="search-sources"
+                  value={o.id}
+                  checked={choice === o.id}
+                  disabled={disabled}
+                  onChange={() => {
+                    setSourceChoice(o.id);
+                    changed();
+                  }}
+                />
+                <span className="src-opt__body">
+                  <span className="src-opt__head">
+                    <span className="src-opt__title">{o.title}</span>
+                    {o.badge && <span className={`pill ${o.id === 'both' ? 'pill--good' : 'pill--new'}`}>{o.badge}</span>}
+                  </span>
+                  <span className="src-opt__sub">{o.sub}</span>
+                  <span className="src-opt__meta">{o.meta}</span>
+                </span>
+              </label>
+            );
+          })}
+        </div>
+      </fieldset>
       <div className="form-grid">
         <label className="field">
           <span className="field__label">Starting ZIP</span>
@@ -272,18 +380,41 @@ export function SearchForm({
         </label>
       </div>
 
-      <p className="scan-estimate" aria-live="polite">
-        Each scan: up to {places} places × {1 + pickupFlexDays / 7}{' '}
-        {pickupFlexDays > 0 ? 'pickup dates' : 'pickup date'} = <strong>{live.searches} searches</strong> · about{' '}
-        <strong>{live.minutes} min</strong>
-        {live.usd !== null && (
-          <>
-            {' '}
-            · about <strong>${live.usd < 0.01 ? live.usd.toFixed(3) : live.usd.toFixed(2)}</strong>
-          </>
-        )}
-        . The first scan also checks each new place once; each check also counts as that place's first search.
-      </p>
+      {choice === 'skyscanner' ? (
+        <p className="scan-estimate" aria-live="polite">
+          Each scan: up to {places} places × {1 + pickupFlexDays / 7}{' '}
+          {pickupFlexDays > 0 ? 'pickup dates' : 'pickup date'} = <strong>{live.searches} searches</strong> · about{' '}
+          <strong>{live.minutes} min</strong>
+          {live.usd !== null && (
+            <>
+              {' '}
+              · about <strong>${live.usd < 0.01 ? live.usd.toFixed(3) : live.usd.toFixed(2)}</strong>
+            </>
+          )}
+          . The first scan also checks each new place once; each check also counts as that place's first search.
+        </p>
+      ) : (
+        <p className="scan-estimate" aria-live="polite">
+          Each scan: up to {places} places × {pickupDates} {pickupDates > 1 ? 'pickup dates' : 'pickup date'} ×{' '}
+          {choice === 'both' ? '2 sites' : '1 site'} = <strong>{scanSearches} searches</strong> · about{' '}
+          <strong>{scanMinutes} min</strong>
+          {useSky && live.usd !== null && (
+            <>
+              {' '}
+              · Skyscanner about <strong>{money2(live.usd)}</strong>
+            </>
+          )}
+          {useKayak && kayakUsd !== null && (DIRECT_SOURCE === 'kayak' || kayakUsd > 0) && (
+            <>
+              {' '}
+              · {DIRECT_TITLE} up to <strong>{money2(kayakUsd)}</strong>
+            </>
+          )}
+          {DIRECT_SOURCE === 'kayak'
+            ? '. KAYAK is charged per offer it returns, so it costs more per place than Skyscanner.'
+            : `. Priceline offers are for ${directMaxDays}-day rentals (Priceline prices at most 310 days; whole months are cheapest) and are compared per 30 days.`}
+        </p>
+      )}
 
       {error && (
         <p className="form-error" role="alert">
@@ -479,6 +610,14 @@ export function SearchesPage() {
                     {s.maxPlaces != null && <span className="muted"> · up to {s.maxPlaces} places</span>}
                     {s.suppliers && s.suppliers.length > 0 && (
                       <div className="muted">Only {s.suppliers.join(', ')}</div>
+                    )}
+                    {/* Skyscanner-only searches look as before; a search using another site shows its sites. */}
+                    {s.sources?.some((src) => src !== 'skyscanner') && (
+                      <div className="src-tags">
+                        {s.sources.includes('skyscanner') && <span className="src-tag src-tag--skyscanner">Skyscanner</span>}
+                        {DIRECT_SOURCE === 'kayak' && s.sources.includes('kayak') && <span className="src-tag src-tag--kayak">KAYAK</span>}
+                        {s.sources.includes('priceline') && <span className="src-tag src-tag--priceline">Priceline</span>}
+                      </div>
                     )}
                   </td>
                   <td data-label="Pickup → return">

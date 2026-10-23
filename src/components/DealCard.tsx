@@ -66,6 +66,9 @@ export function DealCard({
   const pickupType = typeof deal.conditions.pickupType === 'string' ? cap(deal.conditions.pickupType) : null;
   const best = deal.offers[0];
   const offers = deal.offers.length > 0 ? deal.offers : [];
+  // Site tags only where they tell something: offers from a site other than Skyscanner, or from more than one.
+  const offerSources = new Set(offers.map((o) => o.source ?? 'Skyscanner'));
+  const showSources = offerSources.size > 1 || !offerSources.has('Skyscanner');
   const pickupName = deal.pickupLocationName ?? deal.locationName;
   // Same rule as the "Same car also at" row: only when the car is offered from more than one place.
   const otherPlaces = deal.places.length > 1 ? deal.places.filter((p) => p !== pickupName) : [];
@@ -220,7 +223,7 @@ export function DealCard({
           <span className="dc-muted">Cheapest · avg per 30 days</span>
           <span className="dc-price__big">{money(deal.monthlyRate, deal.currency)}</span>
           <span className="dc-price__total">
-            {money(deal.totalPrice, deal.currency)} <span className="dc-muted">total for 330 days</span>
+            {money(deal.totalPrice, deal.currency)} <span className="dc-muted">total for {deal.durationDays} days</span>
           </span>
           {deal.previousPrice && (isDrop || isRise) && delta !== null && (
             <span className={`price__delta price__delta--${isDrop ? 'down' : 'up'}`}>
@@ -317,7 +320,7 @@ export function DealCard({
           <dt>Price</dt>
           <dd>
             Cheapest offer · {money(deal.monthlyRate, deal.currency)} avg per 30 days ·{' '}
-            {money(deal.totalPrice, deal.currency)} for 330 days
+            {money(deal.totalPrice, deal.currency)} for {deal.durationDays} days
             {showDelta && ` · was ${money(deal.previousPrice, deal.currency)}`}
             {offers.length > 1 && ` · ${offers.length} deals from ${money(offers[0].totalPrice, deal.currency)}`}
             {deal.places.length > 1 && ` · ${deal.places.length} locations`}
@@ -330,8 +333,9 @@ export function DealCard({
       {open && offers.length > 1 && (
         <ul className="dc-offers">
           {offers.map((o) => (
-            <li key={`${o.bookingProvider}-${o.deeplink}`} className="dc-offer">
+            <li key={`${o.source ?? ''}-${o.bookingProvider}-${o.place}-${o.deeplink}`} className="dc-offer">
               <div>
+                {showSources && <span className={`src-tag src-tag--${(o.source ?? 'Skyscanner').toLowerCase()}`}>{o.source ?? 'Skyscanner'}</span>}{' '}
                 <strong>{o.bookingProvider ?? 'Unknown provider'}</strong> <Stars rating={o.rating} reviews={o.reviews} />
                 <div className="dc-muted">
                   {o.place} · {Math.round(o.distanceMiles)} mi

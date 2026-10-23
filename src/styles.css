@@ -1755,6 +1755,61 @@ table.data .num {
 /* Live runs / time / cost line under the new-search fields */
 .scan-estimate { margin: 4px 0 0; font-size: 13.5px; color: var(--text-muted, inherit); }
 
+/* "Search prices on": Skyscanner / Priceline / Both, as three cards */
+.src-choice { border: 0; margin: 0; padding: 0; min-width: 0; display: grid; gap: 8px; }
+.src-choice__legend {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+  margin-bottom: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.src-choice__grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.src-choice__note { margin: 0; font-size: 13px; color: var(--amber-600); }
+.src-opt {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+.src-opt:hover { border-color: var(--border-strong); }
+.src-opt:has(input:checked) { padding: 13px 15px; border: 2px solid var(--accent); background: var(--sky-100); }
+.src-opt:has(input:focus-visible) { box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.25); }
+.src-opt.is-disabled { cursor: not-allowed; opacity: 0.55; }
+.src-opt input { flex: none; width: 18px; height: 18px; margin: 1px 0 0; accent-color: var(--accent); }
+.src-opt__body { display: grid; gap: 5px; min-width: 0; }
+.src-opt__head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.src-opt__title { font-size: 15px; font-weight: 600; color: var(--text); }
+.src-opt__sub { font-size: 13px; line-height: 1.45; color: var(--text); }
+.src-opt__meta { font-size: 12.5px; color: var(--text-muted); }
+.pill { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; letter-spacing: 0.02em; text-transform: none; }
+.pill--new { background: var(--sky-100); color: var(--text); }
+.pill--good { background: var(--green-100); color: var(--text); }
+
+/* Which site an offer came from: on deal offers and on saved searches that use Priceline */
+.src-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.src-tag { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11.5px; font-weight: 600; vertical-align: middle; }
+.src-tag--skyscanner { background: var(--surface-2); color: var(--text-muted); }
+.src-tag--priceline { background: var(--sky-100); color: var(--text); }
+.src-tag--kayak { background: var(--amber-100); color: var(--text); }
+
+@media (max-width: 760px) {
+  .src-choice__grid { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  .src-opt { padding: 13px 14px; }
+  .src-opt:has(input:checked) { padding: 12px 13px; }
+  .src-opt input { width: 20px; height: 20px; }
+}
+
 /* Row actions on the searches table: "Open deals" and "Edit" */
 .cell-actions { white-space: nowrap; }
 .cell-actions .link-btn { margin-left: 12px; }

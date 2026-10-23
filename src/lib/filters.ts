@@ -8,6 +8,8 @@ export interface DealFilters {
   /** Empty means every state. */
   states: string[];
   suppliers: string[];
+  /** Sites the offers came from ("Skyscanner", "Priceline"). Empty means every site. */
+  sources: string[];
   maxMonthly: number | null;
   maxDistance: number | null;
   minSeats: number | null;
@@ -21,6 +23,7 @@ export const DEFAULT_FILTERS: DealFilters = {
   vehicleClass: 'ALL',
   states: [],
   suppliers: [],
+  sources: [],
   maxMonthly: null,
   maxDistance: null,
   minSeats: null,
@@ -31,6 +34,13 @@ export const DEFAULT_FILTERS: DealFilters = {
 };
 
 const num = (s: string): number => Number.parseFloat(s);
+
+/** Every site a deal is offered on; offers from older backends count as Skyscanner. */
+export function dealSources(d: Deal): string[] {
+  const found = new Set(d.offers.map((o) => o.source ?? 'Skyscanner'));
+  if (found.size === 0) found.add(d.source ?? 'Skyscanner');
+  return [...found];
+}
 
 const SORTERS: Record<SortKey, (a: Deal, b: Deal) => number> = {
   monthly: (a, b) => num(a.monthlyRate) - num(b.monthlyRate),
@@ -51,12 +61,14 @@ export function applyFilters(deals: Deal[], filters: DealFilters): Deal[] {
   const q = filters.query.trim().toLowerCase();
   const stateSet = new Set(filters.states);
   const supplierSet = new Set(filters.suppliers);
+  const sourceSet = new Set(filters.sources);
   const sorter = SORTERS[filters.sort];
 
   return deals
     .filter((d) => filters.vehicleClass === 'ALL' || d.vehicleClass === filters.vehicleClass)
     .filter((d) => stateSet.size === 0 || stateSet.has(d.locationState))
     .filter((d) => supplierSet.size === 0 || supplierSet.has(d.supplier))
+    .filter((d) => sourceSet.size === 0 || dealSources(d).some((s) => sourceSet.has(s)))
     .filter((d) => filters.maxMonthly === null || num(d.monthlyRate) <= filters.maxMonthly)
     .filter((d) => filters.maxDistance === null || d.distanceMiles <= filters.maxDistance)
     .filter((d) => filters.minSeats === null || (d.seats ?? 0) >= filters.minSeats)
@@ -84,6 +96,8 @@ export function applyFilters(deals: Deal[], filters: DealFilters): Deal[] {
 export interface Facets {
   states: Array<{ value: string; count: number }>;
   suppliers: Array<{ value: string; count: number }>;
+  /** Deals per site; a deal offered on both counts for each. */
+  sources: Array<{ value: string; count: number }>;
   classes: Array<{ value: VehicleClass; count: number }>;
   monthlyRange: { min: number; max: number } | null;
   distanceRange: { min: number; max: number } | null;
@@ -100,13 +114,14 @@ function tally<T extends string>(values: T[]): Array<{ value: T; count: number }
 /** Facet counts for the sidebar, computed from the unfiltered result set. */
 export function buildFacets(deals: Deal[]): Facets {
   if (deals.length === 0) {
-    return { states: [], suppliers: [], classes: [], monthlyRange: null, distanceRange: null };
+    return { states: [], suppliers: [], sources: [], classes: [], monthlyRange: null, distanceRange: null };
   }
   const rates = deals.map((d) => num(d.monthlyRate)).filter(Number.isFinite);
   const miles = deals.map((d) => d.distanceMiles).filter(Number.isFinite);
   return {
     states: tally(deals.map((d) => d.locationState)).sort((a, b) => a.value.localeCompare(b.value)),
     suppliers: tally(deals.map((d) => d.supplier)),
+    sources: tally(deals.flatMap((d) => dealSources(d))),
     classes: tally(deals.map((d) => d.vehicleClass)),
     monthlyRange: rates.length
       ? { min: Math.floor(Math.min(...rates)), max: Math.ceil(Math.max(...rates)) }
@@ -122,6 +137,7 @@ export function countActiveFilters(filters: DealFilters): number {
   if (filters.vehicleClass !== 'ALL') n++;
   if (filters.states.length > 0) n++;
   if (filters.suppliers.length > 0) n++;
+  if (filters.sources.length > 0) n++;
   if (filters.maxMonthly !== null) n++;
   if (filters.maxDistance !== null) n++;
   if (filters.minSeats !== null) n++;

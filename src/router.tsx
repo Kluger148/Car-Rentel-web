@@ -15,6 +15,8 @@ export interface DealsSearch {
   class?: VehicleClass;
   states?: string[];
   suppliers?: string[];
+  /** Sites the offers came from ("Skyscanner", "Priceline"). */
+  sources?: string[];
   max?: number;
   dist?: number;
   seats?: number;
@@ -84,6 +86,7 @@ const dealsRoute = createRoute({
       // `state` is the old single-state param; old bookmarks still open filtered.
       states: asStringArray(search.states ?? search.state)?.map((s) => s.toUpperCase()),
       suppliers: asStringArray(search.suppliers),
+      sources: asStringArray(search.sources),
       max: asNumber(search.max),
       dist: asNumber(search.dist),
       seats: asNumber(search.seats),
