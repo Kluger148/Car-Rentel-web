@@ -1446,6 +1446,11 @@ table.data .num {
 .dc-rating span { color: var(--text-muted); font-weight: 400; }
 .dc-good { color: var(--green-600); font-size: 13px; }
 .dc-note { color: var(--text-faint); font-size: 11.5px; }
+/* Branch address: opens Google Maps. Dotted underline so it reads as a link without shouting. */
+.dc-maplink { color: inherit; text-decoration: underline dotted; text-underline-offset: 3px; }
+.dc-maplink:hover { color: var(--accent, inherit); }
+/* Under a "Search on Priceline" button: what to do on the page it opens. */
+.dc-hint { display: block; color: var(--text-faint); font-size: 11.5px; text-align: center; }
 .dc-count { padding-top: 8px; font-size: 13px; font-weight: 600; }
 .dc-toggle { justify-content: center; width: 100%; }
 .dc-offers { grid-column: 1 / -1; list-style: none; margin: 0; padding: 0 18px 12px; border-top: 1px solid var(--border); background: var(--surface-2); }

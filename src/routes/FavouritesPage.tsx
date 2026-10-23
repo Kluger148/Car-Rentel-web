@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { ErrorState } from '../components/States';
 import { ExternalIcon, HeartIcon, PinIcon, SearchIcon } from '../components/icons';
 import { api, type Favourite } from '../lib/api';
-import { CLASS_LABEL, money, relativeTime } from '../lib/format';
+import { CLASS_LABEL, isSearchOnlyLink, money, relativeTime } from '../lib/format';
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 
@@ -119,7 +119,7 @@ function FavouriteCard({ fav, onRemove }: { fav: Favourite; onRemove: (f: Favour
             )}
             {fav.deeplink && fav.available && (
               <a className="btn btn--primary btn--sm" href={fav.deeplink} target="_blank" rel="noreferrer">
-                View deal <ExternalIcon size={13} />
+                {isSearchOnlyLink(fav.deeplink) ? 'Search on Priceline' : 'View deal'} <ExternalIcon size={13} />
               </a>
             )}
           </>

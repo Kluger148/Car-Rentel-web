@@ -5,7 +5,7 @@ import { PriceChart } from '../components/PriceChart';
 import { ErrorState } from '../components/States';
 import { ArrowLeftIcon, CalendarIcon, ExternalIcon, PinIcon, RoadIcon, SeatIcon, VanIcon } from '../components/icons';
 import { api } from '../lib/api';
-import { dateRange, dateTime, isUnlimitedMileage, mileageLabel, money, percentDelta } from '../lib/format';
+import { dateRange, dateTime, isSearchOnlyLink, isUnlimitedMileage, mileageLabel, money, percentDelta } from '../lib/format';
 
 const num = (s: string) => Number.parseFloat(s);
 
@@ -155,8 +155,9 @@ export function DealDetailPage() {
               </div>
               <span className="dc-note">{deal.priceNote}</span>
               <a className="btn btn--primary dc-toggle" href={newest.deeplink} target="_blank" rel="noreferrer noopener">
-                View deal <ExternalIcon />
+                {isSearchOnlyLink(newest.deeplink) ? 'Search on Priceline' : 'View deal'} <ExternalIcon />
               </a>
+              {isSearchOnlyLink(newest.deeplink) && <span className="dc-hint">Enter the branch address on Priceline</span>}
             </div>
           </section>
 
@@ -258,7 +259,7 @@ export function DealDetailPage() {
                         </td>
                         <td className="cell-actions">
                           <a href={p.deeplink} target="_blank" rel="noreferrer noopener">
-                            Open <ExternalIcon size={12} />
+                            {isSearchOnlyLink(p.deeplink) ? 'Search' : 'Open'} <ExternalIcon size={12} />
                           </a>
                         </td>
                       </tr>

@@ -121,3 +121,14 @@ export function prettyEnum(value: string | null): string | null {
   const s = value.replace(/[_-]+/g, ' ').trim().toLowerCase();
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
+
+/**
+ * Priceline's car search page: the link a town-branch Priceline offer gets, since Priceline's
+ * site cannot open one town branch on its own (only airports). The customer searches the address.
+ */
+export const PRICELINE_SEARCH_URL = 'https://www.priceline.com/drive/';
+export const isSearchOnlyLink = (url: string | null | undefined): boolean => url === PRICELINE_SEARCH_URL;
+
+/** Google Maps for a branch address, as the old site links it. */
+export const mapsUrl = (address: string): string =>
+  `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;

@@ -1,7 +1,17 @@
 import { Link } from '@tanstack/react-router';
 import { useId, useState } from 'react';
 import type { Deal } from '../lib/api';
-import { CHANGE_LABEL, dateRange, isUnlimitedMileage, mileageLabel, money, percentDelta, shortDate } from '../lib/format';
+import {
+  CHANGE_LABEL,
+  dateRange,
+  isSearchOnlyLink,
+  isUnlimitedMileage,
+  mapsUrl,
+  mileageLabel,
+  money,
+  percentDelta,
+  shortDate,
+} from '../lib/format';
 import {
   ArrowDownIcon,
   ArrowUpIcon,
@@ -173,7 +183,11 @@ export function DealCard({
         <div className="dc-place">
           <PinIcon size={15} />
           <div>
-            <div>{deal.pickupLocationName ?? deal.locationName}</div>
+            <div>
+              <a className="dc-maplink" href={mapsUrl(pickupName)} target="_blank" rel="noreferrer noopener" title="Open this address in Google Maps">
+                {pickupName}
+              </a>
+            </div>
             <div className="dc-muted">
               {pickupType ? `Pick-up: ${pickupType} · ` : ''}
               {deal.distanceApprox ? '≈' : ''}
@@ -252,9 +266,12 @@ export function DealCard({
               </button>
             </>
           ) : (
-            <a className="btn btn--primary dc-toggle" href={deal.deeplink} target="_blank" rel="noreferrer noopener">
-              View deal <ExternalIcon />
-            </a>
+            <>
+              <a className="btn btn--primary dc-toggle" href={deal.deeplink} target="_blank" rel="noreferrer noopener">
+                {isSearchOnlyLink(deal.deeplink) ? 'Search on Priceline' : 'View deal'} <ExternalIcon />
+              </a>
+              {isSearchOnlyLink(deal.deeplink) && <span className="dc-hint">Enter the address shown on Priceline</span>}
+            </>
           )}
           <Link className="link-quiet" to="/deal/$fingerprint" params={{ fingerprint: deal.fingerprint }}>
             Price history
@@ -347,8 +364,14 @@ export function DealCard({
                 <strong>{money(o.monthlyRate, deal.currency)}</strong>
                 <span className="dc-muted"> /30 days · {money(o.totalPrice, deal.currency)} total</span>
               </div>
-              <a className="btn btn--ghost" href={o.deeplink} target="_blank" rel="noreferrer noopener">
-                View deal <ExternalIcon size={12} />
+              <a
+                className="btn btn--ghost"
+                href={o.deeplink}
+                target="_blank"
+                rel="noreferrer noopener"
+                title={isSearchOnlyLink(o.deeplink) ? `Priceline cannot open this branch directly: search "${o.place}" there` : undefined}
+              >
+                {isSearchOnlyLink(o.deeplink) ? 'Search on Priceline' : 'View deal'} <ExternalIcon size={12} />
               </a>
             </li>
           ))}
