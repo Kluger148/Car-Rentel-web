@@ -67,6 +67,7 @@ export function SearchForm({
   const [states, setStates] = useState<string[]>(editing?.states ?? []);
   const [suppliers, setSuppliers] = useState<string[]>(editing?.suppliers ?? []);
   const [carTypes, setCarTypes] = useState<string[]>(editing?.carTypes ?? []);
+  const [dailyPickup, setDailyPickup] = useState(editing?.dailyPickupDates ?? false);
   const companiesQuery = useQuery({ queryKey: ['companies'], queryFn: () => api.companies(), staleTime: 300_000 });
   const companyOptions = (companiesQuery.data ?? []).map((c) => ({
     value: c.name,
@@ -100,18 +101,22 @@ export function SearchForm({
   });
   // Each other site searches the same places beside Skyscanner, so the slowest one sets the time.
   // KAYAK is charged per offer (the estimate assumes every search returns the full number); Priceline per call.
+  // Priceline can price every day of the pickup window (one search per place and day).
+  const pricelineDaily = usePriceline && pickupFlexDays > 0 && dailyPickup;
+  const pricelineDates = pricelineDaily ? pickupFlexDays + 1 : pickupDates;
+  const searchesOn = (s: 'priceline' | 'kayak') => (s === 'priceline' ? places * pricelineDates : live.searches);
   const extraMinutes = (s: 'priceline' | 'kayak') => {
     const c = sourcesCfg?.[s];
-    return Math.max(1, Math.round((Math.ceil(live.searches / Math.max(1, c?.concurrency ?? 1)) * (c?.secondsPerSearch ?? 30)) / 60));
+    return Math.max(1, Math.round((Math.ceil(searchesOn(s) / Math.max(1, c?.concurrency ?? 1)) * (c?.secondsPerSearch ?? 30)) / 60));
   };
   const extraUsd = (s: 'priceline' | 'kayak') => {
     const perSearch = sourcesCfg?.[s]?.perSearchUsd;
-    return perSearch !== undefined ? live.searches * perSearch : null;
+    return perSearch !== undefined ? searchesOn(s) * perSearch : null;
   };
   const kayakUsd = extraUsd('kayak');
   const pricelineUsd = extraUsd('priceline');
   const directMaxDays = sourcesCfg?.priceline?.maxRentalDays ?? 300;
-  const scanSearches = chosen.length * live.searches;
+  const scanSearches = (useSky ? live.searches : 0) + (useKayak ? live.searches : 0) + (usePriceline ? searchesOn('priceline') : 0);
   const scanMinutes = Math.max(
     useSky ? live.minutes : 0,
     usePriceline ? extraMinutes('priceline') : 0,
@@ -130,6 +135,7 @@ export function SearchForm({
     suppliers,
     sources: chosen,
     carTypes,
+    dailyPickupDates: pricelineDaily,
     pickupDate: pickup,
     intervalDays,
     pickupFlexDays,
@@ -157,6 +163,8 @@ export function SearchForm({
         intervalDays,
         // Only sent when changed, so an older backend without car types keeps working.
         ...(carTypes.join() !== (editing.carTypes ?? []).join() ? { carTypes } : {}),
+        // Only sent when changed, so an older backend without daily pickup dates keeps working.
+        ...(pricelineDaily !== (editing.dailyPickupDates ?? false) ? { dailyPickupDates: pricelineDaily } : {}),
         // Only sent when changed, so an older backend without sources keeps working.
         ...(sourcePick !== null && sourcePick.join() !== sortSources(editing.sources ?? ['skyscanner']).join() ? { sources: sourcePick } : {}),
         pickupFlexDays,
@@ -356,6 +364,22 @@ export function SearchForm({
             ))}
           </select>
         </label>
+        {usePriceline && pickupFlexDays > 0 && (
+          <label className="field" title="Priceline can try every pickup day in the window to find the cheapest one. Skyscanner and KAYAK stay one day a week.">
+            <span className="field__label">Priceline pickup dates</span>
+            <select
+              id="ns-daily"
+              value={dailyPickup ? 'day' : 'week'}
+              onChange={(e) => {
+                setDailyPickup(e.target.value === 'day');
+                changed();
+              }}
+            >
+              <option value="week">One day a week ({pickupDates} dates)</option>
+              <option value="day">Every day ({pickupFlexDays + 1} dates) · finds the cheapest day</option>
+            </select>
+          </label>
+        )}
         <label className="field">
           <span className="field__label">Places to search</span>
           <select
@@ -409,7 +433,8 @@ export function SearchForm({
       ) : (
         <p className="scan-estimate" aria-live="polite">
           Each scan: up to {places} places × {pickupDates} {pickupDates > 1 ? 'pickup dates' : 'pickup date'} ×{' '}
-          {chosen.length} {chosen.length > 1 ? 'sites' : 'site'} = <strong>{scanSearches} searches</strong> · about{' '}
+          {chosen.length} {chosen.length > 1 ? 'sites' : 'site'}
+          {pricelineDaily && ` (Priceline: every day, ${pricelineDates} dates)`} = <strong>{scanSearches} searches</strong> · about{' '}
           <strong>{scanMinutes} min</strong>
           {useSky && live.usd !== null && (
             <>
@@ -641,7 +666,12 @@ export function SearchesPage() {
                   </td>
                   <td data-label="Pickup → return">
                     {fullDate(s.pickupDate)} → {fullDate(s.returnDate)}
-                    {(s.pickupFlexDays ?? 0) > 0 && <div className="muted">{pickupFlexLabel(s.pickupFlexDays)}</div>}
+                    {(s.pickupFlexDays ?? 0) > 0 && (
+                      <div className="muted">
+                        {pickupFlexLabel(s.pickupFlexDays)}
+                        {s.dailyPickupDates && s.sources?.includes('priceline') ? ' · every day on Priceline' : ''}
+                      </div>
+                    )}
                   </td>
                   <td data-label="Last scan">
                     {s.lastRun ? (

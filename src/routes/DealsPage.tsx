@@ -397,6 +397,7 @@ export function DealsPage() {
               <div className="results__sub search-actions__next">
                 Next scan: up to {placesSetting} places × {1 + flexDays / 7} {flexDays > 0 ? 'pickup dates' : 'pickup date'} ={' '}
                 {nextScan.searches} searches · about {nextScan.minutes} min
+                {s.dailyPickupDates && flexDays > 0 && s.sources?.includes('priceline') && ` · Priceline checks every day (${flexDays + 1} dates)`}
                 {nextScan.usd !== null && ` · about $${nextScan.usd.toFixed(2)}`}
               </div>
             )}

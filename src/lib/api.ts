@@ -328,6 +328,8 @@ export interface SavedSearch {
   sources?: SearchSource[];
   /** Car types the deals page opens filtered to. Empty or missing = every type. */
   carTypes?: string[];
+  /** Priceline prices every day of the flexible pickup window, not one day a week. Missing on older backends. */
+  dailyPickupDates?: boolean;
   pickupDate: string;
   returnDate: string;
   rentalDays: number;
@@ -363,6 +365,7 @@ export interface SearchInput {
   suppliers: string[];
   sources?: SearchSource[];
   carTypes?: string[];
+  dailyPickupDates?: boolean;
   pickupDate: string;
   intervalDays?: number;
   pickupFlexDays?: number;

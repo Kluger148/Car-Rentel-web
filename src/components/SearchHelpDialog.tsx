@@ -9,6 +9,11 @@ interface FieldHelp {
 /** What each field of the search form does, in the order the form shows them. */
 const FIELDS: FieldHelp[] = [
   {
+    name: 'Search prices on',
+    what: 'The sites to search: Skyscanner (booking sites plus Hertz and Sixt direct), Priceline (the rental companies through Priceline, the same prices as priceline.com) and KAYAK. Tick one or more: the same car from several sites becomes one deal, cheapest first.',
+    tip: 'Priceline is free on the current plan and usually best for minivans and vans. KAYAK is slower and charged per offer.',
+  },
+  {
     name: 'Starting ZIP',
     what: "The customer's ZIP code. Distances to every rental branch are measured from here.",
     tip: 'Cannot be changed after saving: create a new search for a different area.',
@@ -28,8 +33,13 @@ const FIELDS: FieldHelp[] = [
     what: 'Keep only offers from these companies (Avis, Budget, Hertz…). Empty = every company. The booking sites that sell them (eDreams, Trip.com…) are not filtered.',
   },
   {
+    name: 'Car types (optional)',
+    what: 'The car types the customer wants (Minivan, Passenger van, Full-size SUV…). The search still finds every type, but its deals page opens filtered to these. Empty = every type.',
+    tip: 'The filter can be changed or cleared on the deals page at any time.',
+  },
+  {
     name: 'Pickup date',
-    what: 'The day the customer collects the vehicle. Every search is one complete 330-day rental from this date, returned to the same branch.',
+    what: 'The day the customer collects the vehicle. Each search is one complete rental from this date, returned to the same branch: 330 days on Skyscanner and KAYAK, 300 days on Priceline (Priceline prices at most 310 days, and 10 whole months is cheapest there). Prices are compared per 30 days.',
     tip: 'If the date passes, scheduled scans move it to tomorrow automatically.',
   },
   {
@@ -38,8 +48,13 @@ const FIELDS: FieldHelp[] = [
     tip: 'Long-term prices change a lot with the pickup day. Each extra date adds one search per place, so it costs and takes longer.',
   },
   {
+    name: 'Priceline pickup dates',
+    what: 'Shown when Priceline is ticked and Flexible pickup is on. "One day a week" prices the same dates as the other sites (e.g. Nov 2, 9, 16). "Every day" makes Priceline try every pickup day in the window (Nov 2, 3, 4 … 16) and keep each car\'s cheapest day: the same car at the same branch can be $50–100 a month cheaper on another day.',
+    tip: 'Every day means one Priceline search per place per day: about 5 times the searches and time of weekly dates. Skyscanner and KAYAK always stay one day a week. On the deals page, the Pickup date filter shows each day\'s cheapest price.',
+  },
+  {
     name: 'Places to search',
-    what: 'How many towns in range are searched on Skyscanner, largest first. More places reach smaller suburban branches, which are often cheaper than airports.',
+    what: 'How many towns in range are searched on each site, largest first. More places reach smaller suburban branches, which are often cheaper than airports.',
     tip: 'Up to 15 is quick (a few minutes); up to 100 takes about 15 minutes per pickup date.',
   },
   {
@@ -75,8 +90,9 @@ export function SearchHelpDialog({ open, onClose }: { open: boolean; onClose: ()
           How a search works
         </h2>
         <p className="dialog__sub">
-          A search looks on Skyscanner for complete 330-day rentals around the customer's ZIP and keeps the cheapest
-          offer for each car. Prices are shown as an average per 30 days (the 330-day total ÷ 11).
+          A search looks on Skyscanner, Priceline and KAYAK for complete long-term rentals around the customer's ZIP and
+          keeps the cheapest offer for each car. Prices are shown as an average per 30 days (the total ÷ the number of
+          days × 30), so 300-day and 330-day rentals compare fairly.
         </p>
         <dl className="help-list">
           {FIELDS.map((f) => (
