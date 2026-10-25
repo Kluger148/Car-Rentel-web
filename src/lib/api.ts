@@ -599,6 +599,12 @@ export interface RunEstimate {
   /** Every search the run makes, and how many of them come with a name check at no extra cost. */
   searchesTotal?: number;
   coveredByNameChecks?: number;
+  /** False when the search does not use Skyscanner. Missing on older backends (Skyscanner only). */
+  skyscanner?: boolean;
+  /** The other sites the search uses: KAYAK at the full offer cap (an upper bound), Priceline per call. */
+  otherSources?: { source: 'kayak' | 'priceline'; searches: number; perSearchUsd: number; maxUsd: number; minutes: number }[];
+  /** Skyscanner's expected cost plus the most the other sites can cost. */
+  totalUsd?: number | null;
   maxResultsPerPlace: number;
   price: { startUsd: number; perItemUsd: number } | null;
   priceError: string | null;

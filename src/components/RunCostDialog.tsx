@@ -25,6 +25,12 @@ function basisText(e: RunEstimate): string {
   return 'No past scans or Apify price list to estimate from yet.';
 }
 
+const SOURCE_NAME = { kayak: 'KAYAK', priceline: 'Priceline' } as const;
+const SOURCE_BILLING = {
+  kayak: 'KAYAK is a paid search on Apify, charged per offer it returns',
+  priceline: 'Priceline is a RapidAPI call, free on the current plan',
+} as const;
+
 const resetDay = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
 
 interface Props {
@@ -59,6 +65,16 @@ export function RunCostDialog({ searchId, open, onClose, onConfirm }: Props) {
   const account = e?.apifyAccount ?? null;
   // With an offer cap the run has a real ceiling; without one only the safety caps bound it.
   const hasCeiling = e !== undefined && e.maxUsd !== undefined && e.maxUsd < e.limitUsd;
+  // Older backends know only Skyscanner.
+  const useSky = e?.skyscanner ?? true;
+  const others = e?.otherSources ?? [];
+  const totalUsd = e ? (e.totalUsd !== undefined ? e.totalUsd : e.expectedUsd) : null;
+  const subtitle = [
+    useSky ? 'Each place is a paid Skyscanner search on Apify, once per pickup date' : null,
+    ...others.map((o) => SOURCE_BILLING[o.source]),
+  ]
+    .filter(Boolean)
+    .join('. ');
 
   return (
     <dialog
@@ -73,7 +89,7 @@ export function RunCostDialog({ searchId, open, onClose, onConfirm }: Props) {
         <h2 id="run-cost-title" className="dialog__title">
           Run this scan now?
         </h2>
-        <p className="dialog__sub">Each place is a paid Skyscanner search on Apify, once per pickup date.</p>
+        <p className="dialog__sub">{e ? `${subtitle}.` : 'Each place is searched once per pickup date.'}</p>
 
         {estimate.isPending && (
           <div className="cost-estimate" aria-busy="true">
@@ -92,24 +108,45 @@ export function RunCostDialog({ searchId, open, onClose, onConfirm }: Props) {
           <div className="cost-estimate">
             <div className="cost-estimate__total">
               <span className="cost-estimate__label">Estimated cost</span>
-              <span className="cost-estimate__value">{e.expectedUsd === null ? 'Unknown' : `≈ ${usd(e.expectedUsd)}`}</span>
-              <span className="cost-estimate__basis">{basisText(e)}</span>
+              <span className="cost-estimate__value">{totalUsd == null ? 'Unknown' : `≈ ${usd(totalUsd)}`}</span>
+              <span className="cost-estimate__basis">
+                {useSky ? basisText(e) : "From each site's price per search."}
+                {others.some((o) => o.source === 'kayak') && ' KAYAK is counted at its most (every search returning all offers).'}
+              </span>
             </div>
 
             <dl className="cost-estimate__rows">
-              <div>
-                <dt>{(e.pickupDates ?? 1) > 1 ? 'Searches' : 'Places to search'}</dt>
-                <dd>
-                  {(e.pickupDates ?? 1) > 1 && (
+              {useSky && (
+                <div>
+                  <dt>{others.length > 0 ? 'Skyscanner searches' : (e.pickupDates ?? 1) > 1 ? 'Searches' : 'Places to search'}</dt>
+                  <dd>
+                    {(e.pickupDates ?? 1) > 1 && (
+                      <span className="muted">
+                        {e.placesSearched} places × {e.pickupDates} pickup dates ={' '}
+                      </span>
+                    )}
+                    {e.searchesTotal ?? e.places}
+                    {e.perPlaceUsd !== null && <span className="muted"> × ~{usd(e.perPlaceUsd)}</span>}
+                  </dd>
+                </div>
+              )}
+              {others.map((o) => (
+                <div key={o.source}>
+                  <dt>{SOURCE_NAME[o.source]} searches</dt>
+                  <dd>
+                    {(e.pickupDates ?? 1) > 1 && (
+                      <span className="muted">
+                        {e.placesSearched} places × {e.pickupDates} pickup dates ={' '}
+                      </span>
+                    )}
+                    {o.searches}
                     <span className="muted">
-                      {e.placesSearched} places × {e.pickupDates} pickup dates ={' '}
+                      {o.perSearchUsd > 0 ? ` × up to ${usd(o.perSearchUsd)} = up to ${usd(o.maxUsd)}` : ' · free'}
                     </span>
-                  )}
-                  {e.searchesTotal ?? e.places}
-                  {e.perPlaceUsd !== null && <span className="muted"> × ~{usd(e.perPlaceUsd)}</span>}
-                </dd>
-              </div>
-              {e.nameChecks > 0 && (
+                  </dd>
+                </div>
+              ))}
+              {useSky && e.nameChecks > 0 && (
                 <div>
                   <dt>
                     New places to name-check
@@ -138,7 +175,7 @@ export function RunCostDialog({ searchId, open, onClose, onConfirm }: Props) {
                   </dd>
                 </div>
               )}
-              {hasCeiling && e.maxUsd !== undefined && (
+              {useSky && hasCeiling && e.maxUsd !== undefined && (
                 <div>
                   <dt>Most it can cost</dt>
                   <dd>{usd(e.maxUsd)}</dd>
@@ -146,16 +183,18 @@ export function RunCostDialog({ searchId, open, onClose, onConfirm }: Props) {
               )}
             </dl>
 
-            <p className="cost-estimate__note">
-              {e.maxResultsPerPlace === 1
-                ? 'Every offer is kept, but each search is billed as one row, so the cost barely varies. '
-                : hasCeiling
-                  ? `A place costs less when it returns fewer than ${e.maxResultsPerPlace} offers, so scans vary a little. `
-                  : 'The cost depends on how many offers each place returns. '}
-              {e.nameChecks > 0 && 'Places Skyscanner does not recognise are skipped, which lowers the cost. '}
-              Safety cap: {e.runCapUsd > 0 ? `a run stops starting new places at ${usd(e.runCapUsd)}, and ` : ''}
-              one place can never charge more than {usd(e.perSearchCapUsd)}.
-            </p>
+            {useSky && (
+              <p className="cost-estimate__note">
+                {e.maxResultsPerPlace === 1
+                  ? 'Every offer is kept, but each search is billed as one row, so the cost barely varies. '
+                  : hasCeiling
+                    ? `A place costs less when it returns fewer than ${e.maxResultsPerPlace} offers, so scans vary a little. `
+                    : 'The cost depends on how many offers each place returns. '}
+                {e.nameChecks > 0 && 'Places Skyscanner does not recognise are skipped, which lowers the cost. '}
+                Safety cap: {e.runCapUsd > 0 ? `a run stops starting new places at ${usd(e.runCapUsd)}, and ` : ''}
+                one place can never charge more than {usd(e.perSearchCapUsd)}.
+              </p>
+            )}
 
             {account?.limitReached && (
               <p className="cost-estimate__warn cost-estimate__warn--block" role="alert">
@@ -164,7 +203,7 @@ export function RunCostDialog({ searchId, open, onClose, onConfirm }: Props) {
                 {account.resetsAt ? ` or the new billing period starts after ${resetDay.format(new Date(account.resetsAt))}` : ''}.
               </p>
             )}
-            {account && !account.limitReached && e.expectedUsd !== null && account.usedUsd + e.expectedUsd > account.limitUsd && (
+            {account && !account.limitReached && totalUsd != null && account.usedUsd + totalUsd > account.limitUsd && (
               <p className="cost-estimate__warn">
                 <AlertIcon size={14} /> Only {usd(Math.max(0, account.limitUsd - account.usedUsd))} is left of the Apify
                 account's {usd(account.limitUsd)} monthly limit, so this scan may stop part-way.
@@ -196,7 +235,7 @@ export function RunCostDialog({ searchId, open, onClose, onConfirm }: Props) {
           onClick={onConfirm}
           autoFocus
         >
-          {e?.expectedUsd != null ? `Run scan · ≈ ${usd(e.expectedUsd)}` : 'Run scan'}
+          {totalUsd != null ? `Run scan · ≈ ${usd(totalUsd)}` : 'Run scan'}
         </button>
       </div>
     </dialog>

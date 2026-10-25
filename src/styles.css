@@ -1760,7 +1760,7 @@ table.data .num {
 /* Live runs / time / cost line under the new-search fields */
 .scan-estimate { margin: 4px 0 0; font-size: 13.5px; color: var(--text-muted, inherit); }
 
-/* "Search prices on": Skyscanner / Priceline / Both, as three cards */
+/* "Search prices on": Skyscanner, Priceline and KAYAK as three tick-box cards, any combination */
 .src-choice { border: 0; margin: 0; padding: 0; min-width: 0; display: grid; gap: 8px; }
 .src-choice__legend {
   display: flex;
@@ -1776,6 +1776,7 @@ table.data .num {
 }
 .src-choice__grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
 .src-choice__note { margin: 0; font-size: 13px; color: var(--amber-600); }
+.src-choice__hint { margin: -4px 0 0; font-size: 13px; color: var(--text-muted); }
 .src-opt {
   display: flex;
   align-items: flex-start;
