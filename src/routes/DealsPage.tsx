@@ -20,6 +20,7 @@ import {
   type DealsResponse,
 } from '../lib/api';
 import type { DealsSearch } from '../router';
+import { CAR_TYPES, type CarType } from '../lib/carType';
 import type { DealFilters } from '../lib/filters';
 import { DEFAULT_FILTERS, SORT_OPTIONS, applyFilters, buildFacets, countActiveFilters } from '../lib/filters';
 import { STATUS_LABEL, dateTime, fullDate, money, relativeTime, shortDate } from '../lib/format';
@@ -54,6 +55,8 @@ export function DealsPage() {
   const filters: DealFilters = useMemo(
     () => ({
       vehicleClass: search.class ?? DEFAULT_FILTERS.vehicleClass,
+      carTypes: search.types ?? DEFAULT_FILTERS.carTypes,
+      pickupDate: search.date ?? DEFAULT_FILTERS.pickupDate,
       states: search.states ?? DEFAULT_FILTERS.states,
       suppliers: search.suppliers ?? DEFAULT_FILTERS.suppliers,
       sources: search.sources ?? DEFAULT_FILTERS.sources,
@@ -73,6 +76,8 @@ export function DealsPage() {
       const next = { ...filters, ...patch };
       const nextSearch: DealsSearch = {
         class: next.vehicleClass === 'ALL' ? undefined : next.vehicleClass,
+        types: next.carTypes.length > 0 ? next.carTypes : undefined,
+        date: next.pickupDate ?? undefined,
         states: next.states.length > 0 ? next.states : undefined,
         suppliers: next.suppliers.length > 0 ? next.suppliers : undefined,
         sources: next.sources.length > 0 ? next.sources : undefined,
@@ -105,6 +110,16 @@ export function DealsPage() {
       q.state.data?.runs[0]?.status === 'running' || awaitingNewerThan !== null ? 2_000 : false,
   });
   const latestRun = detailQuery.data?.runs[0];
+  // A search saved with car types opens filtered to them, once; the filter can then be cleared.
+  const savedCarTypes = detailQuery.data?.search.carTypes;
+  const appliedSavedTypes = useRef(false);
+  useEffect(() => {
+    if (appliedSavedTypes.current || savedCarTypes === undefined) return;
+    appliedSavedTypes.current = true;
+    const known = savedCarTypes.filter((t): t is CarType => (CAR_TYPES as readonly string[]).includes(t));
+    if (search.types === undefined && known.length > 0) patchFilters({ carTypes: known });
+  }, [savedCarTypes, search.types, patchFilters]);
+
   if (awaitingNewerThan !== null && latestRun && latestRun.id > awaitingNewerThan) setAwaitingNewerThan(null);
   // Give up waiting if no run ever appears (e.g. the backend was already busy with another scan).
   useEffect(() => {
@@ -114,8 +129,10 @@ export function DealsPage() {
   }, [awaitingNewerThan]);
 
   const dealsQuery = useQuery({
-    queryKey: ['deals', searchId, search.run ?? 'latest', latestRun?.id, latestRun?.status],
-    queryFn: () => api.deals(searchId, search.run),
+    queryKey: ['deals', searchId, search.run ?? 'latest', latestRun?.id, latestRun?.status, search.date ?? 'any'],
+    queryFn: () => api.deals(searchId, search.run, search.date),
+    // Keep the list on screen while another pickup date loads.
+    placeholderData: (prev) => prev,
     staleTime: 60_000,
   });
 
@@ -614,6 +631,7 @@ export function DealsPage() {
             facets={facets}
             onChange={patchFilters}
             onReset={resetFilters}
+            pickupDates={dealsQuery.data?.facets?.pickupDates ?? []}
             open={filtersOpen}
             onOpenChange={setFiltersOpen}
             panelId={filtersPanelId}

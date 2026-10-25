@@ -1,6 +1,7 @@
 import { createRootRoute, createRoute, createRouter } from '@tanstack/react-router';
 import { Layout } from './components/Layout';
 import { RUN_RANGES, RUN_STATUSES, VEHICLE_CLASSES, type RunRange, type RunStatus, type VehicleClass } from './lib/api';
+import { CAR_TYPES, type CarType } from './lib/carType';
 import type { SortKey } from './lib/filters';
 import { AccountPage } from './routes/AccountPage';
 import { DealDetailPage } from './routes/DealDetailPage';
@@ -13,6 +14,10 @@ import { SearchesPage } from './routes/SearchesPage';
 /** Filters live in the URL so any result view can be bookmarked or shared. */
 export interface DealsSearch {
   class?: VehicleClass;
+  /** Car types ("Compact", "Mid-size SUV"). */
+  types?: CarType[];
+  /** One pickup date, YYYY-MM-DD. */
+  date?: string;
   states?: string[];
   suppliers?: string[];
   /** Sites the offers came from ("Skyscanner", "Priceline"). */
@@ -83,6 +88,11 @@ const dealsRoute = createRoute({
     const sort = asString(search.sort);
     return {
       class: cls && VEHICLE_CLASSES.includes(cls as VehicleClass) ? (cls as VehicleClass) : undefined,
+      types: asStringArray(search.types)?.filter((t): t is CarType => (CAR_TYPES as readonly string[]).includes(t)),
+      date: (() => {
+        const d = asString(search.date);
+        return d && /^\d{4}-\d{2}-\d{2}$/.test(d) ? d : undefined;
+      })(),
       // `state` is the old single-state param; old bookmarks still open filtered.
       states: asStringArray(search.states ?? search.state)?.map((s) => s.toUpperCase()),
       suppliers: asStringArray(search.suppliers),

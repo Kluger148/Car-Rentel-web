@@ -1,7 +1,8 @@
 import { useCallback, useRef } from 'react';
 import type { DealFilters } from '../lib/filters';
 import { countActiveFilters, type Facets } from '../lib/filters';
-import { CLASS_LABEL, money } from '../lib/format';
+import type { CarType } from '../lib/carType';
+import { CLASS_LABEL, money, shortDate } from '../lib/format';
 import { CloseIcon } from './icons';
 import { useMobileSheet } from './useMobileSheet';
 
@@ -20,6 +21,8 @@ interface FilterSidebarProps {
   panelId: string;
   /** Deals matching the current filters, for the phone sheet's "Show N deals" button. */
   resultCount: number;
+  /** Pickup dates the scan priced, with each date's cheapest 30-day average (from the API). */
+  pickupDates?: Array<{ date: string; deals: number; cheapestMonthly: string }>;
 }
 
 const SEAT_OPTIONS = [
@@ -38,6 +41,7 @@ export function FilterSidebar({
   onOpenChange,
   panelId,
   resultCount,
+  pickupDates = [],
 }: FilterSidebarProps) {
   const close = useCallback(() => onOpenChange(false), [onOpenChange]);
   const closeRef = useRef<HTMLButtonElement>(null);
@@ -48,6 +52,11 @@ export function FilterSidebar({
   const sliderValue = filters.maxMonthly ?? sliderMax;
   const miles = facets.distanceRange;
   const milesMax = miles ? Math.max(miles.max, miles.min + 5) : 0;
+
+  const toggleCarType = (t: CarType) => {
+    const next = filters.carTypes.includes(t) ? filters.carTypes.filter((x) => x !== t) : [...filters.carTypes, t];
+    onChange({ carTypes: next });
+  };
 
   const toggleState = (state: string) => {
     const next = filters.states.includes(state)
@@ -170,6 +179,49 @@ export function FilterSidebar({
                   />
                   {CLASS_LABEL[c.value]}
                   <span className="check__count">{c.count}</span>
+                </label>
+              ))}
+            </div>
+          )}
+
+          {facets.carTypes.length > 1 && (
+            <div className="filter-group">
+              <div className="filter-group__title">Car type</div>
+              {facets.carTypes.map((t) => (
+                <label className="check" key={t.value}>
+                  <input type="checkbox" checked={filters.carTypes.includes(t.value)} onChange={() => toggleCarType(t.value)} />
+                  {t.value}
+                  <span className="check__count">{t.count}</span>
+                </label>
+              ))}
+            </div>
+          )}
+
+          {/* Only when the search priced more than one pickup date (a flexible pickup). */}
+          {pickupDates.length > 1 && (
+            <div className="filter-group">
+              <div className="filter-group__title">Pickup date</div>
+              <label className="check">
+                <input
+                  type="radio"
+                  name="pickupDate"
+                  checked={filters.pickupDate === null}
+                  onChange={() => onChange({ pickupDate: null })}
+                />
+                Cheapest date for each car
+              </label>
+              {pickupDates.map((d) => (
+                <label className="check" key={d.date}>
+                  <input
+                    type="radio"
+                    name="pickupDate"
+                    checked={filters.pickupDate === d.date}
+                    onChange={() => onChange({ pickupDate: d.date })}
+                  />
+                  {shortDate(d.date)}
+                  <span className="check__count" title={`${d.deals} cars priced for this date`}>
+                    from {money(d.cheapestMonthly)}
+                  </span>
                 </label>
               ))}
             </div>

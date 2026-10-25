@@ -120,8 +120,9 @@ export function Layout() {
 
       <footer className="footer">
         <div className="container">
-          Skyscanner car-hire quotes for complete 330-day rentals, collected daily. Quotes are not reservations:
-          review price, mileage and conditions on the booking site before presenting a deal to a customer.
+          Car-hire quotes from Skyscanner, Priceline and KAYAK for complete long-term rentals, collected on each
+          scan. Quotes are not reservations: review price, mileage and conditions on the booking site before
+          presenting a deal to a customer.
         </div>
       </footer>
 

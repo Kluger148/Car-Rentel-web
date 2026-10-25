@@ -99,6 +99,8 @@ export interface Deal {
   offers: DealOffer[];
   /** The site the cheapest offer came from. Missing on older backends. */
   source?: OfferSource;
+  /** How this deal's total is labelled, by its site. Missing on older backends (use the list's). */
+  priceNote?: string;
   /** Every pickup place this same car is offered from. */
   places: string[];
   /** True when the signed-in user has shortlisted this deal. */
@@ -177,6 +179,10 @@ export interface DealsResponse {
   favouriteCount: number;
   count: number;
   deals: Deal[];
+  /** Every pickup date the run priced, with its deals and cheapest 30-day average. Missing on older backends. */
+  facets?: { pickupDates?: Array<{ date: string; deals: number; cheapestMonthly: string }> };
+  /** The pickup date the deals are for; null = each car's cheapest date. */
+  pickupDate?: string | null;
 }
 
 export interface DealChange {
@@ -208,6 +214,27 @@ export interface HistoryPoint {
   place: string;
   distanceMiles: number;
   deeplink: string;
+  /** Missing on older backends. */
+  source?: OfferSource;
+  pickupDate?: string;
+  durationDays?: number;
+}
+
+/** One offer the newest scan found for the car: a site, seller, branch and pickup date. */
+export interface HistoryOffer {
+  source: OfferSource;
+  supplier: string;
+  bookingProvider: string | null;
+  place: string;
+  distanceMiles: number;
+  pickupDate: string;
+  dropoffDate: string;
+  durationDays: number;
+  totalPrice: string;
+  monthlyRate: string;
+  deeplink: string;
+  freeCancellation: boolean;
+  priceNote: string;
 }
 
 /** What the car is, for the detail page header. */
@@ -231,6 +258,8 @@ export interface HistoryDeal {
   durationDays: number;
   targetMonthly: number;
   priceNote: string;
+  /** The site the cheapest offer came from. Missing on older backends. */
+  source?: OfferSource;
 }
 
 export interface HistoryResponse {
@@ -238,6 +267,9 @@ export interface HistoryResponse {
   deal: HistoryDeal | null;
   places: Array<{ place: string; distanceMiles: number }>;
   points: HistoryPoint[];
+  /** Every offer of the newest scan, cheapest per 30 days first. Missing on older backends. */
+  offers?: HistoryOffer[];
+  latestRunId?: number | null;
 }
 
 /** Where a running scan is: name-checking new places (count only), searching places, or saving offers. */
@@ -294,6 +326,8 @@ export interface SavedSearch {
   suppliers?: string[];
   /** Where the search looks for prices. Missing on older backends = Skyscanner. */
   sources?: SearchSource[];
+  /** Car types the deals page opens filtered to. Empty or missing = every type. */
+  carTypes?: string[];
   pickupDate: string;
   returnDate: string;
   rentalDays: number;
@@ -328,6 +362,7 @@ export interface SearchInput {
   states: string[];
   suppliers: string[];
   sources?: SearchSource[];
+  carTypes?: string[];
   pickupDate: string;
   intervalDays?: number;
   pickupFlexDays?: number;
@@ -660,8 +695,8 @@ export const api = {
   run: (id: number) => request<RunDetail>(`/api/runs/${id}`),
 
   /** Every deal of a run; filters are applied in the browser so they feel instant. */
-  deals: (searchId: number, runId?: number) =>
-    requestOrNull<DealsResponse>(`/api/searches/${searchId}/deals${toQuery({ runId, limit: 2000 })}`),
+  deals: (searchId: number, runId?: number, pickupDate?: string) =>
+    requestOrNull<DealsResponse>(`/api/searches/${searchId}/deals${toQuery({ runId, pickupDate, limit: 2000 })}`),
   changes: (searchId: number, runId?: number) =>
     requestOrNull<ChangesResponse>(`/api/searches/${searchId}/changes${toQuery({ runId })}`),
   /** Type-ahead options for the search box, from the run being shown. */

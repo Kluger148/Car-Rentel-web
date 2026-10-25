@@ -249,7 +249,7 @@ export function DealCard({
             {best && <Stars rating={best.rating} reviews={best.reviews} />}
           </div>
           {deal.conditions.freeCancellation === true && <span className="dc-good">✓ Free cancellation</span>}
-          {priceNote && <span className="dc-note">{priceNote}</span>}
+          {(deal.priceNote ?? priceNote) && <span className="dc-note">{deal.priceNote ?? priceNote}</span>}
         </div>
 
         <div className="dc-price__actions">
@@ -341,7 +341,7 @@ export function DealCard({
             {showDelta && ` · was ${money(deal.previousPrice, deal.currency)}`}
             {offers.length > 1 && ` · ${offers.length} deals from ${money(offers[0].totalPrice, deal.currency)}`}
             {deal.places.length > 1 && ` · ${deal.places.length} locations`}
-            {priceNote && <span className="dc-note"> · {priceNote}</span>}
+            {(deal.priceNote ?? priceNote) && <span className="dc-note"> · {deal.priceNote ?? priceNote}</span>}
           </dd>
         </div>
       </dl>

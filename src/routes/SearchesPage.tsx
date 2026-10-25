@@ -19,7 +19,12 @@ import {
   type SearchPreview,
   type SearchSource,
 } from '../lib/api';
+import { CAR_TYPES } from '../lib/carType';
 import { STATUS_LABEL, fullDate, relativeTime } from '../lib/format';
+
+const CAR_TYPE_OPTIONS = CAR_TYPES.filter((t) => t !== 'Other').map((t) => ({ value: t, label: t }));
+/** A typed car type matches the list whatever its case. */
+const carTypeName = (typed: string) => CAR_TYPES.find((t) => t.toLowerCase() === typed.trim().toLowerCase()) ?? typed.trim();
 
 /** The sites a search can look for prices on, in the order the form lists them. */
 const SOURCE_ORDER: SearchSource[] = ['skyscanner', 'priceline', 'kayak'];
@@ -61,6 +66,7 @@ export function SearchForm({
   );
   const [states, setStates] = useState<string[]>(editing?.states ?? []);
   const [suppliers, setSuppliers] = useState<string[]>(editing?.suppliers ?? []);
+  const [carTypes, setCarTypes] = useState<string[]>(editing?.carTypes ?? []);
   const companiesQuery = useQuery({ queryKey: ['companies'], queryFn: () => api.companies(), staleTime: 300_000 });
   const companyOptions = (companiesQuery.data ?? []).map((c) => ({
     value: c.name,
@@ -123,6 +129,7 @@ export function SearchForm({
     states,
     suppliers,
     sources: chosen,
+    carTypes,
     pickupDate: pickup,
     intervalDays,
     pickupFlexDays,
@@ -148,6 +155,8 @@ export function SearchForm({
       const patch: Partial<SearchInput> = {
         suppliers,
         intervalDays,
+        // Only sent when changed, so an older backend without car types keeps working.
+        ...(carTypes.join() !== (editing.carTypes ?? []).join() ? { carTypes } : {}),
         // Only sent when changed, so an older backend without sources keeps working.
         ...(sourcePick !== null && sourcePick.join() !== sortSources(editing.sources ?? ['skyscanner']).join() ? { sources: sourcePick } : {}),
         pickupFlexDays,
@@ -317,6 +326,14 @@ export function SearchForm({
           options={companyOptions}
           emptyText="All companies — type to add"
           onChange={setSuppliers}
+        />
+        <TagPicker
+          label="Car types (optional)"
+          value={carTypes}
+          options={CAR_TYPE_OPTIONS}
+          emptyText="All car types — type to add"
+          normalize={carTypeName}
+          onChange={setCarTypes}
         />
         <label className="field">
           <span className="field__label">Pickup date</span>

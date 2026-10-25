@@ -5,7 +5,7 @@ import { PriceChart } from '../components/PriceChart';
 import { ErrorState } from '../components/States';
 import { ArrowLeftIcon, CalendarIcon, ExternalIcon, PinIcon, RoadIcon, SeatIcon, VanIcon } from '../components/icons';
 import { api } from '../lib/api';
-import { dateRange, dateTime, isSearchOnlyLink, isUnlimitedMileage, mileageLabel, money, percentDelta } from '../lib/format';
+import { dateRange, dateTime, isSearchOnlyLink, isUnlimitedMileage, mapsUrl, mileageLabel, money, percentDelta } from '../lib/format';
 
 const num = (s: string) => Number.parseFloat(s);
 
@@ -39,6 +39,10 @@ export function DealDetailPage() {
   const deal = historyQuery.data?.deal ?? null;
   const places = historyQuery.data?.places ?? [];
   const points = historyQuery.data?.points ?? [];
+  const offers = historyQuery.data?.offers ?? [];
+  // A long list of offers starts folded at the cheapest few.
+  const [allOffers, setAllOffers] = useState(false);
+  const shownOffers = allOffers ? offers : offers.slice(0, 10);
   // The API returns newest first; charts read oldest to newest.
   const chronological = [...points].reverse();
   const monthly = chronological.map((p) => num(p.monthlyRate)).filter(Number.isFinite);
@@ -49,6 +53,9 @@ export function DealDetailPage() {
   const lowestPoint = chronological.find((p) => num(p.monthlyRate) === lowest);
   const underTarget = deal && newest ? num(newest.monthlyRate) <= deal.targetMonthly : false;
   const vsTarget = deal && newest ? num(newest.monthlyRate) - deal.targetMonthly : null;
+  // The cheapest offer's own rental length (Priceline prices 300 days, Skyscanner and KAYAK 330).
+  const days = newest?.durationDays ?? deal?.durationDays ?? 0;
+  const otherPlaces = newest ? places.filter((p) => p.place !== newest.place).length : 0;
 
   return (
     <div className="container">
@@ -133,13 +140,23 @@ export function DealDetailPage() {
               <div className="dc-place">
                 <CalendarIcon size={15} />
                 <div className="dc-muted">
-                  {dateRange(deal.pickupDate, deal.dropoffDate)} · {deal.durationDays} days, same return location
+                  {dateRange(deal.pickupDate, deal.dropoffDate)} · {days} days, same return location
                 </div>
               </div>
               <div className="dc-place">
                 <PinIcon size={15} />
-                <div className="dc-muted">
-                  {places.map((p) => `${p.place} (${Math.round(p.distanceMiles)} mi)`).join(' · ')}
+                <div>
+                  <div>
+                    <a className="dc-maplink" href={mapsUrl(newest.place)} target="_blank" rel="noreferrer noopener" title="Open this address in Google Maps">
+                      {newest.place}
+                    </a>
+                    <span className="dc-muted"> · {Math.round(newest.distanceMiles)} mi from ZIP</span>
+                  </div>
+                  {otherPlaces > 0 && (
+                    <a className="dc-muted" href="#offers">
+                      Also at {otherPlaces} other {otherPlaces === 1 ? 'branch' : 'branches'}: see every offer below
+                    </a>
+                  )}
                 </div>
               </div>
             </div>
@@ -148,10 +165,11 @@ export function DealDetailPage() {
               <span className="dc-muted">Cheapest · avg per 30 days</span>
               <span className="dc-price__big">{money(newest.monthlyRate)}</span>
               <span className="dc-price__total">
-                {money(newest.totalPrice)} <span className="dc-muted">total for {deal.durationDays} days</span>
+                {money(newest.totalPrice)} <span className="dc-muted">total for {days} days</span>
               </span>
               <div className="dc-provider">
                 <strong>{newest.bookingProvider ?? 'Booking provider not shown'}</strong>
+                {newest.source && newest.source !== newest.bookingProvider && <span className="dc-muted"> · found on {newest.source}</span>}
               </div>
               <span className="dc-note">{deal.priceNote}</span>
               <a className="btn btn--primary dc-toggle" href={newest.deeplink} target="_blank" rel="noreferrer noopener">
@@ -165,7 +183,7 @@ export function DealDetailPage() {
             <div className="card stat">
               <div className="stat__label">Current 30-day average</div>
               <div className="stat__value">{money(newest.monthlyRate)}</div>
-              <div className="stat__hint">{money(newest.totalPrice)} for {deal.durationDays} days</div>
+              <div className="stat__hint">{money(newest.totalPrice)} for {days} days</div>
             </div>
             <div className="card stat">
               <div className="stat__label">Lowest seen</div>
@@ -207,7 +225,83 @@ export function DealDetailPage() {
               target={deal.targetMonthly}
               currency={deal.currency}
             />
+            {points.length === 1 && (
+              <p className="muted" style={{ margin: '8px 0 0' }}>
+                One scan so far: a new point is added after each scan, so price changes show here over time.
+              </p>
+            )}
           </section>
+
+          {offers.length > 0 && (
+            <section className="card section" style={{ padding: 0 }} id="offers">
+              <header className="table-head">
+                <div>
+                  <h2 className="table-head__title">
+                    Every offer for this car
+                    <span className="table-head__count">
+                      {offers.length} {offers.length === 1 ? 'offer' : 'offers'}
+                    </span>
+                  </h2>
+                  <p className="table-head__sub">
+                    Latest scan: every branch, pickup date and site, cheapest per 30 days first
+                  </p>
+                </div>
+              </header>
+              <div className="table-wrap">
+                <table className="data data--stack">
+                  <thead>
+                    <tr>
+                      <th>Branch</th>
+                      <th>Pickup</th>
+                      <th>Site</th>
+                      <th className="num">Total</th>
+                      <th className="num">Avg / 30 days</th>
+                      <th />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {shownOffers.map((o, i) => (
+                      <tr key={`${o.source}-${o.bookingProvider}-${o.place}-${o.pickupDate}`}>
+                        <td className="cell-wrap" data-label="Branch">
+                          {o.place}
+                          <div className="muted">
+                            {Math.round(o.distanceMiles)} mi from ZIP{o.freeCancellation ? ' · free cancellation' : ''}
+                          </div>
+                        </td>
+                        <td data-label="Pickup">
+                          {dateRange(o.pickupDate, o.dropoffDate)}
+                          <div className="muted">{o.durationDays} days</div>
+                        </td>
+                        <td data-label="Site">
+                          {o.source}
+                          {o.bookingProvider && o.bookingProvider !== o.source && <div className="muted">via {o.bookingProvider}</div>}
+                        </td>
+                        <td className="num" data-label="Total">
+                          {money(o.totalPrice)}
+                        </td>
+                        <td className="num" data-label="Avg / 30 days">
+                          <strong>{money(o.monthlyRate)}</strong>
+                          {i === 0 && <div className="muted">cheapest</div>}
+                        </td>
+                        <td className="cell-actions">
+                          <a href={o.deeplink} target="_blank" rel="noreferrer noopener" title={o.priceNote}>
+                            {isSearchOnlyLink(o.deeplink) ? 'Search' : 'View deal'} <ExternalIcon size={12} />
+                          </a>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {offers.length > 10 && (
+                <div style={{ padding: '12px 16px' }}>
+                  <button type="button" className="btn btn--ghost btn--sm" onClick={() => setAllOffers((v) => !v)}>
+                    {allOffers ? 'Show the cheapest 10' : `Show all ${offers.length} offers`}
+                  </button>
+                </div>
+              )}
+            </section>
+          )}
 
           <section className="card section" style={{ padding: 0 }}>
             <header className="table-head">
@@ -230,7 +324,7 @@ export function DealDetailPage() {
                     <th>Recorded</th>
                     <th>Booked via</th>
                     <th>Pickup</th>
-                    <th className="num">330-day total</th>
+                    <th className="num">Total</th>
                     <th className="num">Avg / 30 days</th>
                     <th className="num">Change</th>
                     <th />
@@ -250,7 +344,10 @@ export function DealDetailPage() {
                           {p.place}
                           <div className="muted">{Math.round(p.distanceMiles)} mi from ZIP</div>
                         </td>
-                        <td className="num" data-label="330-day total">{money(p.totalPrice)}</td>
+                        <td className="num" data-label="Total">
+                          {money(p.totalPrice)}
+                          {p.durationDays && <div className="muted">{p.durationDays} days</div>}
+                        </td>
                         <td className="num" data-label="Avg / 30 days">
                           <strong>{money(p.monthlyRate)}</strong>
                         </td>
