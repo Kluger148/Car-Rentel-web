@@ -209,9 +209,9 @@ export function SearchForm({
               {
                 id: 'priceline',
                 title: 'Priceline',
-                sub: "Priceline's own rates: Enterprise, Avis, Hertz, Budget and more. The old site's prices.",
-                meta: `${directMaxDays}-day rentals, as on the old site`,
-                badge: 'Old site prices',
+                sub: "Priceline's own rates: Enterprise, Avis, Hertz, Budget and more.",
+                meta: `${directMaxDays}-day rentals`,
+                badge: 'Direct',
               },
               {
                 id: 'kayak',
@@ -243,7 +243,7 @@ export function SearchForm({
                 <span className="src-opt__body">
                   <span className="src-opt__head">
                     <span className="src-opt__title">{o.title}</span>
-                    {o.badge && <span className={`pill ${o.id === 'priceline' ? 'pill--good' : 'pill--new'}`}>{o.badge}</span>}
+                    {o.badge && <span className="pill pill--new">{o.badge}</span>}
                   </span>
                   <span className="src-opt__sub">{o.sub}</span>
                   <span className="src-opt__meta">{disabled ? 'Not set up on the server' : o.meta}</span>
