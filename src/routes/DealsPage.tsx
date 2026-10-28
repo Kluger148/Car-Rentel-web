@@ -262,10 +262,18 @@ export function DealsPage() {
     setConfirmOpen(true);
   };
 
-  const subtitle = s
-    ? `ZIP ${s.zip} (${s.zipCity}, ${s.zipState}) · within ${s.radiusMiles} miles${s.states.length ? ` · ${s.states.join(', ')}` : ''} · pickup ${fullDate(shownPickup ?? s.pickupDate)}, return ${fullDate(shownReturn ?? s.returnDate)} (${s.rentalDays} days, same location)${flexDays > 0 ? ` · flexible pickup: ${pickupFlexLabel(flexDays).toLowerCase()}` : ''}${nextDatesDiffer ? ` · next scan: pickup ${fullDate(s.pickupDate)}` : ''}. Target ${money(dealsQuery.data?.targetMonthly ?? 1100)} per 30 days.`
+  // A search without a ZIP covers every town in its states.
+  const area = s
+    ? s.zip
+      ? `ZIP ${s.zip} (${s.zipCity}, ${s.zipState}) · within ${s.radiusMiles} miles${s.states.length ? ` · ${s.states.join(', ')}` : ''}`
+      : `Every town in ${s.states.join(', ')}`
     : '';
-  const meta = s ? `${s.zip} · ${s.radiusMiles} mi · ${shortDate(shownPickup ?? s.pickupDate)}` : undefined;
+  const subtitle = s
+    ? `${area} · pickup ${fullDate(shownPickup ?? s.pickupDate)}, return ${fullDate(shownReturn ?? s.returnDate)} (${s.rentalDays} days, same location)${flexDays > 0 ? ` · flexible pickup: ${pickupFlexLabel(flexDays).toLowerCase()}` : ''}${nextDatesDiffer ? ` · next scan: pickup ${fullDate(s.pickupDate)}` : ''}. Target ${money(dealsQuery.data?.targetMonthly ?? 1100)} per 30 days.`
+    : '';
+  const meta = s
+    ? `${s.zip ? `${s.zip} · ${s.radiusMiles} mi` : s.states.join(', ')} · ${shortDate(shownPickup ?? s.pickupDate)}`
+    : undefined;
   const stripText = running
     ? 'Scanning…'
     : dealsQuery.data

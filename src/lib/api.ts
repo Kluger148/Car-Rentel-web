@@ -64,7 +64,8 @@ export interface Deal {
   locationKey: string;
   locationName: string;
   locationState: string;
-  distanceMiles: number;
+  /** Null for a search without a ZIP. */
+  distanceMiles: number | null;
   /** Distance is to the searched town's centre (branch could not be located). */
   distanceApprox: boolean;
   pickupLocationName: string | null;
@@ -113,7 +114,8 @@ export interface DealOffer {
   bookingProvider: string | null;
   /** The pickup place this offer came from; the same car can be offered from several towns. */
   place: string;
-  distanceMiles: number;
+  /** Null for a search without a ZIP. */
+  distanceMiles: number | null;
   /** The pickup date this offer is for (searches with a flexible pickup price several). Missing on older backends. */
   pickupDate?: string;
   dropoffDate?: string;
@@ -212,7 +214,8 @@ export interface HistoryPoint {
   supplier: string;
   bookingProvider: string | null;
   place: string;
-  distanceMiles: number;
+  /** Null for a search without a ZIP. */
+  distanceMiles: number | null;
   deeplink: string;
   /** Missing on older backends. */
   source?: OfferSource;
@@ -226,7 +229,8 @@ export interface HistoryOffer {
   supplier: string;
   bookingProvider: string | null;
   place: string;
-  distanceMiles: number;
+  /** Null for a search without a ZIP. */
+  distanceMiles: number | null;
   pickupDate: string;
   dropoffDate: string;
   durationDays: number;
@@ -265,7 +269,7 @@ export interface HistoryDeal {
 export interface HistoryResponse {
   fingerprint: string;
   deal: HistoryDeal | null;
-  places: Array<{ place: string; distanceMiles: number }>;
+  places: Array<{ place: string; distanceMiles: number | null }>;
   points: HistoryPoint[];
   /** Every offer of the newest scan, cheapest per 30 days first. Missing on older backends. */
   offers?: HistoryOffer[];
@@ -317,10 +321,11 @@ export interface SavedSearch {
   id: number;
   name: string;
   notes: string | null;
-  zip: string;
-  zipCity: string;
-  zipState: string;
-  radiusMiles: number;
+  /** Null: a search without a ZIP, covering every town in `states`. */
+  zip: string | null;
+  zipCity: string | null;
+  zipState: string | null;
+  radiusMiles: number | null;
   states: string[];
   /** Only offers from these rental companies are kept. Empty = every company. Missing on older backends. */
   suppliers?: string[];
@@ -347,7 +352,8 @@ export interface SavedSearch {
 export interface SearchLocation {
   locationId: number;
   location: { key: string; name: string; city: string; state: string; query: string };
-  distanceMiles: number;
+  /** Null for a search without a ZIP. */
+  distanceMiles: number | null;
   rank: number;
 }
 
@@ -359,8 +365,10 @@ export interface SearchDetail {
 }
 
 export interface SearchInput {
-  zip: string;
-  radiusMiles: number;
+  /** Null: no ZIP, search every town in `states` (then at least one state is required). */
+  zip: string | null;
+  /** Required with a ZIP, null without one. */
+  radiusMiles: number | null;
   states: string[];
   suppliers: string[];
   sources?: SearchSource[];
@@ -369,7 +377,8 @@ export interface SearchInput {
   pickupDate: string;
   intervalDays?: number;
   pickupFlexDays?: number;
-  maxPlaces?: number;
+  /** Null or left out = every place in the area (up to the server limit). */
+  maxPlaces?: number | null;
   name?: string;
   notes?: string;
 }
@@ -382,13 +391,16 @@ export const INTERVAL_OPTIONS = [
   { days: 30, label: 'Every 30 days' },
 ] as const;
 
-/** How many places a search can scan, largest first. Values above the server limit are hidden. */
-export const PLACES_OPTIONS = [15, 30, 50, 100] as const;
+/**
+ * Smaller numbers of places a search can scan, largest first, below "All places in the area".
+ * Values above the server limit are hidden; a search's own other number is kept in the list.
+ */
+export const PLACES_OPTIONS = [15, 30, 50, 100, 250, 500] as const;
 
-export function placesOptions(serverMax: number | undefined): number[] {
+export function placesOptions(serverMax: number | undefined, current: number | null = null): number[] {
   const max = serverMax ?? 100;
   const opts = PLACES_OPTIONS.filter((n) => n <= max) as number[];
-  return opts.includes(max) ? opts : [...opts, max];
+  return current !== null && !opts.includes(current) ? [...opts, current].sort((a, b) => a - b) : opts;
 }
 
 /** A scan's searches, time and cost before it runs: places x pickup dates, in waves of the concurrency. */
@@ -454,8 +466,9 @@ export interface Scheduler {
 }
 
 export interface SearchPreview {
-  zip: { zip: string; city: string; state: string };
-  radiusMiles: number;
+  /** Null for a search without a ZIP. */
+  zip: { zip: string; city: string; state: string } | null;
+  radiusMiles: number | null;
   states: string[];
   pickupDate: string;
   returnDate: string;
@@ -465,7 +478,7 @@ export interface SearchPreview {
   /** Places the search will scan. Missing on older backends. */
   maxPlaces?: number;
   placesInRange: number;
-  searched: Array<{ location: { key: string; query: string }; distanceMiles: number; zipCount: number }>;
+  searched: Array<{ location: { key: string; query: string }; distanceMiles: number | null; zipCount: number }>;
   maxLocationsPerSearch: number;
 }
 
@@ -483,7 +496,8 @@ export interface ScannerConfig {
   sources?: {
     skyscanner: { available: boolean };
     /** Missing on backends from before KAYAK. */
-    kayak?: { available: boolean; perSearchUsd: number; secondsPerSearch: number; concurrency: number };
+    /** maxPlaces: KAYAK searches only this many places per search (the biggest). Missing on older backends. */
+    kayak?: { available: boolean; perSearchUsd: number; secondsPerSearch: number; concurrency: number; maxPlaces?: number };
     priceline: {
       available: boolean;
       pausedUntil: string | null;
@@ -675,6 +689,8 @@ export const api = {
   createSearch: (input: SearchInput) => post<SearchDetail>('/api/searches', input),
   setSearchActive: (id: number, active: boolean) =>
     request<SearchDetail>(`/api/searches/${id}`, { method: 'PATCH', body: JSON.stringify({ active }) }),
+  /** Deletes the search with all its scans, prices and favourites. Cannot be undone. */
+  deleteSearch: (id: number) => request<{ deleted: boolean; id: number }>(`/api/searches/${id}`, { method: 'DELETE' }),
   setSearchInterval: (id: number, intervalDays: number) =>
     request<SearchDetail>(`/api/searches/${id}`, { method: 'PATCH', body: JSON.stringify({ intervalDays }) }),
   /** Changes any of a saved search's settings except its area (ZIP, distance, states). */

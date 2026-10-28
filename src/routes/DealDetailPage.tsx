@@ -5,7 +5,17 @@ import { PriceChart } from '../components/PriceChart';
 import { ErrorState } from '../components/States';
 import { ArrowLeftIcon, CalendarIcon, ExternalIcon, PinIcon, RoadIcon, SeatIcon, VanIcon } from '../components/icons';
 import { api } from '../lib/api';
-import { dateRange, dateTime, isSearchOnlyLink, isUnlimitedMileage, mapsUrl, mileageLabel, money, percentDelta } from '../lib/format';
+import {
+  dateRange,
+  dateTime,
+  isSearchOnlyLink,
+  isUnlimitedMileage,
+  mapsUrl,
+  mileageLabel,
+  milesLabel,
+  money,
+  percentDelta,
+} from '../lib/format';
 
 const num = (s: string) => Number.parseFloat(s);
 
@@ -150,7 +160,9 @@ export function DealDetailPage() {
                     <a className="dc-maplink" href={mapsUrl(newest.place)} target="_blank" rel="noreferrer noopener" title="Open this address in Google Maps">
                       {newest.place}
                     </a>
-                    <span className="dc-muted"> · {Math.round(newest.distanceMiles)} mi from ZIP</span>
+                    {newest.distanceMiles !== null && (
+                      <span className="dc-muted"> · {milesLabel(newest.distanceMiles)} from ZIP</span>
+                    )}
                   </div>
                   {otherPlaces > 0 && (
                     <a className="dc-muted" href="#offers">
@@ -265,7 +277,9 @@ export function DealDetailPage() {
                         <td className="cell-wrap" data-label="Branch">
                           {o.place}
                           <div className="muted">
-                            {Math.round(o.distanceMiles)} mi from ZIP{o.freeCancellation ? ' · free cancellation' : ''}
+                            {[o.distanceMiles !== null ? `${milesLabel(o.distanceMiles)} from ZIP` : null, o.freeCancellation ? 'free cancellation' : null]
+                              .filter(Boolean)
+                              .join(' · ')}
                           </div>
                         </td>
                         <td data-label="Pickup">
@@ -342,7 +356,7 @@ export function DealDetailPage() {
                         <td data-label="Booked via">{p.bookingProvider ?? '—'}</td>
                         <td className="cell-wrap" data-label="Pickup">
                           {p.place}
-                          <div className="muted">{Math.round(p.distanceMiles)} mi from ZIP</div>
+                          {p.distanceMiles !== null && <div className="muted">{milesLabel(p.distanceMiles)} from ZIP</div>}
                         </td>
                         <td className="num" data-label="Total">
                           {money(p.totalPrice)}

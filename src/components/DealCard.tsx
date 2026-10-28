@@ -8,6 +8,7 @@ import {
   isUnlimitedMileage,
   mapsUrl,
   mileageLabel,
+  milesLabel,
   money,
   percentDelta,
   shortDate,
@@ -175,8 +176,9 @@ export function DealCard({
         <p className="dc-m-line">
           <PinIcon size={14} />
           <span>
-            {pickupName} · {deal.distanceApprox ? '≈' : ''}
-            {Math.round(deal.distanceMiles)} mi · {shortDate(deal.pickupDate)} – {shortDate(deal.dropoffDate)}
+            {pickupName}
+            {deal.distanceMiles !== null && ` · ${milesLabel(deal.distanceMiles, deal.distanceApprox)}`} · {shortDate(deal.pickupDate)} –{' '}
+            {shortDate(deal.dropoffDate)}
           </span>
         </p>
 
@@ -190,8 +192,8 @@ export function DealCard({
             </div>
             <div className="dc-muted">
               {pickupType ? `Pick-up: ${pickupType} · ` : ''}
-              {deal.distanceApprox ? '≈' : ''}
-              {Math.round(deal.distanceMiles)} mi from ZIP · same return location
+              {deal.distanceMiles !== null && `${milesLabel(deal.distanceMiles, deal.distanceApprox)} from ZIP · `}
+              same return location
             </div>
           </div>
         </div>
@@ -311,8 +313,9 @@ export function DealCard({
           <dt>Pick-up</dt>
           <dd>
             {pickupName}
-            {pickupType ? ` · ${pickupType}` : ''} · {deal.distanceApprox ? '≈' : ''}
-            {Math.round(deal.distanceMiles)} mi from ZIP · same return location
+            {pickupType ? ` · ${pickupType}` : ''}
+            {deal.distanceMiles !== null && ` · ${milesLabel(deal.distanceMiles, deal.distanceApprox)} from ZIP`} · same return
+            location
           </dd>
         </div>
         {otherPlaces.length > 0 && (
@@ -355,7 +358,8 @@ export function DealCard({
                 {showSources && <span className={`src-tag src-tag--${(o.source ?? 'Skyscanner').toLowerCase()}`}>{o.source ?? 'Skyscanner'}</span>}{' '}
                 <strong>{o.bookingProvider ?? 'Unknown provider'}</strong> <Stars rating={o.rating} reviews={o.reviews} />
                 <div className="dc-muted">
-                  {o.place} · {Math.round(o.distanceMiles)} mi
+                  {o.place}
+                  {o.distanceMiles !== null && ` · ${milesLabel(o.distanceMiles)}`}
                   {o.pickupDate && o.dropoffDate && ` · ${dateRange(o.pickupDate, o.dropoffDate)}`}
                 </div>
                 {o.freeCancellation && <div className="dc-good">✓ Free cancellation</div>}

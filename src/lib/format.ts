@@ -75,6 +75,11 @@ export const shortDate = (value: string): string => dateFmt.format(parseIsoDate(
 export const fullDate = (value: string): string => dateYearFmt.format(parseIsoDate(value));
 export const dateTime = (value: string): string => dateTimeFmt.format(new Date(value));
 
+/** "41 mi" ("≈41 mi" when approximate); empty for a search without a ZIP, which has no distances. */
+export function milesLabel(miles: number | null, approx = false): string {
+  return miles === null ? '' : `${approx ? '≈' : ''}${Math.round(miles)} mi`;
+}
+
 export function dateRange(from: string, to: string): string {
   return `${shortDate(from)} – ${fullDate(to)}`;
 }

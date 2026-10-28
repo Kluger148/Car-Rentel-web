@@ -3,7 +3,8 @@ import { Link, getRouteApi } from '@tanstack/react-router';
 import { useEffect, useState, type FormEvent } from 'react';
 import { SchedulerBar } from '../components/SchedulerBar';
 import { SearchHelpDialog } from '../components/SearchHelpDialog';
-import { InfoIcon, PencilIcon } from '../components/icons';
+import { DeleteSearchDialog } from '../components/DeleteSearchDialog';
+import { InfoIcon, PencilIcon, TagIcon, TrashIcon } from '../components/icons';
 import { StatePicker, TagPicker } from '../components/TagPicker';
 import { ErrorState } from '../components/States';
 import {
@@ -62,7 +63,7 @@ export function SearchForm({
   const [zip, setZip] = useState(editing?.zip ?? '');
   const [radius, setRadius] = useState(String(editing?.radiusMiles ?? 50));
   const [customRadius, setCustomRadius] = useState(
-    editing !== undefined && !RADIUS_OPTIONS.includes(editing.radiusMiles),
+    editing?.radiusMiles != null && !RADIUS_OPTIONS.includes(editing.radiusMiles),
   );
   const [states, setStates] = useState<string[]>(editing?.states ?? []);
   const [suppliers, setSuppliers] = useState<string[]>(editing?.suppliers ?? []);
@@ -79,9 +80,15 @@ export function SearchForm({
   const [pickupFlexDays, setPickupFlexDays] = useState(editing?.pickupFlexDays ?? 0);
   const configQuery = useQuery({ queryKey: ['config'], queryFn: () => api.config(), staleTime: 300_000 });
   const serverMaxPlaces = configQuery.data?.search.maxLocationsPerSearch;
+  // Null = every place in the area: how many is known once "Preview places" has counted them.
   const [maxPlaces, setMaxPlaces] = useState<number | null>(editing?.maxPlaces ?? null);
-  const places = maxPlaces ?? serverMaxPlaces ?? 100;
+  const [preview, setPreview] = useState<SearchPreview | null>(null);
+  const areaPlaces = preview ? Math.min(preview.placesInRange, serverMaxPlaces ?? preview.placesInRange) : null;
+  const places: number | null =
+    maxPlaces === null ? areaPlaces : areaPlaces !== null ? Math.min(maxPlaces, areaPlaces) : maxPlaces;
   const sourcesCfg = configQuery.data?.sources;
+  // KAYAK blocks bursts of searches and is charged per offer: it searches only the biggest places.
+  const kayakMaxPlaces = sourcesCfg?.kayak?.maxPlaces ?? 15;
   const ready = (s: SearchSource) => s === 'skyscanner' || sourcesCfg?.[s]?.available === true;
   // Not chosen yet: an edited search keeps its own; a new one uses Skyscanner and Priceline when Priceline is set up.
   const [sourcePick, setSourcePick] = useState<SearchSource[] | null>(
@@ -93,7 +100,7 @@ export function SearchForm({
   const useKayak = chosen.includes('kayak');
   const pickupDates = 1 + pickupFlexDays / 7;
   const live = scanEstimate({
-    places,
+    places: places ?? 0,
     pickupDates,
     perSearchUsd: configQuery.data?.estimate?.perSearchUsd,
     concurrency: configQuery.data?.providers.maxConcurrency,
@@ -104,7 +111,8 @@ export function SearchForm({
   // Priceline can price every day of the pickup window (one search per place and day).
   const pricelineDaily = usePriceline && pickupFlexDays > 0 && dailyPickup;
   const pricelineDates = pricelineDaily ? pickupFlexDays + 1 : pickupDates;
-  const searchesOn = (s: 'priceline' | 'kayak') => (s === 'priceline' ? places * pricelineDates : live.searches);
+  const searchesOn = (s: 'priceline' | 'kayak') =>
+    s === 'priceline' ? (places ?? 0) * pricelineDates : Math.min(places ?? 0, kayakMaxPlaces) * pickupDates;
   const extraMinutes = (s: 'priceline' | 'kayak') => {
     const c = sourcesCfg?.[s];
     return Math.max(1, Math.round((Math.ceil(searchesOn(s) / Math.max(1, c?.concurrency ?? 1)) * (c?.secondsPerSearch ?? 30)) / 60));
@@ -116,7 +124,9 @@ export function SearchForm({
   const kayakUsd = extraUsd('kayak');
   const pricelineUsd = extraUsd('priceline');
   const directMaxDays = sourcesCfg?.priceline?.maxRentalDays ?? 300;
-  const scanSearches = (useSky ? live.searches : 0) + (useKayak ? live.searches : 0) + (usePriceline ? searchesOn('priceline') : 0);
+  const scanSearches = (useSky ? live.searches : 0) + (useKayak ? searchesOn('kayak') : 0) + (usePriceline ? searchesOn('priceline') : 0);
+  // A big area re-scanned every day adds up on Apify: suggest a weekly repeat.
+  const bigArea = places !== null && places > 300 && intervalDays === 1 && (useSky || useKayak);
   const scanMinutes = Math.max(
     useSky ? live.minutes : 0,
     usePriceline ? extraMinutes('priceline') : 0,
@@ -125,12 +135,13 @@ export function SearchForm({
   const money2 = (usd: number) => `$${usd < 0.01 ? usd.toFixed(3) : usd.toFixed(2)}`;
   const [name, setName] = useState(editing?.name ?? '');
   const [notes, setNotes] = useState(editing?.notes ?? '');
-  const [preview, setPreview] = useState<SearchPreview | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // ZIP is optional: without one the search covers every town in the chosen states, and has no distance.
+  const hasZip = zip.trim() !== '';
   const input = (): SearchInput => ({
-    zip: zip.trim(),
-    radiusMiles: Number.parseInt(radius, 10),
+    zip: hasZip ? zip.trim() : null,
+    radiusMiles: hasZip ? Number.parseInt(radius, 10) : null,
     states,
     suppliers,
     sources: chosen,
@@ -139,7 +150,7 @@ export function SearchForm({
     pickupDate: pickup,
     intervalDays,
     pickupFlexDays,
-    maxPlaces: places,
+    maxPlaces,
     name: name.trim() || undefined,
     notes: notes.trim() || undefined,
   });
@@ -168,7 +179,7 @@ export function SearchForm({
         // Only sent when changed, so an older backend without sources keeps working.
         ...(sourcePick !== null && sourcePick.join() !== sortSources(editing.sources ?? ['skyscanner']).join() ? { sources: sourcePick } : {}),
         pickupFlexDays,
-        maxPlaces: places,
+        maxPlaces,
         notes: notes.trim(),
       };
       if (name.trim()) patch.name = name.trim();
@@ -183,10 +194,19 @@ export function SearchForm({
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
+    if (!isEdit && !hasZip && states.length === 0) {
+      setPreview(null);
+      setError('Enter a ZIP code, or pick at least one state to search every town in it.');
+      return;
+    }
     if (isEdit) saveMutation.mutate();
     else previewMutation.mutate();
   };
-  const changed = () => setPreview(null);
+  // Any edit makes the last preview and its message out of date.
+  const changed = () => {
+    setPreview(null);
+    setError(null);
+  };
 
   return (
     <form className="card section search-form" onSubmit={submit}>
@@ -234,7 +254,7 @@ export function SearchForm({
                 id: 'kayak',
                 title: 'KAYAK',
                 sub: "The rental companies' own rates and sites like Priceline: Avis, Budget, Sixt and more.",
-                meta: 'Cheapest offers first · charged per offer',
+                meta: `Biggest ${kayakMaxPlaces} places only · charged per offer`,
                 badge: 'Direct',
               },
             ] as { id: SearchSource; title: string; sub: string; meta: string; badge: string | null }[]
@@ -272,15 +292,15 @@ export function SearchForm({
       </fieldset>
       <div className="form-grid">
         <label className="field">
-          <span className="field__label">Starting ZIP</span>
-          <input id="ns-zip" inputMode="numeric" required disabled={isEdit} title={lockedHint} value={zip} onChange={(e) => { setZip(e.target.value); changed(); }} placeholder="30303" />
+          <span className="field__label">ZIP code (optional)</span>
+          <input id="ns-zip" inputMode="numeric" disabled={isEdit} title={lockedHint} value={zip} onChange={(e) => { setZip(e.target.value); changed(); }} placeholder={isEdit ? 'No ZIP: whole states' : 'e.g. 30303, or leave empty'} />
         </label>
         <label className="field">
           <span className="field__label">Max distance (miles)</span>
           <select
             id="ns-radius"
-            disabled={isEdit}
-            title={lockedHint}
+            disabled={isEdit || !hasZip}
+            title={lockedHint ?? (hasZip ? undefined : 'Enter a ZIP code to limit the distance')}
             value={customRadius ? 'custom' : radius}
             onChange={(e) => {
               if (e.target.value === 'custom') {
@@ -305,7 +325,7 @@ export function SearchForm({
               type="number"
               min={1}
               required
-              disabled={isEdit}
+              disabled={isEdit || !hasZip}
               value={radius}
               onChange={(e) => { setRadius(e.target.value); changed(); }}
               placeholder="Miles, e.g. 750"
@@ -320,7 +340,7 @@ export function SearchForm({
           </label>
         ) : (
           <StatePicker
-            label="States (optional)"
+            label={hasZip ? 'States (optional)' : 'States (required without a ZIP)'}
             value={states}
             onChange={(next) => {
               setStates(next);
@@ -384,13 +404,14 @@ export function SearchForm({
           <span className="field__label">Places to search</span>
           <select
             id="ns-places"
-            value={places}
+            value={maxPlaces === null ? 'all' : String(maxPlaces)}
             onChange={(e) => {
-              setMaxPlaces(Number(e.target.value));
+              setMaxPlaces(e.target.value === 'all' ? null : Number(e.target.value));
               changed();
             }}
           >
-            {placesOptions(serverMaxPlaces).map((n) => (
+            <option value="all">All places in the area</option>
+            {placesOptions(serverMaxPlaces, maxPlaces).map((n) => (
               <option key={n} value={n}>
                 Up to {n} places
               </option>
@@ -417,7 +438,12 @@ export function SearchForm({
         </label>
       </div>
 
-      {chosen.length === 1 && useSky ? (
+      {places === null ? (
+        <p className="scan-estimate" aria-live="polite">
+          All places in the area: press <em>Preview places</em> to count them and see each scan&apos;s searches, time and
+          cost.{useKayak && ` KAYAK searches only the ${kayakMaxPlaces} biggest places.`}
+        </p>
+      ) : chosen.length === 1 && useSky ? (
         <p className="scan-estimate" aria-live="polite">
           Each scan: up to {places} places × {1 + pickupFlexDays / 7}{' '}
           {pickupFlexDays > 0 ? 'pickup dates' : 'pickup date'} = <strong>{live.searches} searches</strong> · about{' '}
@@ -429,6 +455,7 @@ export function SearchForm({
             </>
           )}
           . The first scan also checks each new place once; each check also counts as that place's first search.
+          {bigArea && ' Large area: a weekly repeat keeps the Apify bill down.'}
         </p>
       ) : (
         <p className="scan-estimate" aria-live="polite">
@@ -454,7 +481,8 @@ export function SearchForm({
               · Priceline <strong>{pricelineUsd ? money2(pricelineUsd) : 'free plan'}</strong>
             </>
           )}
-          .{useKayak && ' KAYAK is charged per offer it returns, so it costs more per place than Skyscanner.'}
+          .{useKayak && ` KAYAK searches only the ${kayakMaxPlaces} biggest places and is charged per offer it returns.`}
+          {bigArea && ' Large area: a weekly repeat keeps the Apify bill down.'}
           {usePriceline &&
             ` Priceline offers are for ${directMaxDays}-day rentals (Priceline prices at most 310 days; whole months are cheapest) and are compared per 30 days.`}
         </p>
@@ -470,7 +498,7 @@ export function SearchForm({
         <div className="preview">
           <p>
             <strong>
-              {preview.zip.city}, {preview.zip.state} {preview.zip.zip}
+              {preview.zip ? `${preview.zip.city}, ${preview.zip.state} ${preview.zip.zip}` : `Every town in ${preview.states.join(', ')}`}
             </strong>{' '}
             · pickup {fullDate(preview.pickupDate)} → return {fullDate(preview.returnDate)} ({preview.rentalDays} days)
           </p>
@@ -481,13 +509,13 @@ export function SearchForm({
           )}
           <p className="muted">
             Up to {Math.min(preview.maxPlaces ?? preview.maxLocationsPerSearch, preview.searched.length)} of {preview.placesInRange} places
-            within {preview.radiusMiles} miles will be searched, largest first. Places Skyscanner does not recognise
-            are skipped.
+            {preview.zip ? ` within ${preview.radiusMiles} miles` : ` in ${preview.states.join(', ')}`} will be searched, largest first.
+            Places Skyscanner does not recognise are skipped.
           </p>
           <p className="preview__places">
             {preview.searched
               .slice(0, 40)
-              .map((s) => `${s.location.query} (${Math.round(s.distanceMiles)} mi)`)
+              .map((s) => (s.distanceMiles === null ? s.location.query : `${s.location.query} (${Math.round(s.distanceMiles)} mi)`))
               .join(' · ')}
             {preview.searched.length > 40 && ` · and ${preview.searched.length - 40} more`}
           </p>
@@ -559,6 +587,24 @@ export function SearchesPage() {
     mutationFn: ({ id, days }: { id: number; days: number }) => api.setSearchInterval(id, days),
     onSuccess: (_d, { id }) => refresh(id),
   });
+  // Deleting asks first (DeleteSearchDialog): it takes every scan, price and favourite with it.
+  const [deleteTarget, setDeleteTarget] = useState<SavedSearch | null>(null);
+  const deleteSearch = useMutation({
+    mutationFn: (id: number) => api.deleteSearch(id),
+    onSuccess: (_d, id) => {
+      queryClient.setQueryData<SavedSearch[]>(['searches'], (rows) => rows?.filter((s) => s.id !== id));
+      queryClient.removeQueries({ queryKey: ['search', id] });
+      if (editingId === id) setEditingId(null);
+      setDeleteTarget(null);
+      void queryClient.invalidateQueries({ queryKey: ['searches'] });
+      void queryClient.invalidateQueries({ queryKey: ['scheduler'] });
+      void queryClient.invalidateQueries({ queryKey: ['favourites'] });
+    },
+  });
+  const askDelete = (s: SavedSearch) => {
+    deleteSearch.reset();
+    setDeleteTarget(s);
+  };
 
   return (
     <div className="container">
@@ -650,8 +696,14 @@ export function SearchesPage() {
                     {s.notes && <div className="muted">{s.notes}</div>}
                   </td>
                   <td className="cell-wrap" data-label="Area">
-                    ZIP {s.zip} · {s.radiusMiles} mi{s.states.length > 0 && ` · ${s.states.join(', ')}`}
-                    {s.maxPlaces != null && <span className="muted"> · up to {s.maxPlaces} places</span>}
+                    {s.zip ? (
+                      <>
+                        ZIP {s.zip} · {s.radiusMiles} mi{s.states.length > 0 && ` · ${s.states.join(', ')}`}
+                      </>
+                    ) : (
+                      <>Every town in {s.states.join(', ')}</>
+                    )}
+                    <span className="muted"> · {s.maxPlaces != null ? `up to ${s.maxPlaces} places` : 'all places'}</span>
                     {s.suppliers && s.suppliers.length > 0 && (
                       <div className="muted">Only {s.suppliers.join(', ')}</div>
                     )}
@@ -716,13 +768,40 @@ export function SearchesPage() {
                       )}
                     </select>
                   </td>
-                  <td className="cell-actions">
-                    <Link to="/search/$id" params={{ id: String(s.id) }}>
-                      Open deals
-                    </Link>
-                    <button type="button" className="link-btn" onClick={() => startEdit(s.id)}>
-                      Edit
-                    </button>
+                  <td className="row-actions">
+                    {/* Icons with a tooltip; the label is read by screen readers and shown on cards. */}
+                    <div className="row-actions__group">
+                      <Link
+                        to="/search/$id"
+                        params={{ id: String(s.id) }}
+                        className="row-action"
+                        data-tip="Open deals"
+                        aria-label={`Open deals for ${s.name}`}
+                      >
+                        <TagIcon size={18} />
+                        <span className="row-action__label">Open deals</span>
+                      </Link>
+                      <button
+                        type="button"
+                        className="row-action row-action--edit"
+                        data-tip="Edit search"
+                        aria-label={`Edit ${s.name}`}
+                        onClick={() => startEdit(s.id)}
+                      >
+                        <PencilIcon size={18} />
+                        <span className="row-action__label">Edit</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="row-action row-action--danger"
+                        data-tip="Delete search"
+                        aria-label={`Delete ${s.name}`}
+                        onClick={() => askDelete(s)}
+                      >
+                        <TrashIcon size={18} />
+                        <span className="row-action__label">Delete</span>
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -730,6 +809,14 @@ export function SearchesPage() {
           </table>
         </div>
       )}
+
+      <DeleteSearchDialog
+        search={deleteTarget}
+        deleting={deleteSearch.isPending}
+        error={deleteSearch.isError ? deleteSearch.error.message : null}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={() => deleteTarget && deleteSearch.mutate(deleteTarget.id)}
+      />
     </div>
   );
 }

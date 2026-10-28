@@ -52,7 +52,8 @@ export function dealSources(d: Deal): string[] {
 const SORTERS: Record<SortKey, (a: Deal, b: Deal) => number> = {
   monthly: (a, b) => num(a.monthlyRate) - num(b.monthlyRate),
   total: (a, b) => num(a.totalPrice) - num(b.totalPrice),
-  distance: (a, b) => a.distanceMiles - b.distanceMiles,
+  // No distances (a search without a ZIP): equal, so the order stays as it was.
+  distance: (a, b) => (a.distanceMiles ?? Infinity) - (b.distanceMiles ?? Infinity) || 0,
   seats: (a, b) => (b.seats ?? 0) - (a.seats ?? 0),
 };
 
@@ -79,7 +80,7 @@ export function applyFilters(deals: Deal[], filters: DealFilters): Deal[] {
     .filter((d) => supplierSet.size === 0 || supplierSet.has(d.supplier))
     .filter((d) => sourceSet.size === 0 || dealSources(d).some((s) => sourceSet.has(s)))
     .filter((d) => filters.maxMonthly === null || num(d.monthlyRate) <= filters.maxMonthly)
-    .filter((d) => filters.maxDistance === null || d.distanceMiles <= filters.maxDistance)
+    .filter((d) => filters.maxDistance === null || d.distanceMiles === null || d.distanceMiles <= filters.maxDistance)
     .filter((d) => filters.minSeats === null || (d.seats ?? 0) >= filters.minSeats)
     .filter((d) => !filters.unlimitedMileageOnly || isUnlimitedMileage(d.mileagePolicy))
     .filter((d) => !filters.favouritesOnly || d.favourite)
@@ -128,7 +129,7 @@ export function buildFacets(deals: Deal[]): Facets {
     return { states: [], suppliers: [], sources: [], classes: [], carTypes: [], monthlyRange: null, distanceRange: null };
   }
   const rates = deals.map((d) => num(d.monthlyRate)).filter(Number.isFinite);
-  const miles = deals.map((d) => d.distanceMiles).filter(Number.isFinite);
+  const miles = deals.map((d) => d.distanceMiles).filter((m): m is number => m !== null && Number.isFinite(m));
   return {
     states: tally(deals.map((d) => d.locationState)).sort((a, b) => a.value.localeCompare(b.value)),
     suppliers: tally(deals.map((d) => d.supplier)),

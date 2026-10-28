@@ -501,6 +501,14 @@ h4 {
   background: var(--surface-hover);
   color: var(--text);
 }
+/* Destructive actions (deleting a search). */
+.btn--danger {
+  background: var(--red-600);
+  color: #fff;
+  padding-inline: 22px;
+}
+.btn--danger:hover { filter: brightness(0.92); }
+.btn--danger:disabled { opacity: 0.6; cursor: default; filter: none; }
 
 .btn--sm {
   padding: 6px 12px;
@@ -1168,7 +1176,9 @@ table.data tbody tr:last-child td {
   border-bottom: none;
 }
 /* A switched-off search is dimmed, except its switch. */
-table.data tbody tr.is-off td:not(.cell-switch) { opacity: 0.55; }
+table.data tbody tr.is-off td:not(.cell-switch):not(.row-actions) { opacity: 0.55; }
+/* Dim the action icons, not their tooltips: a hovered or focused icon shows at full strength. */
+table.data tbody tr.is-off .row-action:not(:hover):not(:focus-visible) { opacity: 0.55; }
 /* Long names and areas wrap, so the table fits without a horizontal scrollbar. */
 table.data td.cell-wrap { white-space: normal; min-width: 140px; }
 
@@ -1821,6 +1831,74 @@ table.data .num {
 .cell-actions .link-btn { margin-left: 12px; }
 .link-btn { background: none; border: 0; padding: 0; font: inherit; color: var(--accent); cursor: pointer; }
 .link-btn:hover { text-decoration: underline; }
+
+/* Saved searches: Open deals / Edit / Delete as icon buttons, named by a tooltip on hover or focus. */
+.row-actions { white-space: nowrap; text-align: right; }
+.row-actions__group { display: inline-flex; gap: 4px; }
+.row-action {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.row-action:hover {
+  border-color: color-mix(in srgb, var(--accent) 30%, transparent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent);
+}
+.row-action--danger:hover {
+  border-color: color-mix(in srgb, var(--red-600) 30%, transparent);
+  background: color-mix(in srgb, var(--red-600) 12%, transparent);
+  color: var(--red-600);
+}
+.row-action:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.row-action__label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+.row-action[data-tip]::after {
+  content: attr(data-tip);
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  z-index: 20;
+  padding: 5px 9px;
+  border-radius: 6px;
+  background: var(--text);
+  color: var(--surface);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.3;
+  white-space: nowrap;
+  box-shadow: var(--shadow-sm);
+  opacity: 0;
+  transform: translate(-50%, -4px);
+  transition: opacity 0.12s, transform 0.12s;
+  pointer-events: none;
+}
+.row-action[data-tip]:hover::after,
+.row-action[data-tip]:focus-visible::after { opacity: 1; transform: translate(-50%, 0); }
+/* The last icon sits at the table's right edge: its tooltip lines up to the right so it is not cut off. */
+.row-action:last-child[data-tip]::after { left: auto; right: 0; transform: translateY(-4px); }
+.row-action:last-child[data-tip]:hover::after,
+.row-action:last-child[data-tip]:focus-visible::after { transform: translateY(0); }
+/* Tooltips open below the icon; the last row has no room below inside the table, so its open above. */
+table.data tbody tr:last-child .row-action[data-tip]::after { top: auto; bottom: calc(100% + 8px); }
 .link-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 2px; }
 .field input:disabled, .field select:disabled { opacity: 0.6; cursor: not-allowed; }
 
@@ -1935,6 +2013,32 @@ table.data .num {
   }
   table.data--stack .cell-actions a:hover,
   table.data--stack .cell-actions .link-btn:hover { border-color: var(--accent); color: var(--accent); text-decoration: none; }
+  /* Cards (no hover): the icon buttons become labelled pills, like the other card actions.
+     Edit moves beside the name, so only Open deals and Delete stay here. */
+  table.data.data--stack td.row-actions { display: flex; align-items: flex-end; }
+  table.data--stack .row-actions__group { display: flex; flex-wrap: wrap; gap: 8px; width: 100%; }
+  table.data--stack .row-action {
+    flex: 1 1 auto;
+    gap: 6px;
+    width: auto;
+    height: auto;
+    padding: 8px 14px;
+    border-color: var(--border-strong);
+    border-radius: 999px;
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.2;
+  }
+  table.data--stack .row-action:first-child {
+    border-color: transparent;
+    background: color-mix(in srgb, var(--accent) 14%, transparent);
+    color: var(--accent);
+  }
+  table.data--stack .row-action--edit { display: none; }
+  table.data--stack .row-action--danger { color: var(--red-600); }
+  table.data--stack .row-action__label { position: static; width: auto; height: auto; overflow: visible; clip: auto; }
+  table.data--stack .row-action[data-tip]::after { display: none; }
 }
 
 /* Tablets: wider fields, so the action buttons fit side by side next to the last field. */

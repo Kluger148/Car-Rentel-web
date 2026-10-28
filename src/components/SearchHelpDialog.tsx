@@ -14,19 +14,19 @@ const FIELDS: FieldHelp[] = [
     tip: 'Priceline is free on the current plan and usually best for minivans and vans. KAYAK is slower and charged per offer.',
   },
   {
-    name: 'Starting ZIP',
-    what: "The customer's ZIP code. Distances to every rental branch are measured from here.",
+    name: 'ZIP code (optional)',
+    what: "The customer's ZIP code. Distances to every rental branch are measured from here. Leave it empty to search every town in the chosen states instead.",
     tip: 'Cannot be changed after saving: create a new search for a different area.',
   },
   {
     name: 'Max distance (miles)',
-    what: 'How far from the ZIP a branch may be. Every town with a ZIP inside this distance becomes a place to search, and offers from branches further away are dropped.',
+    what: 'How far from the ZIP a branch may be. Every town with a ZIP inside this distance becomes a place to search, and offers from branches further away are dropped. Only used with a ZIP.',
     tip: '50 miles suits a local customer. Wider areas cover more branches but take longer to scan.',
   },
   {
-    name: 'States (optional)',
-    what: 'Only search towns in these states, and drop offers from branches in other states. Empty = any state within the distance.',
-    tip: 'Useful near a state line, e.g. NJ only for a customer who will not cross into NY.',
+    name: 'States',
+    what: 'Only search towns in these states, and drop offers from branches in other states. With a ZIP this is optional (empty = any state within the distance). Without a ZIP it is required: every town in these states is searched, biggest first.',
+    tip: 'Useful near a state line, e.g. NJ only for a customer who will not cross into NY. Check the code: AK is Alaska, AL is Alabama.',
   },
   {
     name: 'Rental companies (optional)',
@@ -54,8 +54,8 @@ const FIELDS: FieldHelp[] = [
   },
   {
     name: 'Places to search',
-    what: 'How many towns in range are searched on each site, largest first. More places reach smaller suburban branches, which are often cheaper than airports.',
-    tip: 'Up to 15 is quick (a few minutes); up to 100 takes about 15 minutes per pickup date.',
+    what: 'How many towns in the area (within the distance, or in the states) are searched, largest first. "All places in the area" (the default) searches every town on Skyscanner and Priceline; KAYAK always searches only the 15 biggest. More places reach smaller suburban branches, which are often cheaper than airports.',
+    tip: 'Up to 100 places takes about 15 minutes per pickup date. A whole state (NY has 1,628 towns) takes a few hours and about $1.30–2.60 per pickup date on Skyscanner, so repeat big areas weekly. Press Preview places to see the count first.',
   },
   {
     name: 'Repeat',
@@ -63,7 +63,7 @@ const FIELDS: FieldHelp[] = [
   },
   {
     name: 'Name and Notes (optional)',
-    what: 'Your own labels, e.g. the customer name and what they asked for. Without a name, the search is named after the ZIP, distance and date.',
+    what: 'Your own labels, e.g. the customer name and what they asked for. Without a name, the search is named after the ZIP, distance and date (or, without a ZIP, the states and date).',
   },
 ];
 
@@ -90,10 +90,19 @@ export function SearchHelpDialog({ open, onClose }: { open: boolean; onClose: ()
           How a search works
         </h2>
         <p className="dialog__sub">
-          A search looks on Skyscanner, Priceline and KAYAK for complete long-term rentals around the customer's ZIP and
-          keeps the cheapest offer for each car. Prices are shown as an average per 30 days (the total ÷ the number of
-          days × 30), so 300-day and 330-day rentals compare fairly.
+          A search looks on Skyscanner, Priceline and KAYAK for complete long-term rentals around the customer's ZIP, or
+          across whole states, and keeps the cheapest offer for each car. Prices are shown as an average per 30 days (the
+          total ÷ the number of days × 30), so 300-day and 330-day rentals compare fairly.
         </p>
+        <div className="help-note">
+          <strong>Where to search: give a ZIP, a state, or both</strong>
+          <span>
+            <em>State only</em> (no ZIP): every town in the states, e.g. NY = all 1,628 New York towns.{' '}
+            <em>ZIP + distance</em>: every town within the distance, in any state, e.g. ZIP 10950 + 50 miles = 624 towns in
+            NY, NJ, CT and PA. <em>ZIP + distance + states</em>: only towns that are both, e.g. ZIP 10950 + 50 miles + NY =
+            345 towns. A ZIP always needs a distance. If nothing matches, the message lists the states that are near the ZIP.
+          </span>
+        </div>
         <dl className="help-list">
           {FIELDS.map((f) => (
             <div key={f.name} className="help-list__item">
@@ -111,6 +120,14 @@ export function SearchHelpDialog({ open, onClose }: { open: boolean; onClose: ()
             The line under the fields shows each scan's searches, time and cost (places × pickup dates). <em>Preview
             places</em> lists the towns that will be searched; nothing is saved or charged until you press{' '}
             <em>Save search</em>, and nothing is scanned until you press <em>Run now</em> or switch on automatic runs.
+          </span>
+        </div>
+        <div className="help-note">
+          <strong>Deleting a search</strong>
+          <span>
+            The trash icon in the saved searches list deletes the search with all its scans, prices, price history and
+            favourites, after you confirm. It cannot be undone. To keep a search but stop its scans, switch{' '}
+            <em>Scheduled</em> off instead.
           </span>
         </div>
       </div>
