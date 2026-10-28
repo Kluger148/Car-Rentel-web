@@ -1443,6 +1443,10 @@ table.data .num {
 .dc-chip { display: inline-flex; align-items: center; gap: 5px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 3px 8px; font-size: 12.5px; }
 .dc-chip--good { color: var(--green-600); border-color: var(--green-100); background: var(--green-100); }
 .dc-place { display: flex; gap: 8px; align-items: flex-start; font-size: 14px; }
+/* Long lists (every other pickup place) show 2 lines until "View more". */
+.clamp { display: block; }
+.clamp--shut { display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; }
+.clamp__toggle { margin-top: 2px; font-size: 13px; font-weight: 600; }
 .dc-place svg { margin-top: 2px; flex: none; color: var(--text-muted); }
 .dc-muted { color: var(--text-muted); font-size: 13px; }
 .dc-conditions { margin: 2px 0 0; color: var(--text-muted); font-size: 12.5px; }

@@ -1,5 +1,5 @@
 import { Link } from '@tanstack/react-router';
-import { useId, useState } from 'react';
+import { useId, useLayoutEffect, useRef, useState } from 'react';
 import type { Deal } from '../lib/api';
 import {
   CHANGE_LABEL,
@@ -43,6 +43,36 @@ function conditionList(c: Record<string, unknown>): string[] {
 const companyLabel = (name: string) => (name.trim() === '' || name === 'Unknown' ? 'Company not stated' : name);
 
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+
+/** Text cut to `lines` lines, with View more / View less only when it is longer than that. */
+function ClampedText({ text, lines = 2, className }: { text: string; lines?: number; className?: string }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const id = useId();
+  const [open, setOpen] = useState(false);
+  const [overflows, setOverflows] = useState(false);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    // Re-measured when the card's width changes (window resize, sidebar, phone rotation).
+    const check = () => setOverflows(el.scrollHeight > el.clientHeight + 1);
+    check();
+    const observer = new ResizeObserver(check);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [text, open]);
+  return (
+    <div className={className}>
+      <span ref={ref} id={id} className={open ? 'clamp' : 'clamp clamp--shut'} style={{ WebkitLineClamp: lines }}>
+        {text}
+      </span>
+      {(overflows || open) && (
+        <button type="button" className="link-btn clamp__toggle" aria-expanded={open} aria-controls={id} onClick={() => setOpen((v) => !v)}>
+          {open ? 'View less' : 'View more'}
+        </button>
+      )}
+    </div>
+  );
+}
 
 function Stars({ rating, reviews }: { rating: number | null; reviews: number | null }) {
   if (rating === null) return null;
@@ -200,9 +230,10 @@ export function DealCard({
         {deal.places.length > 1 && (
           <div className="dc-place">
             <PinIcon size={15} />
-            <div className="dc-muted">
-              Same car also at {deal.places.filter((p) => p !== (deal.pickupLocationName ?? deal.locationName)).join(', ')}
-            </div>
+            <ClampedText
+              className="dc-muted"
+              text={`Same car also at ${deal.places.filter((p) => p !== (deal.pickupLocationName ?? deal.locationName)).join(' · ')}`}
+            />
           </div>
         )}
         <div className="dc-place">
@@ -321,7 +352,9 @@ export function DealCard({
         {otherPlaces.length > 0 && (
           <div>
             <dt>Also at</dt>
-            <dd>{otherPlaces.join(', ')}</dd>
+            <dd>
+              <ClampedText text={otherPlaces.join(' · ')} />
+            </dd>
           </div>
         )}
         <div>
