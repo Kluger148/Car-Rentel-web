@@ -316,7 +316,7 @@ export function SearchForm({
         <div className="seg" role="radiogroup" aria-labelledby="ns-search-by">
           {(
             [
-              { id: 'zip', label: 'ZIP code' },
+              { id: 'zip', label: 'ZIP / State' },
               { id: 'address', label: 'Customer address' },
             ] as { id: SearchBy; label: string }[]
           ).map((o) => {
@@ -351,7 +351,7 @@ export function SearchForm({
         <p className="search-by__hint">
           {byAddress
             ? 'Type the address and pick one of the suggestions; its ZIP and state are filled in. The distance is miles from the customer, and every deal shows the drive distance and time.'
-            : 'ZIP, distance and states. No drive times yet: add a customer address on the deals page after the search.'}
+            : 'A ZIP with a distance, or whole states (or both). No drive times yet: add a customer address on the deals page after the search.'}
         </p>
       </div>
       <div className="form-grid">
