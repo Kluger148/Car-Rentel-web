@@ -31,18 +31,19 @@ export function CustomerAddressDialog({ open, searchId, current, canRemove, onCl
       onClose();
     },
   });
+  // Stable across renders, so the effect below runs only when the dialog opens or closes.
+  const resetSave = save.reset;
 
   useEffect(() => {
     const dialog = ref.current;
     if (!dialog) return;
     if (open && !dialog.open) {
       setAddress(null);
-      save.reset();
+      resetSave();
       dialog.showModal();
     }
     if (!open && dialog.open) dialog.close();
-    // Only opening and closing matter here (save.reset is stable).
-  }, [open]);
+  }, [open, resetSave]);
 
   return (
     <dialog

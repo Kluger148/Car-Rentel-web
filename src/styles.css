@@ -2694,3 +2694,6 @@ table.data tbody tr:last-child .row-action[data-tip]::after { top: auto; bottom:
   .drive-bar__text { flex-basis: calc(100% - 26px); }
   .drive-bar .btn { margin-left: 26px; }
 }
+.ac__attrib { padding: 6px 10px 2px; text-align: right; font-size: 11px; }
+.ac__attrib a { color: var(--text-faint); text-decoration: none; }
+.ac__attrib a:hover { color: var(--text-muted); text-decoration: underline; }

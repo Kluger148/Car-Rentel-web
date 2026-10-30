@@ -683,7 +683,7 @@ export function DealsPage() {
               type="button"
               className="btn btn--ghost btn--sm"
               disabled={!driveAvailable}
-              title={driveAvailable ? undefined : 'Not set up on the server yet (Google Maps key)'}
+              title={driveAvailable ? undefined : 'Not set up on the server yet (maps key)'}
               onClick={() => setAddressOpen(true)}
             >
               {customerAddress ? 'Change address' : 'Add address'}

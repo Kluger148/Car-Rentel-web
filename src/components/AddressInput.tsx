@@ -3,7 +3,7 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { api, type AddressSuggestion, type CustomerAddress } from '../lib/api';
 import { PinIcon } from './icons';
 
-/** Google's session token: one per address entry, so the suggestions and the pick are billed as one. */
+/** Session token: one per address entry, so Google bills the suggestions and the pick as one. */
 const newSession = () =>
   typeof crypto !== 'undefined' && 'randomUUID' in crypto
     ? crypto.randomUUID()
@@ -20,7 +20,7 @@ interface AddressInputProps {
 }
 
 /**
- * A customer address picked from Google's suggestions (through our API). Typing shows real
+ * A customer address picked from the suggestions (Geoapify or Google, through our API). Typing shows real
  * addresses after 3 characters; picking one fills in its ZIP, state and position. Keyboard:
  * arrows move, Enter picks, Escape closes.
  */
@@ -34,8 +34,11 @@ export function AddressInput({ value, onChange, label, placeholder, id, autoFocu
   const [picking, setPicking] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const boxRef = useRef<HTMLDivElement>(null);
+  // Geoapify's free plan asks for its credit beside the suggestions.
+  const configQuery = useQuery({ queryKey: ['config'], queryFn: () => api.config(), staleTime: 300_000 });
+  const geoapify = configQuery.data?.googleMaps?.provider === 'geoapify';
 
-  // Ask Google once typing pauses, not on every key.
+  // Ask for suggestions once typing pauses, not on every key.
   useEffect(() => {
     const id = setTimeout(() => setTerm(text.trim()), 300);
     return () => clearTimeout(id);
@@ -68,7 +71,7 @@ export function AddressInput({ value, onChange, label, placeholder, id, autoFocu
     setError(null);
     try {
       const address = await api.addressDetails(s.placeId, session);
-      // Google's full address ("..., NY 10926, USA") replaces the suggestion's shorter line.
+      // The full address ("..., NY 10926, USA") replaces the suggestion's shorter line.
       setText(address.text || s.text);
       onChange({ ...address, text: address.text || s.text });
     } catch (e) {
@@ -76,7 +79,7 @@ export function AddressInput({ value, onChange, label, placeholder, id, autoFocu
       onChange(null);
     } finally {
       setPicking(false);
-      // The pick ends Google's billing session; the next entry starts a new one.
+      // The pick ends the billing session; the next entry starts a new one.
       setSession(newSession());
     }
   };
@@ -171,6 +174,13 @@ export function AddressInput({ value, onChange, label, placeholder, id, autoFocu
           {isFetching && <li className="ac__status">Searching addresses…</li>}
           {isError && !isFetching && <li className="ac__status">{queryError?.message ?? 'Address suggestions failed'}</li>}
           {!isFetching && !isError && options.length === 0 && <li className="ac__status">No matching address</li>}
+          {geoapify && (
+            <li className="ac__attrib" aria-hidden="true">
+              <a href="https://www.geoapify.com/" target="_blank" rel="noreferrer noopener" tabIndex={-1}>
+                Powered by Geoapify
+              </a>
+            </li>
+          )}
         </ul>
       )}
       <p className="addr__hint" aria-live="polite">

@@ -147,7 +147,7 @@ export interface CustomerAddressInfo {
   updatedAt: string | null;
 }
 
-/** One address Google suggests for what was typed. */
+/** One address suggested for what was typed. */
 export interface AddressSuggestion {
   placeId: string;
   text: string;
@@ -161,7 +161,7 @@ export interface CustomerAddress {
   text: string;
   lat: number;
   lng: number;
-  /** Null when Google gives none (a town or road rather than a street address). */
+  /** Null when none is known (a town or road rather than a street address). */
   zip: string | null;
   state: string | null;
   city: string | null;
@@ -570,7 +570,7 @@ export interface ScannerConfig {
     };
   };
   /** Customer addresses (search by address, drive times). Missing on older backends = not available. */
-  googleMaps?: { available: boolean };
+  googleMaps?: { available: boolean; provider?: 'geoapify' | 'google' | null };
   /** For the live scan estimate. Missing on older backends. */
   estimate?: { perSearchUsd: number | null; secondsPerSearch: number };
 }
@@ -772,7 +772,7 @@ export const api = {
       method: 'PUT',
       body: JSON.stringify({ address }),
     }),
-  /** US addresses matching what was typed; `session` groups one address entry for Google's billing. */
+  /** US addresses matching what was typed; `session` groups one address entry (Google bills per entry). */
   addressSuggestions: (q: string, session: string) =>
     request<{ suggestions: AddressSuggestion[] }>(`/api/places/autocomplete${toQuery({ q, session })}`),
   addressDetails: (placeId: string, session: string) =>
