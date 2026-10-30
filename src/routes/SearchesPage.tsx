@@ -329,7 +329,15 @@ export function SearchForm({
                 aria-checked={searchBy === o.id}
                 className={`seg__btn${searchBy === o.id ? ' is-on' : ''}`}
                 disabled={isEdit || off}
-                title={isEdit ? lockedHint : off ? 'Not set up on the server yet (maps key)' : undefined}
+                title={
+                  isEdit
+                    ? lockedHint
+                    : off
+                      ? configQuery.isPending
+                        ? 'Checking the server…'
+                        : 'Not set up on the server yet (maps key)'
+                      : undefined
+                }
                 onClick={() => {
                   setSearchBy(o.id);
                   changed();
