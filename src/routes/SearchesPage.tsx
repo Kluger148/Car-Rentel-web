@@ -603,7 +603,7 @@ export function SearchForm({
               : preview.zip
                 ? ` within ${preview.radiusMiles} miles`
                 : ` in ${preview.states.join(', ')}`}{' '}
-            will be searched, largest first.
+            will be searched, {preview.address ? 'nearest to the customer first' : 'largest first'}.
             Places Skyscanner does not recognise are skipped.
           </p>
           <p className="preview__places">
