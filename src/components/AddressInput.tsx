@@ -189,7 +189,7 @@ export function AddressInput({ value, onChange, label, placeholder, id, autoFocu
           : error
             ? <span className="form-error">{error}</span>
             : value
-              ? `${value.city ? `${value.city}, ` : ''}${value.state ?? ''}${value.zip ? ` ${value.zip}` : ' · no ZIP code'}`
+              ? `${value.city ? `${value.city}, ` : ''}${value.state ?? ''}${value.zip ? ` ${value.zip}` : ' · a town, not a street address: distances and drive times are from its centre'}`
               : text.trim().length > 0 && text.trim().length < 3
                 ? 'Keep typing to see addresses'
                 : null}
