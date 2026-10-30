@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, getRouteApi } from '@tanstack/react-router';
 import { useEffect, useState, type FormEvent } from 'react';
+import { AddressInput } from '../components/AddressInput';
 import { SchedulerBar } from '../components/SchedulerBar';
 import { SearchHelpDialog } from '../components/SearchHelpDialog';
 import { DeleteSearchDialog } from '../components/DeleteSearchDialog';
@@ -15,7 +16,9 @@ import {
   pickupFlexLabel,
   placesOptions,
   scanEstimate,
+  type CustomerAddress,
   type SavedSearch,
+  type SearchBy,
   type SearchInput,
   type SearchPreview,
   type SearchSource,
@@ -60,6 +63,10 @@ export function SearchForm({
 }) {
   const isEdit = editing !== undefined;
   const [helpOpen, setHelpOpen] = useState(false);
+  // ZIP code (ZIP + distance + states) or a customer address (distance from the customer, drive times).
+  const [searchBy, setSearchBy] = useState<SearchBy>(editing?.searchBy ?? 'zip');
+  const byAddress = searchBy === 'address';
+  const [address, setAddress] = useState<CustomerAddress | null>(null);
   const [zip, setZip] = useState(editing?.zip ?? '');
   const [radius, setRadius] = useState(String(editing?.radiusMiles ?? 50));
   const [customRadius, setCustomRadius] = useState(
@@ -87,6 +94,7 @@ export function SearchForm({
   const places: number | null =
     maxPlaces === null ? areaPlaces : areaPlaces !== null ? Math.min(maxPlaces, areaPlaces) : maxPlaces;
   const sourcesCfg = configQuery.data?.sources;
+  const googleReady = configQuery.data?.googleMaps?.available === true;
   // KAYAK blocks bursts of searches and is charged per offer: it searches only the biggest places.
   const kayakMaxPlaces = sourcesCfg?.kayak?.maxPlaces ?? 15;
   const ready = (s: SearchSource) => s === 'skyscanner' || sourcesCfg?.[s]?.available === true;
@@ -139,10 +147,14 @@ export function SearchForm({
 
   // ZIP is optional: without one the search covers every town in the chosen states, and has no distance.
   const hasZip = zip.trim() !== '';
+  // A distance applies around a ZIP, or around the customer address.
+  const hasCentre = byAddress || hasZip;
   const input = (): SearchInput => ({
-    zip: hasZip ? zip.trim() : null,
-    radiusMiles: hasZip ? Number.parseInt(radius, 10) : null,
-    states,
+    // Only an address search sends these, so a ZIP search looks exactly as before to the API.
+    ...(byAddress ? { searchBy: 'address' as const, address } : {}),
+    zip: byAddress || !hasZip ? null : zip.trim(),
+    radiusMiles: hasCentre ? Number.parseInt(radius, 10) : null,
+    states: byAddress ? [] : states,
     suppliers,
     sources: chosen,
     carTypes,
@@ -166,8 +178,10 @@ export function SearchForm({
       setError(e.message);
     },
   });
+  const addressMissing = 'Pick the customer address from the suggestions.';
   const saveMutation = useMutation({
     mutationFn: () => {
+      if (!editing && byAddress && !address) return Promise.reject(new Error(addressMissing));
       if (!editing) return api.createSearch(input());
       const patch: Partial<SearchInput> = {
         suppliers,
@@ -194,7 +208,12 @@ export function SearchForm({
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
-    if (!isEdit && !hasZip && states.length === 0) {
+    if (!isEdit && byAddress && !address) {
+      setPreview(null);
+      setError(addressMissing);
+      return;
+    }
+    if (!isEdit && !byAddress && !hasZip && states.length === 0) {
       setPreview(null);
       setError('Enter a ZIP code, or pick at least one state to search every town in it.');
       return;
@@ -225,7 +244,7 @@ export function SearchForm({
       <SearchHelpDialog open={helpOpen} onClose={() => setHelpOpen(false)} />
       <p className="muted">
         {isEdit
-          ? 'Changes apply from the next scan. The area (ZIP, distance and states) cannot be changed.'
+          ? `Changes apply from the next scan. The area (${editing.searchBy === 'address' ? 'customer address and distance' : 'ZIP, distance and states'}) cannot be changed.`
           : "Enter the customer's requirements. The return date is set to 330 days after pickup, at the same location."}
       </p>
       <fieldset className="src-choice">
@@ -290,17 +309,75 @@ export function SearchForm({
           })}
         </div>
       </fieldset>
+      <div className="search-by">
+        <span className="field__label" id="ns-search-by">
+          Search by
+        </span>
+        <div className="seg" role="radiogroup" aria-labelledby="ns-search-by">
+          {(
+            [
+              { id: 'zip', label: 'ZIP code' },
+              { id: 'address', label: 'Customer address' },
+            ] as { id: SearchBy; label: string }[]
+          ).map((o) => {
+            const off = o.id === 'address' && !googleReady && searchBy !== 'address';
+            return (
+              <button
+                key={o.id}
+                type="button"
+                role="radio"
+                aria-checked={searchBy === o.id}
+                className={`seg__btn${searchBy === o.id ? ' is-on' : ''}`}
+                disabled={isEdit || off}
+                title={isEdit ? lockedHint : off ? 'Not set up on the server yet (Google Maps key)' : undefined}
+                onClick={() => {
+                  setSearchBy(o.id);
+                  changed();
+                }}
+              >
+                {o.label}
+              </button>
+            );
+          })}
+        </div>
+        <p className="search-by__hint">
+          {byAddress
+            ? 'Type the address and pick one of the suggestions; its ZIP and state are filled in. The distance is miles from the customer, and every deal shows the drive distance and time.'
+            : 'ZIP, distance and states. No drive times yet: add a customer address on the deals page after the search.'}
+        </p>
+      </div>
       <div className="form-grid">
+        {byAddress ? (
+          isEdit ? (
+            <label className="field field--wide">
+              <span className="field__label">Customer address</span>
+              <input id="ns-address" disabled title={lockedHint} value={editing.customerAddress ?? `ZIP ${editing.zip ?? ''}`} />
+            </label>
+          ) : (
+            <div className="field--wide">
+              <AddressInput
+                id="ns-address"
+                label="Customer address"
+                value={address}
+                onChange={(a) => {
+                  setAddress(a);
+                  changed();
+                }}
+              />
+            </div>
+          )
+        ) : (
         <label className="field">
           <span className="field__label">ZIP code (optional)</span>
           <input id="ns-zip" inputMode="numeric" disabled={isEdit} title={lockedHint} value={zip} onChange={(e) => { setZip(e.target.value); changed(); }} placeholder={isEdit ? 'No ZIP: whole states' : 'e.g. 30303, or leave empty'} />
         </label>
+        )}
         <label className="field">
-          <span className="field__label">Max distance (miles)</span>
+          <span className="field__label">{byAddress ? 'Max distance (miles from customer)' : 'Max distance (miles)'}</span>
           <select
             id="ns-radius"
-            disabled={isEdit || !hasZip}
-            title={lockedHint ?? (hasZip ? undefined : 'Enter a ZIP code to limit the distance')}
+            disabled={isEdit || !hasCentre}
+            title={lockedHint ?? (hasCentre ? undefined : 'Enter a ZIP code to limit the distance')}
             value={customRadius ? 'custom' : radius}
             onChange={(e) => {
               if (e.target.value === 'custom') {
@@ -325,7 +402,7 @@ export function SearchForm({
               type="number"
               min={1}
               required
-              disabled={isEdit || !hasZip}
+              disabled={isEdit || !hasCentre}
               value={radius}
               onChange={(e) => { setRadius(e.target.value); changed(); }}
               placeholder="Miles, e.g. 750"
@@ -333,7 +410,7 @@ export function SearchForm({
             />
           )}
         </label>
-        {isEdit ? (
+        {byAddress ? null : isEdit ? (
           <label className="field">
             <span className="field__label">States</span>
             <input id="ns-states" disabled title={lockedHint} value={states.length > 0 ? states.join(', ') : 'Any state'} />
@@ -498,7 +575,11 @@ export function SearchForm({
         <div className="preview">
           <p>
             <strong>
-              {preview.zip ? `${preview.zip.city}, ${preview.zip.state} ${preview.zip.zip}` : `Every town in ${preview.states.join(', ')}`}
+              {preview.address
+                ? preview.address.text
+                : preview.zip
+                  ? `${preview.zip.city}, ${preview.zip.state} ${preview.zip.zip}`
+                  : `Every town in ${preview.states.join(', ')}`}
             </strong>{' '}
             · pickup {fullDate(preview.pickupDate)} → return {fullDate(preview.returnDate)} ({preview.rentalDays} days)
           </p>
@@ -509,7 +590,12 @@ export function SearchForm({
           )}
           <p className="muted">
             Up to {Math.min(preview.maxPlaces ?? preview.maxLocationsPerSearch, preview.searched.length)} of {preview.placesInRange} places
-            {preview.zip ? ` within ${preview.radiusMiles} miles` : ` in ${preview.states.join(', ')}`} will be searched, largest first.
+            {preview.address
+              ? ` within ${preview.radiusMiles} miles of the customer`
+              : preview.zip
+                ? ` within ${preview.radiusMiles} miles`
+                : ` in ${preview.states.join(', ')}`}{' '}
+            will be searched, largest first.
             Places Skyscanner does not recognise are skipped.
           </p>
           <p className="preview__places">
@@ -696,7 +782,11 @@ export function SearchesPage() {
                     {s.notes && <div className="muted">{s.notes}</div>}
                   </td>
                   <td className="cell-wrap" data-label="Area">
-                    {s.zip ? (
+                    {s.searchBy === 'address' ? (
+                      <>
+                        {s.customerAddress ?? `ZIP ${s.zip}`} · {s.radiusMiles} mi
+                      </>
+                    ) : s.zip ? (
                       <>
                         ZIP {s.zip} · {s.radiusMiles} mi{s.states.length > 0 && ` · ${s.states.join(', ')}`}
                       </>

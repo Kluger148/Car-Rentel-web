@@ -2,7 +2,7 @@ import type { Deal, VehicleClass } from './api';
 import { CAR_TYPES, carTypeOf, type CarType } from './carType';
 import { isUnlimitedMileage } from './format';
 
-export type SortKey = 'monthly' | 'total' | 'distance' | 'seats';
+export type SortKey = 'monthly' | 'total' | 'distance' | 'drive' | 'seats';
 
 export interface DealFilters {
   vehicleClass: VehicleClass | 'ALL';
@@ -17,6 +17,8 @@ export interface DealFilters {
   sources: string[];
   maxMonthly: number | null;
   maxDistance: number | null;
+  /** Longest drive from the customer address, in minutes. Null = any. */
+  maxDriveMinutes: number | null;
   minSeats: number | null;
   unlimitedMileageOnly: boolean;
   favouritesOnly: boolean;
@@ -33,6 +35,7 @@ export const DEFAULT_FILTERS: DealFilters = {
   sources: [],
   maxMonthly: null,
   maxDistance: null,
+  maxDriveMinutes: null,
   minSeats: null,
   unlimitedMileageOnly: false,
   favouritesOnly: false,
@@ -54,6 +57,8 @@ const SORTERS: Record<SortKey, (a: Deal, b: Deal) => number> = {
   total: (a, b) => num(a.totalPrice) - num(b.totalPrice),
   // No distances (a search without a ZIP): equal, so the order stays as it was.
   distance: (a, b) => (a.distanceMiles ?? Infinity) - (b.distanceMiles ?? Infinity) || 0,
+  // Deals without a drive time (no customer address, or no route) go last.
+  drive: (a, b) => (a.driveMinutes ?? Infinity) - (b.driveMinutes ?? Infinity) || 0,
   seats: (a, b) => (b.seats ?? 0) - (a.seats ?? 0),
 };
 
@@ -61,6 +66,7 @@ export const SORT_OPTIONS: Array<{ value: SortKey; label: string }> = [
   { value: 'monthly', label: 'Lowest 30-day average' },
   { value: 'total', label: 'Lowest total price' },
   { value: 'distance', label: 'Nearest' },
+  { value: 'drive', label: 'Shortest drive' },
   { value: 'seats', label: 'Most seats' },
 ];
 
@@ -81,6 +87,8 @@ export function applyFilters(deals: Deal[], filters: DealFilters): Deal[] {
     .filter((d) => sourceSet.size === 0 || dealSources(d).some((s) => sourceSet.has(s)))
     .filter((d) => filters.maxMonthly === null || num(d.monthlyRate) <= filters.maxMonthly)
     .filter((d) => filters.maxDistance === null || d.distanceMiles === null || d.distanceMiles <= filters.maxDistance)
+    // No drive time known for a deal: the drive filter does not apply to it.
+    .filter((d) => filters.maxDriveMinutes === null || d.driveMinutes == null || d.driveMinutes <= filters.maxDriveMinutes)
     .filter((d) => filters.minSeats === null || (d.seats ?? 0) >= filters.minSeats)
     .filter((d) => !filters.unlimitedMileageOnly || isUnlimitedMileage(d.mileagePolicy))
     .filter((d) => !filters.favouritesOnly || d.favourite)
@@ -113,6 +121,8 @@ export interface Facets {
   carTypes: Array<{ value: CarType; count: number }>;
   monthlyRange: { min: number; max: number } | null;
   distanceRange: { min: number; max: number } | null;
+  /** Shortest and longest drive from the customer address, in minutes; null without drive times. */
+  driveRange: { min: number; max: number } | null;
 }
 
 function tally<T extends string>(values: T[]): Array<{ value: T; count: number }> {
@@ -126,10 +136,11 @@ function tally<T extends string>(values: T[]): Array<{ value: T; count: number }
 /** Facet counts for the sidebar, computed from the unfiltered result set. */
 export function buildFacets(deals: Deal[]): Facets {
   if (deals.length === 0) {
-    return { states: [], suppliers: [], sources: [], classes: [], carTypes: [], monthlyRange: null, distanceRange: null };
+    return { states: [], suppliers: [], sources: [], classes: [], carTypes: [], monthlyRange: null, distanceRange: null, driveRange: null };
   }
   const rates = deals.map((d) => num(d.monthlyRate)).filter(Number.isFinite);
   const miles = deals.map((d) => d.distanceMiles).filter((m): m is number => m !== null && Number.isFinite(m));
+  const drives = deals.map((d) => d.driveMinutes).filter((m): m is number => m != null && Number.isFinite(m));
   return {
     states: tally(deals.map((d) => d.locationState)).sort((a, b) => a.value.localeCompare(b.value)),
     suppliers: tally(deals.map((d) => d.supplier)),
@@ -142,6 +153,7 @@ export function buildFacets(deals: Deal[]): Facets {
     distanceRange: miles.length
       ? { min: Math.floor(Math.min(...miles)), max: Math.ceil(Math.max(...miles)) }
       : null,
+    driveRange: drives.length ? { min: Math.floor(Math.min(...drives)), max: Math.ceil(Math.max(...drives)) } : null,
   };
 }
 
@@ -155,6 +167,7 @@ export function countActiveFilters(filters: DealFilters): number {
   if (filters.sources.length > 0) n++;
   if (filters.maxMonthly !== null) n++;
   if (filters.maxDistance !== null) n++;
+  if (filters.maxDriveMinutes !== null) n++;
   if (filters.minSeats !== null) n++;
   if (filters.unlimitedMileageOnly) n++;
   if (filters.favouritesOnly) n++;

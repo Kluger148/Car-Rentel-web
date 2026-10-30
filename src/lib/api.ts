@@ -106,6 +106,13 @@ export interface Deal {
   places: string[];
   /** True when the signed-in user has shortlisted this deal. */
   favourite: boolean;
+  /** The branch's address is only the area's name (Skyscanner), not a street address. Missing on older backends. */
+  addressApprox?: boolean;
+  /** Drive from the customer address to this deal's branch; null without an address or route. Missing on older backends. */
+  driveMiles?: number | null;
+  driveMinutes?: number | null;
+  /** The drive is to the town's centre (the branch itself could not be placed). */
+  driveApprox?: boolean;
 }
 
 export interface DealOffer {
@@ -125,6 +132,39 @@ export interface DealOffer {
   rating: number | null;
   reviews: number | null;
   freeCancellation: boolean;
+  /** Missing on older backends. */
+  addressApprox?: boolean;
+  driveMiles?: number | null;
+  driveMinutes?: number | null;
+  driveApprox?: boolean;
+}
+
+/** Where drive times are measured from. */
+export interface CustomerAddressInfo {
+  address: string | null;
+  lat: number;
+  lng: number;
+  updatedAt: string | null;
+}
+
+/** One address Google suggests for what was typed. */
+export interface AddressSuggestion {
+  placeId: string;
+  text: string;
+  mainText: string;
+  secondaryText: string;
+}
+
+/** A picked address: what a search and drive times need from it. */
+export interface CustomerAddress {
+  placeId: string | null;
+  text: string;
+  lat: number;
+  lng: number;
+  /** Null when Google gives none (a town or road rather than a street address). */
+  zip: string | null;
+  state: string | null;
+  city: string | null;
 }
 
 /** A shortlisted deal from any search, with the latest offer stored for it. */
@@ -185,6 +225,10 @@ export interface DealsResponse {
   facets?: { pickupDates?: Array<{ date: string; deals: number; cheapestMonthly: string }> };
   /** The pickup date the deals are for; null = each car's cheapest date. */
   pickupDate?: string | null;
+  /** Where drive times are measured from; null = no customer address. Missing on older backends. */
+  customer?: CustomerAddressInfo | null;
+  /** available: the server can measure drive times; error: this time it could not. Missing on older backends. */
+  drive?: { available: boolean; error: string | null };
 }
 
 export interface DealChange {
@@ -345,6 +389,13 @@ export interface SavedSearch {
   pickupFlexDays?: number;
   /** Places this search scans, largest first; null = the server default. Missing on older backends. */
   maxPlaces?: number | null;
+  /** 'address': the area is the radius around a customer address. Missing on older backends = 'zip'. */
+  searchBy?: SearchBy;
+  /** Where drive times are measured from (an address search's address, or one added later). */
+  customerAddress?: string | null;
+  customerLat?: number | null;
+  customerLng?: number | null;
+  customerAddressUpdatedAt?: string | null;
   createdAt: string;
   lastRun?: Run | null;
 }
@@ -364,7 +415,14 @@ export interface SearchDetail {
   runs: Run[];
 }
 
+/** How a search's area is entered. */
+export type SearchBy = 'zip' | 'address';
+
 export interface SearchInput {
+  /** Left out = 'zip'. */
+  searchBy?: SearchBy;
+  /** Required for an address search (ZIP and states come from it). */
+  address?: CustomerAddress | null;
   /** Null: no ZIP, search every town in `states` (then at least one state is required). */
   zip: string | null;
   /** Required with a ZIP, null without one. */
@@ -466,6 +524,9 @@ export interface Scheduler {
 }
 
 export interface SearchPreview {
+  /** Missing on older backends. */
+  searchBy?: SearchBy;
+  address?: CustomerAddress | null;
   /** Null for a search without a ZIP. */
   zip: { zip: string; city: string; state: string } | null;
   radiusMiles: number | null;
@@ -508,6 +569,8 @@ export interface ScannerConfig {
       maxRentalDays?: number;
     };
   };
+  /** Customer addresses (search by address, drive times). Missing on older backends = not available. */
+  googleMaps?: { available: boolean };
   /** For the live scan estimate. Missing on older backends. */
   estimate?: { perSearchUsd: number | null; secondsPerSearch: number };
 }
@@ -700,6 +763,20 @@ export const api = {
     request<SearchDetail>(`/api/searches/${id}`, { method: 'PATCH', body: JSON.stringify({ maxPlaces }) }),
   setSearchPickupFlex: (id: number, pickupFlexDays: number) =>
     request<SearchDetail>(`/api/searches/${id}`, { method: 'PATCH', body: JSON.stringify({ pickupFlexDays }) }),
+  /**
+   * Sets (or clears, with null) the address drive times are measured from, and measures the latest
+   * scan's branches. Same deals, no new scan.
+   */
+  setCustomerAddress: (id: number, address: CustomerAddress | null) =>
+    request<{ search: SavedSearch; drive: { measured: number; error: string | null } }>(`/api/searches/${id}/customer-address`, {
+      method: 'PUT',
+      body: JSON.stringify({ address }),
+    }),
+  /** US addresses matching what was typed; `session` groups one address entry for Google's billing. */
+  addressSuggestions: (q: string, session: string) =>
+    request<{ suggestions: AddressSuggestion[] }>(`/api/places/autocomplete${toQuery({ q, session })}`),
+  addressDetails: (placeId: string, session: string) =>
+    request<CustomerAddress>(`/api/places/details${toQuery({ placeId, session })}`),
   scheduler: () => request<Scheduler>('/api/scheduler'),
   setSchedulerEnabled: (enabled: boolean) =>
     request<Scheduler>('/api/scheduler', { method: 'PUT', body: JSON.stringify({ enabled }) }),

@@ -24,6 +24,8 @@ export interface DealsSearch {
   sources?: string[];
   max?: number;
   dist?: number;
+  /** Longest drive from the customer address, minutes. */
+  drive?: number;
   seats?: number;
   unlimited?: boolean;
   fav?: boolean;
@@ -34,7 +36,7 @@ export interface DealsSearch {
   page?: number;
 }
 
-const SORT_KEYS: SortKey[] = ['monthly', 'total', 'distance', 'seats'];
+const SORT_KEYS: SortKey[] = ['monthly', 'total', 'distance', 'drive', 'seats'];
 
 function asString(v: unknown): string | undefined {
   return typeof v === 'string' && v.trim() !== '' ? v : undefined;
@@ -99,6 +101,7 @@ const dealsRoute = createRoute({
       sources: asStringArray(search.sources),
       max: asNumber(search.max),
       dist: asNumber(search.dist),
+      drive: asNumber(search.drive),
       seats: asNumber(search.seats),
       unlimited: search.unlimited === true || search.unlimited === 'true' ? true : undefined,
       fav: search.fav === true || search.fav === 'true' ? true : undefined,

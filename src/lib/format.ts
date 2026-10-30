@@ -80,6 +80,21 @@ export function milesLabel(miles: number | null, approx = false): string {
   return miles === null ? '' : `${approx ? '≈' : ''}${Math.round(miles)} mi`;
 }
 
+/** Drive time: "12 min", "1 h 5 min". */
+export function minutesLabel(minutes: number): string {
+  const m = Math.round(minutes);
+  if (m < 60) return `${m} min`;
+  const h = Math.floor(m / 60);
+  return m % 60 === 0 ? `${h} h` : `${h} h ${m % 60} min`;
+}
+
+/** Drive from the customer: "6.8 mi · 12 min"; '' when unknown. ≈ when the drive is to the town's centre. */
+export function driveLabel(miles: number | null | undefined, minutes: number | null | undefined, approx = false): string {
+  if (miles == null || minutes == null) return '';
+  const mi = miles < 10 ? miles.toFixed(1) : String(Math.round(miles));
+  return `${approx ? '≈' : ''}${mi} mi · ${minutesLabel(minutes)}`;
+}
+
 export function dateRange(from: string, to: string): string {
   return `${shortDate(from)} – ${fullDate(to)}`;
 }

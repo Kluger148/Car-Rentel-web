@@ -1,13 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, getRouteApi } from '@tanstack/react-router';
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
+import { CustomerAddressDialog } from '../components/CustomerAddressDialog';
 import { DealCard } from '../components/DealCard';
 import { FilterSidebar } from '../components/FilterSidebar';
 import { RunCostDialog } from '../components/RunCostDialog';
 import { ScanProgress } from '../components/ScanProgress';
 import { SearchPanel } from '../components/SearchPanel';
 import { DealSkeleton, ErrorState, NoMatchesState } from '../components/States';
-import { AlertIcon, ClockIcon, CloseIcon, HeartIcon } from '../components/icons';
+import { AlertIcon, ClockIcon, CloseIcon, HeartIcon, PinIcon } from '../components/icons';
 import { useMobileSheet } from '../components/useMobileSheet';
 import {
   PICKUP_FLEX_OPTIONS,
@@ -23,7 +24,7 @@ import type { DealsSearch } from '../router';
 import { CAR_TYPES, type CarType } from '../lib/carType';
 import type { DealFilters } from '../lib/filters';
 import { DEFAULT_FILTERS, SORT_OPTIONS, applyFilters, buildFacets, countActiveFilters } from '../lib/filters';
-import { STATUS_LABEL, dateTime, fullDate, money, relativeTime, shortDate } from '../lib/format';
+import { STATUS_LABEL, dateTime, fullDate, minutesLabel, money, relativeTime, shortDate } from '../lib/format';
 
 // Typed accessors for the route without importing the router (avoids a cycle).
 const route = getRouteApi('/search/$id');
@@ -39,6 +40,7 @@ const SORT_SHORT: Record<DealFilters['sort'], string> = {
   monthly: 'Lowest 30-day',
   total: 'Lowest total',
   distance: 'Nearest',
+  drive: 'Shortest drive',
   seats: 'Most seats',
 };
 
@@ -62,6 +64,7 @@ export function DealsPage() {
       sources: search.sources ?? DEFAULT_FILTERS.sources,
       maxMonthly: search.max ?? DEFAULT_FILTERS.maxMonthly,
       maxDistance: search.dist ?? DEFAULT_FILTERS.maxDistance,
+      maxDriveMinutes: search.drive ?? DEFAULT_FILTERS.maxDriveMinutes,
       minSeats: search.seats ?? DEFAULT_FILTERS.minSeats,
       unlimitedMileageOnly: search.unlimited ?? DEFAULT_FILTERS.unlimitedMileageOnly,
       favouritesOnly: search.fav ?? DEFAULT_FILTERS.favouritesOnly,
@@ -83,6 +86,7 @@ export function DealsPage() {
         sources: next.sources.length > 0 ? next.sources : undefined,
         max: next.maxMonthly ?? undefined,
         dist: next.maxDistance ?? undefined,
+        drive: next.maxDriveMinutes ?? undefined,
         seats: next.minSeats ?? undefined,
         unlimited: next.unlimitedMileageOnly ? true : undefined,
         fav: next.favouritesOnly ? true : undefined,
@@ -199,6 +203,22 @@ export function DealsPage() {
   const allDeals = dealsQuery.data?.deals ?? NO_DEALS;
   const facets = useMemo(() => buildFacets(allDeals), [allDeals]);
   const visible = useMemo(() => applyFilters(allDeals, filters), [allDeals, filters]);
+  // "Shortest drive" only once the deals have drive times (a customer address is set).
+  const hasDrive = facets.driveRange !== null;
+  const sortOptions = SORT_OPTIONS.filter((o) => o.value !== 'drive' || hasDrive || filters.sort === 'drive');
+  // With a drive-time limit, cheaper deals beyond it still show below, for comparison with the
+  // cheapest deal within it ("$343 less, 56 min further").
+  const cheapestWithin = useMemo(
+    () => visible.reduce<Deal | null>((best, d) => (!best || Number(d.monthlyRate) < Number(best.monthlyRate) ? d : best), null),
+    [visible],
+  );
+  const fartherCheaper = useMemo(() => {
+    const limit = filters.maxDriveMinutes;
+    if (limit === null || !cheapestWithin) return NO_DEALS;
+    return applyFilters(allDeals, { ...filters, maxDriveMinutes: null, sort: 'monthly' })
+      .filter((d) => d.driveMinutes != null && d.driveMinutes > limit && Number(d.monthlyRate) < Number(cheapestWithin.monthlyRate))
+      .slice(0, 5);
+  }, [allDeals, filters, cheapestWithin]);
   // Filters, sort and class live in the URL without a page, so changing any of them starts at page 1.
   // A page past the end (fewer matches after a new scan, or a favourite removed) shows the last page.
   const pageCount = Math.max(1, Math.ceil(visible.length / PAGE_SIZE));
@@ -262,9 +282,11 @@ export function DealsPage() {
     setConfirmOpen(true);
   };
 
-  // A search without a ZIP covers every town in its states.
+  // A search without a ZIP covers every town in its states; an address search, the miles around the customer.
   const area = s
-    ? s.zip
+    ? s.searchBy === 'address'
+      ? `Within ${s.radiusMiles} miles of the customer (${s.zipCity ? `${s.zipCity}, ` : ''}${s.zipState ?? ''} ${s.zip ?? ''})`
+      : s.zip
       ? `ZIP ${s.zip} (${s.zipCity}, ${s.zipState}) · within ${s.radiusMiles} miles${s.states.length ? ` · ${s.states.join(', ')}` : ''}`
       : `Every town in ${s.states.join(', ')}`
     : '';
@@ -272,7 +294,7 @@ export function DealsPage() {
     ? `${area} · pickup ${fullDate(shownPickup ?? s.pickupDate)}, return ${fullDate(shownReturn ?? s.returnDate)} (${s.rentalDays} days, same location)${flexDays > 0 ? ` · flexible pickup: ${pickupFlexLabel(flexDays).toLowerCase()}` : ''}${nextDatesDiffer ? ` · next scan: pickup ${fullDate(s.pickupDate)}` : ''}. Target ${money(dealsQuery.data?.targetMonthly ?? 1100)} per 30 days.`
     : '';
   const meta = s
-    ? `${s.zip ? `${s.zip} · ${s.radiusMiles} mi` : s.states.join(', ')} · ${shortDate(shownPickup ?? s.pickupDate)}`
+    ? `${s.searchBy === 'address' ? `${s.radiusMiles} mi from customer` : s.zip ? `${s.zip} · ${s.radiusMiles} mi` : s.states.join(', ')} · ${shortDate(shownPickup ?? s.pickupDate)}`
     : undefined;
   const stripText = running
     ? 'Scanning…'
@@ -305,6 +327,11 @@ export function DealsPage() {
       // Blocked storage: the toggle still works for this visit.
     }
   };
+  // Drive times: from the deals response, else from the saved search (no scan yet).
+  const [addressOpen, setAddressOpen] = useState(false);
+  const customerAddress = dealsQuery.data?.customer?.address ?? s?.customerAddress ?? null;
+  const driveAvailable = dealsQuery.data?.drive?.available ?? configQuery.data?.googleMaps?.available ?? false;
+  const driveError = dealsQuery.data?.drive?.error ?? null;
   // "More" on each warning line shows its full explanation.
   const [moreOpen, setMoreOpen] = useState({ partial: false, stale: false });
   const noticesId = useId();
@@ -634,6 +661,43 @@ export function DealsPage() {
           </div>
         </div>
 
+        {s && (driveAvailable || customerAddress) && (
+          <div className="card drive-bar" role="region" aria-label="Customer address">
+            <PinIcon size={16} />
+            <div className="drive-bar__text">
+              {customerAddress ? (
+                <>
+                  Drive times from <strong>{customerAddress}</strong>
+                </>
+              ) : (
+                'Add the customer address to see the drive distance and time to every branch.'
+              )}
+              {driveError && (
+                <span className="drive-bar__error" role="alert">
+                  {' '}
+                  Drive times could not be measured: {driveError}
+                </span>
+              )}
+            </div>
+            <button
+              type="button"
+              className="btn btn--ghost btn--sm"
+              disabled={!driveAvailable}
+              title={driveAvailable ? undefined : 'Not set up on the server yet (Google Maps key)'}
+              onClick={() => setAddressOpen(true)}
+            >
+              {customerAddress ? 'Change address' : 'Add address'}
+            </button>
+          </div>
+        )}
+        <CustomerAddressDialog
+          open={addressOpen}
+          searchId={searchId}
+          current={customerAddress}
+          canRemove={s?.searchBy !== 'address'}
+          onClose={() => setAddressOpen(false)}
+        />
+
         <div className="layout">
           <FilterSidebar
             filters={filters}
@@ -644,6 +708,7 @@ export function DealsPage() {
             open={filtersOpen}
             onOpenChange={setFiltersOpen}
             panelId={filtersPanelId}
+            customerAddress={customerAddress}
             resultCount={visible.length}
           />
 
@@ -693,7 +758,7 @@ export function DealsPage() {
                     value={filters.sort}
                     onChange={(e) => patchFilters({ sort: e.target.value as DealFilters['sort'] })}
                   >
-                    {SORT_OPTIONS.map((o) => (
+                    {sortOptions.map((o) => (
                       <option key={o.value} value={o.value}>
                         {o.label}
                       </option>
@@ -756,6 +821,29 @@ export function DealsPage() {
                   Next
                 </button>
               </nav>
+            )}
+            {fartherCheaper.length > 0 && cheapestWithin && filters.maxDriveMinutes !== null && (
+              <section className="farther" aria-label="Cheaper, but a longer drive">
+                <h2 className="farther__title">Cheaper, but a longer drive</h2>
+                <p className="farther__sub">
+                  Over the {minutesLabel(filters.maxDriveMinutes)} drive limit, for comparison with the cheapest deal within it (
+                  {money(cheapestWithin.monthlyRate, cheapestWithin.currency)} per 30 days
+                  {cheapestWithin.driveMinutes != null && `, ${minutesLabel(cheapestWithin.driveMinutes)} away`}). Savings are per 30 days.
+                </p>
+                <ul className="deal-list">
+                  {fartherCheaper.map((deal) => (
+                    <DealCard
+                      key={deal.fingerprint}
+                      deal={deal}
+                      priceNote={dealsQuery.data?.priceNote}
+                      onToggleFavourite={(d) => toggleFavourite.mutate(d)}
+                      compareNote={`${money(Number(cheapestWithin.monthlyRate) - Number(deal.monthlyRate), deal.currency)} less, ${minutesLabel(
+                        (deal.driveMinutes ?? 0) - (cheapestWithin.driveMinutes ?? 0),
+                      )} further`}
+                    />
+                  ))}
+                </ul>
+              </section>
             )}
           </section>
         </div>

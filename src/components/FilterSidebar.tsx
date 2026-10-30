@@ -2,7 +2,7 @@ import { useCallback, useRef } from 'react';
 import type { DealFilters } from '../lib/filters';
 import { countActiveFilters, type Facets } from '../lib/filters';
 import type { CarType } from '../lib/carType';
-import { CLASS_LABEL, money, shortDate } from '../lib/format';
+import { CLASS_LABEL, minutesLabel, money, shortDate } from '../lib/format';
 import { CloseIcon } from './icons';
 import { useMobileSheet } from './useMobileSheet';
 
@@ -23,7 +23,12 @@ interface FilterSidebarProps {
   resultCount: number;
   /** Pickup dates the scan priced, with each date's cheapest 30-day average (from the API). */
   pickupDates?: Array<{ date: string; deals: number; cheapestMonthly: string }>;
+  /** Where drive times are measured from, for the drive filter's hint. */
+  customerAddress?: string | null;
 }
+
+/** Longest drive from the customer address, in minutes. */
+const DRIVE_OPTIONS: Array<number | null> = [null, 15, 30, 45, 60, 90, 120];
 
 const SEAT_OPTIONS = [
   { value: null, label: 'Any' },
@@ -42,6 +47,7 @@ export function FilterSidebar({
   panelId,
   resultCount,
   pickupDates = [],
+  customerAddress = null,
 }: FilterSidebarProps) {
   const close = useCallback(() => onOpenChange(false), [onOpenChange]);
   const closeRef = useRef<HTMLButtonElement>(null);
@@ -154,6 +160,28 @@ export function FilterSidebar({
                   onChange({ maxDistance: v >= milesMax ? null : v });
                 }}
               />
+            </div>
+          )}
+
+          {/* Only once the deals have drive times (a customer address is set). */}
+          {facets.driveRange && (
+            <div className="filter-group">
+              <div className="filter-group__title">Max drive time</div>
+              {customerAddress && <p className="filter-group__hint">From {customerAddress}</p>}
+              <div className="chips" style={{ marginTop: 0, gap: 6 }}>
+                {DRIVE_OPTIONS.filter((m) => m === null || m < (facets.driveRange?.max ?? 0) + 15).map((m) => (
+                  <button
+                    key={m ?? 'any'}
+                    type="button"
+                    className="btn btn--ghost btn--sm"
+                    aria-pressed={filters.maxDriveMinutes === m}
+                    style={filters.maxDriveMinutes === m ? { borderColor: 'var(--accent)', color: 'var(--accent)' } : undefined}
+                    onClick={() => onChange({ maxDriveMinutes: m })}
+                  >
+                    {m === null ? 'Any' : minutesLabel(m)}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 

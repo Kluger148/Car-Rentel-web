@@ -4,6 +4,7 @@ import type { Deal } from '../lib/api';
 import {
   CHANGE_LABEL,
   dateRange,
+  driveLabel,
   isSearchOnlyLink,
   isUnlimitedMileage,
   mapsUrl,
@@ -87,10 +88,13 @@ export function DealCard({
   deal,
   priceNote,
   onToggleFavourite,
+  compareNote,
 }: {
   deal: Deal;
   priceNote?: string;
   onToggleFavourite?: (deal: Deal) => void;
+  /** A cheaper deal past the drive-time limit: "$343 less, 56 min further". */
+  compareNote?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [imgFailed, setImgFailed] = useState(false);
@@ -114,6 +118,9 @@ export function DealCard({
   // Same rule as the "Same car also at" row: only when the car is offered from more than one place.
   const otherPlaces = deal.places.length > 1 ? deal.places.filter((p) => p !== pickupName) : [];
   const showDelta = !!deal.previousPrice && (isDrop || isRise) && delta !== null;
+  // Drive from the customer address: "6.8 mi · 12 min"; empty without an address.
+  const drive = driveLabel(deal.driveMiles, deal.driveMinutes, deal.driveApprox);
+  const addressNote = deal.addressApprox ? 'Area name only: Skyscanner gives no street address. The drive time uses the exact map point.' : undefined;
 
   return (
     <li className={`card dc${highlight ? ' dc--highlight' : ''}`}>
@@ -163,6 +170,7 @@ export function DealCard({
             </span>
           )}
           {deal.underTarget && <span className="badge badge--new">At or under target</span>}
+          {compareNote && <span className="badge badge--compare">{compareNote}</span>}
         </div>
         <h3 className="dc-title">{deal.vehicleName}</h3>
         <p className="dc-sub">
@@ -207,7 +215,7 @@ export function DealCard({
           <PinIcon size={14} />
           <span>
             {pickupName}
-            {deal.distanceMiles !== null && ` · ${milesLabel(deal.distanceMiles, deal.distanceApprox)}`} · {shortDate(deal.pickupDate)} –{' '}
+            {drive ? ` · ${drive}` : deal.distanceMiles !== null && ` · ${milesLabel(deal.distanceMiles, deal.distanceApprox)}`} · {shortDate(deal.pickupDate)} –{' '}
             {shortDate(deal.dropoffDate)}
           </span>
         </p>
@@ -219,7 +227,18 @@ export function DealCard({
               <a className="dc-maplink" href={mapsUrl(pickupName)} target="_blank" rel="noreferrer noopener" title="Open this address in Google Maps">
                 {pickupName}
               </a>
+              {deal.addressApprox && drive && (
+                <span className="dc-approx" title={addressNote}>
+                  {' '}
+                  (approx. address)
+                </span>
+              )}
             </div>
+            {drive && (
+              <div className="dc-drive" title={deal.driveApprox ? 'Drive to the town centre: the branch itself could not be placed' : 'Driving distance and time from the customer address'}>
+                {drive} drive from customer
+              </div>
+            )}
             <div className="dc-muted">
               {pickupType ? `Pick-up: ${pickupType} · ` : ''}
               {deal.distanceMiles !== null && `${milesLabel(deal.distanceMiles, deal.distanceApprox)} from ZIP · `}
@@ -345,6 +364,7 @@ export function DealCard({
           <dd>
             {pickupName}
             {pickupType ? ` · ${pickupType}` : ''}
+            {drive && ` · ${drive} drive from customer`}
             {deal.distanceMiles !== null && ` · ${milesLabel(deal.distanceMiles, deal.distanceApprox)} from ZIP`} · same return
             location
           </dd>
@@ -392,7 +412,9 @@ export function DealCard({
                 <strong>{o.bookingProvider ?? 'Unknown provider'}</strong> <Stars rating={o.rating} reviews={o.reviews} />
                 <div className="dc-muted">
                   {o.place}
-                  {o.distanceMiles !== null && ` · ${milesLabel(o.distanceMiles)}`}
+                  {o.driveMinutes != null
+                    ? ` · ${driveLabel(o.driveMiles, o.driveMinutes, o.driveApprox)} drive`
+                    : o.distanceMiles !== null && ` · ${milesLabel(o.distanceMiles)}`}
                   {o.pickupDate && o.dropoffDate && ` · ${dateRange(o.pickupDate, o.dropoffDate)}`}
                 </div>
                 {o.freeCancellation && <div className="dc-good">✓ Free cancellation</div>}
