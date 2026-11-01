@@ -75,6 +75,30 @@ export const shortDate = (value: string): string => dateFmt.format(parseIsoDate(
 export const fullDate = (value: string): string => dateYearFmt.format(parseIsoDate(value));
 export const dateTime = (value: string): string => dateTimeFmt.format(new Date(value));
 
+const runAtFmt = new Intl.DateTimeFormat('en-US', {
+  weekday: 'short',
+  month: 'short',
+  day: 'numeric',
+  hour: 'numeric',
+  minute: '2-digit',
+});
+/** A booked scan's time in the user's own time zone: "Tue, Nov 3, 2:00 AM". */
+export const runAtLabel = (value: string): string => runAtFmt.format(new Date(value));
+
+/** A local time as a datetime-local input wants it: "2026-11-03T02:00". */
+export function toLocalInput(d: Date): string {
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
+/** The next 2:00 AM local time: a long scan booked for it is ready by the start of the working day. */
+export function nextNightRun(now = new Date()): Date {
+  const d = new Date(now);
+  d.setHours(2, 0, 0, 0);
+  if (d <= now) d.setDate(d.getDate() + 1);
+  return d;
+}
+
 /** "41 mi" ("≈41 mi" when approximate); empty for a search without a ZIP, which has no distances. */
 export function milesLabel(miles: number | null, approx = false): string {
   return miles === null ? '' : `${approx ? '≈' : ''}${Math.round(miles)} mi`;

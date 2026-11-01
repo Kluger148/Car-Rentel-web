@@ -5,6 +5,7 @@ import { CustomerAddressDialog } from '../components/CustomerAddressDialog';
 import { DealCard } from '../components/DealCard';
 import { FilterSidebar } from '../components/FilterSidebar';
 import { RunCostDialog } from '../components/RunCostDialog';
+import { RunLaterDialog } from '../components/RunLaterDialog';
 import { ScanProgress } from '../components/ScanProgress';
 import { SearchPanel } from '../components/SearchPanel';
 import { DealSkeleton, ErrorState, NoMatchesState } from '../components/States';
@@ -24,7 +25,7 @@ import type { DealsSearch } from '../router';
 import { CAR_TYPES, type CarType } from '../lib/carType';
 import type { DealFilters } from '../lib/filters';
 import { DEFAULT_FILTERS, SORT_OPTIONS, applyFilters, buildFacets, countActiveFilters } from '../lib/filters';
-import { STATUS_LABEL, dateTime, fullDate, minutesLabel, money, relativeTime, shortDate } from '../lib/format';
+import { STATUS_LABEL, dateTime, fullDate, minutesLabel, money, relativeTime, runAtLabel, shortDate } from '../lib/format';
 
 // Typed accessors for the route without importing the router (avoids a cycle).
 const route = getRouteApi('/search/$id');
@@ -110,8 +111,12 @@ export function DealsPage() {
     queryKey: ['search', searchId],
     queryFn: () => api.search(searchId),
     // Poll while a scan is running so the progress bar moves and the page updates when it finishes.
-    refetchInterval: (q) =>
-      q.state.data?.runs[0]?.status === 'running' || awaitingNewerThan !== null ? 2_000 : false,
+    // A booked scan whose time has come also polls (more slowly): it starts once any running scan ends.
+    refetchInterval: (q) => {
+      if (q.state.data?.runs[0]?.status === 'running' || awaitingNewerThan !== null) return 2_000;
+      const runAt = q.state.data?.search.runAt;
+      return runAt && new Date(runAt).getTime() <= Date.now() + 60_000 ? 15_000 : false;
+    },
   });
   const latestRun = detailQuery.data?.runs[0];
   // A search saved with car types opens filtered to them, once; the filter can then be cleared.
@@ -165,6 +170,15 @@ export function DealsPage() {
       void queryClient.invalidateQueries({ queryKey: ['search', searchId] });
       void queryClient.invalidateQueries({ queryKey: ['searches'] });
       void queryClient.invalidateQueries({ queryKey: ['scheduler'] });
+    },
+  });
+  const [bookOpen, setBookOpen] = useState(false);
+  const setRunAt = useMutation({
+    mutationFn: (runAt: string | null) => api.setSearchRunAt(searchId, runAt),
+    onSuccess: () => {
+      setBookOpen(false);
+      void queryClient.invalidateQueries({ queryKey: ['search', searchId] });
+      void queryClient.invalidateQueries({ queryKey: ['searches'] });
     },
   });
   const toggleActive = useMutation({
@@ -255,11 +269,12 @@ export function DealsPage() {
   const scheduler = useQuery({ queryKey: ['scheduler'], queryFn: () => api.scheduler(), staleTime: 30_000 });
   const schedulerOn = scheduler.data ? scheduler.data.configured && scheduler.data.enabled : true;
   const repeat = intervalLabel(s?.intervalDays).toLowerCase();
-  const scheduleText = !s?.active
-    ? 'automatic runs off'
-    : schedulerOn
-      ? `re-runs ${repeat}`
-      : `set to ${repeat}, but the scheduler is off`;
+  const scheduleText =
+    (!s?.active
+      ? 'automatic runs off'
+      : schedulerOn
+        ? `re-runs ${repeat}`
+        : `set to ${repeat}, but the scheduler is off`) + (s?.runAt ? ` · one scan booked for ${runAtLabel(s.runAt)}` : '');
   // Older than one interval plus a day of slack: the prices on screen are no longer being tracked.
   const [openedAt] = useState(() => Date.now());
   const ageDays = dealsQuery.data ? (openedAt - new Date(dealsQuery.data.runStartedAt).getTime()) / 86_400_000 : 0;
@@ -484,6 +499,20 @@ export function DealsPage() {
                 {s.active ? 'Stop automatic runs' : 'Turn on automatic runs'}
               </button>
             )}
+            {s && (
+              <button
+                type="button"
+                className="btn btn--ghost"
+                title="Book one scan for a time, e.g. tonight, so its deals are ready in the morning"
+                onClick={() => {
+                  setDetailsOpen(false);
+                  setRunAt.reset();
+                  setBookOpen(true);
+                }}
+              >
+                {s.runAt ? `Booked: ${runAtLabel(s.runAt)}` : 'Run later'}
+              </button>
+            )}
             <button type="button" className="btn btn--primary" disabled={running} onClick={openRunDialog}>
               {running ? 'Scanning…' : 'Run now'}
             </button>
@@ -506,6 +535,14 @@ export function DealsPage() {
             setConfirmOpen(false);
             runNow.mutate();
           }}
+        />
+        <RunLaterDialog
+          search={bookOpen && s ? s : null}
+          saving={setRunAt.isPending}
+          error={setRunAt.isError ? setRunAt.error.message : null}
+          onClose={() => setBookOpen(false)}
+          onSave={(runAt) => setRunAt.mutate(runAt)}
+          onRemove={() => setRunAt.mutate(null)}
         />
         {running && (
           <ScanProgress

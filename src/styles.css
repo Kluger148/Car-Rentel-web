@@ -2697,3 +2697,58 @@ table.data tbody tr:last-child .row-action[data-tip]::after { top: auto; bottom:
 .ac__attrib { padding: 6px 10px 2px; text-align: right; font-size: 11px; }
 .ac__attrib a { color: var(--text-faint); text-decoration: none; }
 .ac__attrib a:hover { color: var(--text-muted); text-decoration: underline; }
+
+/* A one-time scan booked for a time: under the Scheduled switch, opens the booking dialog. */
+.run-at-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 6px;
+  padding: 2px 8px;
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  color: var(--accent-hover);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.run-at-tag:hover { background: color-mix(in srgb, var(--accent) 18%, transparent); }
+.run-at-tag:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+td.cell-switch .run-at-tag { display: flex; width: max-content; }
+/* The Repeat select fits its longest choice ("Every 15 days", "One time") without clipping. */
+td.cell-switch select.select--sm { min-width: 8.5em; }
+
+/* What the Scheduled switch means (one-time or repeating), on hover or keyboard focus. */
+.switch[data-tip] { position: relative; }
+.switch[data-tip]::after {
+  content: attr(data-tip);
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 20;
+  width: max-content;
+  max-width: 260px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: var(--text);
+  color: var(--surface);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+  text-align: left;
+  white-space: normal;
+  box-shadow: var(--shadow-sm);
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: opacity 0.12s, transform 0.12s;
+  pointer-events: none;
+}
+.switch[data-tip]:hover::after,
+.switch[data-tip]:focus-visible::after { opacity: 1; transform: translateY(0); }
+/* The last row has no room below inside the table: its tooltip opens above. */
+table.data tbody tr:last-child .switch[data-tip]::after { top: auto; bottom: calc(100% + 8px); }
+/* Touch screens have no hover: the label and the booking tag say enough there. */
+@media (hover: none) { .switch[data-tip]::after { display: none; } }

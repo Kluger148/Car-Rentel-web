@@ -69,7 +69,13 @@ const FIELDS: FieldHelp[] = [
   },
   {
     name: 'Repeat',
-    what: 'How often the search re-runs on its own once automatic runs are switched on: daily, weekly, every 15 or every 30 days. Price drops and new deals are flagged after each scan.',
+    what: 'How often the search re-runs on its own once automatic runs are switched on: daily, weekly, every 15 or every 30 days. Price drops and new deals are flagged after each scan. "One time only (no repeat)" scans the search once and never re-runs it on its own: its Scheduled switch stays off.',
+    tip: 'One time only is for a quick check for a customer, without paying for a daily scan. To repeat it later, switch Scheduled on in the list.',
+  },
+  {
+    name: 'Start the scan',
+    what: 'Shown for "One time only". "Now" starts the scan as soon as you press Save & scan now, and opens its deals page so you can follow it. "Later, at a time I choose" books the scan for a date and time, e.g. 2:00 AM, and it starts on its own then.',
+    tip: 'A big search can take about 2 hours: book it for the night and its deals are ready when the office opens. Any saved search can also be booked later with the clock button in the list, or Run later on its deals page.',
   },
   {
     name: 'Name and Notes (optional)',
@@ -138,11 +144,22 @@ export function SearchHelpDialog({ open, onClose }: { open: boolean; onClose: ()
           </span>
         </div>
         <div className="help-note">
+          <strong>Booked scans</strong>
+          <span>
+            The scan starts within a minute of the booked time. If another scan is still running then, it waits and starts
+            as soon as that one ends; the daily scan also waits instead of being skipped. If the server is down at that
+            time, the scan starts as soon as it is back. Like <em>Run now</em>, a booked scan runs even when the
+            scheduler is off or the monthly budget is reached. To change or remove a booking, click its{' '}
+            <em>Once: …</em> tag in the list.
+          </span>
+        </div>
+        <div className="help-note">
           <strong>Before you save</strong>
           <span>
             The line under the fields shows each scan's searches, time and cost (places × pickup dates). <em>Preview
-            places</em> lists the towns that will be searched; nothing is saved or charged until you press{' '}
-            <em>Save search</em>, and nothing is scanned until you press <em>Run now</em> or switch on automatic runs.
+            places</em> lists the towns that will be searched; nothing is saved or charged until you save. <em>Save
+            search</em> scans nothing until you press <em>Run now</em> or switch on automatic runs;{' '}
+            <em>Save &amp; scan now</em> starts the scan straight away, and <em>Save &amp; book scan</em> at the booked time.
           </span>
         </div>
         <div className="help-note">

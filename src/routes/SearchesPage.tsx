@@ -1,11 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Link, getRouteApi } from '@tanstack/react-router';
+import { Link, getRouteApi, useNavigate } from '@tanstack/react-router';
 import { useEffect, useState, type FormEvent } from 'react';
 import { AddressInput } from '../components/AddressInput';
 import { SchedulerBar } from '../components/SchedulerBar';
 import { SearchHelpDialog } from '../components/SearchHelpDialog';
 import { DeleteSearchDialog } from '../components/DeleteSearchDialog';
-import { InfoIcon, PencilIcon, TagIcon, TrashIcon } from '../components/icons';
+import { RunLaterDialog } from '../components/RunLaterDialog';
+import { ClockIcon, InfoIcon, PencilIcon, TagIcon, TrashIcon } from '../components/icons';
 import { StatePicker, TagPicker } from '../components/TagPicker';
 import { ErrorState } from '../components/States';
 import {
@@ -24,7 +25,7 @@ import {
   type SearchSource,
 } from '../lib/api';
 import { CAR_TYPES } from '../lib/carType';
-import { STATUS_LABEL, fullDate, relativeTime } from '../lib/format';
+import { STATUS_LABEL, fullDate, nextNightRun, relativeTime, runAtLabel, toLocalInput } from '../lib/format';
 
 const CAR_TYPE_OPTIONS = CAR_TYPES.filter((t) => t !== 'Other').map((t) => ({ value: t, label: t }));
 /** A typed car type matches the list whatever its case. */
@@ -45,6 +46,15 @@ function tomorrowIso(): string {
 
 const RADIUS_OPTIONS = [50, 100, 200, 300, 500, 1000, 2000];
 
+/** What the Scheduled switch means for this search, shown when it is hovered or focused. */
+function switchTip(s: SavedSearch): string {
+  if (s.active) return `Repeats ${intervalLabel(s.intervalDays).toLowerCase()}. Switch off to stop the automatic scans.`;
+  const when = s.runAt
+    ? `once at its booked time (${runAtLabel(s.runAt)}) or when you press Run now`
+    : 'only when you press Run now or book a scan';
+  return `Doesn't repeat. Runs ${when}. Switch on to repeat it ${intervalLabel(s.intervalDays).toLowerCase()}.`;
+}
+
 // Typed access to ?edit=<id>, without importing the router (avoids a cycle).
 const route = getRouteApi('/');
 
@@ -58,7 +68,8 @@ export function SearchForm({
   onCancel,
 }: {
   editing?: SavedSearch;
-  onSaved: (id: number) => void;
+  /** `watch`: a one-time scan was started now; open its deals page to follow it. */
+  onSaved: (id: number, opts?: { watch?: boolean }) => void;
   onCancel?: () => void;
 }) {
   const isEdit = editing !== undefined;
@@ -84,6 +95,13 @@ export function SearchForm({
   }));
   const [pickup, setPickup] = useState(editing?.pickupDate ?? tomorrowIso());
   const [intervalDays, setIntervalDays] = useState(editing?.intervalDays ?? 1);
+  // One-time: scanned once (a new search: now or at a booked time), never by the daily schedule.
+  // A saved search is one-time while its Scheduled switch is off.
+  const [oneTime, setOneTime] = useState(editing ? !editing.active : false);
+  const [startLater, setStartLater] = useState(false);
+  const [startAt, setStartAt] = useState(() => toLocalInput(nextNightRun()));
+  // The datetime-local value is the user's own time; null while it is empty or unfinished.
+  const startDate = startAt && !Number.isNaN(new Date(startAt).getTime()) ? new Date(startAt) : null;
   const [pickupFlexDays, setPickupFlexDays] = useState(editing?.pickupFlexDays ?? 0);
   const configQuery = useQuery({ queryKey: ['config'], queryFn: () => api.config(), staleTime: 300_000 });
   const serverMaxPlaces = configQuery.data?.search.maxLocationsPerSearch;
@@ -134,7 +152,7 @@ export function SearchForm({
   const directMaxDays = sourcesCfg?.priceline?.maxRentalDays ?? 300;
   const scanSearches = (useSky ? live.searches : 0) + (useKayak ? searchesOn('kayak') : 0) + (usePriceline ? searchesOn('priceline') : 0);
   // A big area re-scanned every day adds up on Apify: suggest a weekly repeat.
-  const bigArea = places !== null && places > 300 && intervalDays === 1 && (useSky || useKayak);
+  const bigArea = !oneTime && places !== null && places > 300 && intervalDays === 1 && (useSky || useKayak);
   const scanMinutes = Math.max(
     useSky ? live.minutes : 0,
     usePriceline ? extraMinutes('priceline') : 0,
@@ -163,6 +181,8 @@ export function SearchForm({
     intervalDays,
     pickupFlexDays,
     maxPlaces,
+    // Only a one-time search sends these, so a repeating one looks exactly as before to the API.
+    ...(oneTime ? { active: false, runAt: startLater ? (startDate?.toISOString() ?? null) : ('now' as const) } : {}),
     name: name.trim() || undefined,
     notes: notes.trim() || undefined,
   });
@@ -182,10 +202,16 @@ export function SearchForm({
   const saveMutation = useMutation({
     mutationFn: () => {
       if (!editing && byAddress && !address) return Promise.reject(new Error(addressMissing));
+      if (!editing && oneTime && startLater) {
+        if (!startDate) return Promise.reject(new Error('Pick when the scan should start.'));
+        if (startDate.getTime() <= Date.now()) return Promise.reject(new Error('Pick a start time in the future, or start the scan now.'));
+      }
       if (!editing) return api.createSearch(input());
       const patch: Partial<SearchInput> = {
         suppliers,
         intervalDays,
+        // Repeat and the Scheduled switch are one setting; only sent when changed.
+        ...(oneTime === editing.active ? { active: !oneTime } : {}),
         // Only sent when changed, so an older backend without car types keeps working.
         ...(carTypes.join() !== (editing.carTypes ?? []).join() ? { carTypes } : {}),
         // Only sent when changed, so an older backend without daily pickup dates keeps working.
@@ -201,7 +227,7 @@ export function SearchForm({
       if (pickup !== editing.pickupDate) patch.pickupDate = pickup;
       return api.updateSearch(editing.id, patch);
     },
-    onSuccess: (d) => onSaved(d.search.id),
+    onSuccess: (d) => onSaved(d.search.id, { watch: !isEdit && oneTime && !startLater }),
     onError: (e) => setError(e.message),
   });
   const lockedHint = isEdit ? 'Fixed once saved. Create a new search for a different area.' : undefined;
@@ -505,14 +531,44 @@ export function SearchForm({
         </label>
         <label className="field">
           <span className="field__label">Repeat</span>
-          <select id="ns-interval" value={intervalDays} onChange={(e) => setIntervalDays(Number(e.target.value))}>
+          <select
+            id="ns-interval"
+            value={oneTime ? 'once' : intervalDays}
+            onChange={(e) => {
+              const once = e.target.value === 'once';
+              setOneTime(once);
+              if (!once) setIntervalDays(Number(e.target.value));
+            }}
+          >
             {INTERVAL_OPTIONS.map((o) => (
               <option key={o.days} value={o.days}>
                 {o.label}
               </option>
             ))}
+            <option value="once">One time only (no repeat)</option>
           </select>
         </label>
+        {/* A saved search books its one scan with the clock button in the list instead. */}
+        {oneTime && !isEdit && (
+          <label className="field">
+            <span className="field__label">Start the scan</span>
+            <select id="ns-start" value={startLater ? 'later' : 'now'} onChange={(e) => setStartLater(e.target.value === 'later')}>
+              <option value="now">Now</option>
+              <option value="later">Later, at a time I choose</option>
+            </select>
+            {startLater && (
+              <input
+                id="ns-start-at"
+                type="datetime-local"
+                required
+                value={startAt}
+                min={toLocalInput(new Date())}
+                onChange={(e) => setStartAt(e.target.value)}
+                aria-label="When the scan starts"
+              />
+            )}
+          </label>
+        )}
         <label className="field">
           <span className="field__label">Name (optional)</span>
           <input id="ns-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Customer or request" />
@@ -570,6 +626,16 @@ export function SearchForm({
           {bigArea && ' Large area: a weekly repeat keeps the Apify bill down.'}
           {usePriceline &&
             ` Priceline offers are for ${directMaxDays}-day rentals (Priceline prices at most 310 days; whole months are cheapest) and are compared per 30 days.`}
+        </p>
+      )}
+
+      {oneTime && !isEdit && (
+        <p className="scan-estimate">
+          {startLater
+            ? `One scan starts on its own at ${startDate ? runAtLabel(startDate.toISOString()) : 'the chosen time'} (your time). `
+            : 'One scan starts as soon as the search is saved. '}
+          The search is not re-run after that; switch Scheduled on in the list to repeat it, or book another scan with the clock button.
+          {' '}If another scan is running at that time, this one starts when it ends.
         </p>
       )}
 
@@ -634,7 +700,15 @@ export function SearchForm({
           disabled={saveMutation.isPending}
           onClick={() => saveMutation.mutate()}
         >
-          {saveMutation.isPending ? 'Saving…' : isEdit ? 'Save changes' : 'Save search'}
+          {saveMutation.isPending
+            ? 'Saving…'
+            : isEdit
+              ? 'Save changes'
+              : oneTime
+                ? startLater
+                  ? 'Save & book scan'
+                  : 'Save & scan now'
+                : 'Save search'}
         </button>
       </div>
     </form>
@@ -648,6 +722,7 @@ export function SearchesPage() {
   // "Edit search" on a deals page links here with ?edit=<id>, which opens that search's form.
   const [editingId, setEditingId] = useState<number | null>(() => editParam ?? null);
   const navigate = route.useNavigate();
+  const goTo = useNavigate();
   const searchesQuery = useQuery({ queryKey: ['searches'], queryFn: () => api.searches(), staleTime: 30_000 });
   // The API lists switched-on searches first. Newest first keeps each row in place when its switch changes.
   const searches = [...(searchesQuery.data ?? [])].sort((a, b) => b.id - a.id);
@@ -677,9 +752,16 @@ export function SearchesPage() {
       refresh(id);
     },
   });
+  // Repeat and the Scheduled switch are one setting: "One time" switches the search off, a
+  // repeat switches it on.
   const changeInterval = useMutation({
-    mutationFn: ({ id, days }: { id: number; days: number }) => api.setSearchInterval(id, days),
-    onSuccess: (_d, { id }) => refresh(id),
+    mutationFn: ({ id, days }: { id: number; days: number | 'once' }) => api.setSearchRepeat(id, days),
+    onSuccess: (d, { id }) => {
+      queryClient.setQueryData<SavedSearch[]>(['searches'], (rows) =>
+        rows?.map((s) => (s.id === id ? { ...s, active: d.search.active, intervalDays: d.search.intervalDays } : s)),
+      );
+      refresh(id);
+    },
   });
   // Deleting asks first (DeleteSearchDialog): it takes every scan, price and favourite with it.
   const [deleteTarget, setDeleteTarget] = useState<SavedSearch | null>(null);
@@ -698,6 +780,22 @@ export function SearchesPage() {
   const askDelete = (s: SavedSearch) => {
     deleteSearch.reset();
     setDeleteTarget(s);
+  };
+  // One scan booked for a time (RunLaterDialog), apart from the daily schedule.
+  const [bookTarget, setBookTarget] = useState<SavedSearch | null>(null);
+  const setRunAt = useMutation({
+    mutationFn: ({ id, runAt }: { id: number; runAt: string | null }) => api.setSearchRunAt(id, runAt),
+    onSuccess: (d, { id }) => {
+      queryClient.setQueryData<SavedSearch[]>(['searches'], (rows) =>
+        rows?.map((s) => (s.id === id ? { ...s, runAt: d.search.runAt ?? null } : s)),
+      );
+      setBookTarget(null);
+      refresh(id);
+    },
+  });
+  const askBook = (s: SavedSearch) => {
+    setRunAt.reset();
+    setBookTarget(s);
   };
 
   return (
@@ -733,10 +831,12 @@ export function SearchesPage() {
 
       {!editing && (showForm || (searchesQuery.isSuccess && searches.length === 0)) && (
         <SearchForm
-          onSaved={() => {
+          onSaved={(id, opts) => {
             setShowForm(false);
             void queryClient.invalidateQueries({ queryKey: ['searches'] });
             void queryClient.invalidateQueries({ queryKey: ['scheduler'] });
+            // A one-time scan started now: follow it on the deals page.
+            if (opts?.watch) void goTo({ to: '/search/$id', params: { id: String(id) } });
           }}
         />
       )}
@@ -772,7 +872,8 @@ export function SearchesPage() {
             </thead>
             <tbody>
               {searches.map((s) => (
-                <tr key={s.id} className={s.active ? undefined : 'is-off'}>
+                // A one-time search with a booked scan is waiting to run, so it is not dimmed like a search that is off.
+                <tr key={s.id} className={s.active || s.runAt ? undefined : 'is-off'}>
                   <td className="cell-wrap cell-title">
                     <div className="cell-title__row">
                       <strong>{s.name}</strong>
@@ -840,21 +941,33 @@ export function SearchesPage() {
                       className="switch"
                       aria-checked={s.active}
                       aria-label={`Scheduled scan for ${s.name}`}
+                      aria-describedby={`switch-tip-${s.id}`}
+                      data-tip={switchTip(s)}
                       disabled={toggleActive.isPending && toggleActive.variables?.id === s.id}
                       onClick={() => toggleActive.mutate({ id: s.id, active: !s.active })}
                     >
                       <span className="switch__track" />
-                      {s.active ? 'On' : 'Off'}
+                      {s.active ? 'On' : s.runAt ? 'One time' : 'Off'}
                     </button>
+                    <span id={`switch-tip-${s.id}`} className="sr-only">
+                      {switchTip(s)}
+                    </span>
+                    {s.runAt && (
+                      <button type="button" className="run-at-tag" title="Change or remove the booked scan" onClick={() => askBook(s)}>
+                        <ClockIcon size={13} /> Once: {runAtLabel(s.runAt)}
+                      </button>
+                    )}
                   </td>
                   <td className="cell-switch" data-label="Repeat">
                     <select
                       className="select select--sm"
                       aria-label={`How often ${s.name} repeats`}
-                      title={intervalLabel(s.intervalDays)}
-                      value={s.intervalDays ?? 1}
+                      title={s.active ? intervalLabel(s.intervalDays) : 'One time only: not re-run on its own'}
+                      value={s.active ? (s.intervalDays ?? 1) : 'once'}
                       disabled={changeInterval.isPending && changeInterval.variables?.id === s.id}
-                      onChange={(e) => changeInterval.mutate({ id: s.id, days: Number(e.target.value) })}
+                      onChange={(e) =>
+                        changeInterval.mutate({ id: s.id, days: e.target.value === 'once' ? 'once' : Number(e.target.value) })
+                      }
                     >
                       {INTERVAL_OPTIONS.map((o) => (
                         <option key={o.days} value={o.days}>
@@ -864,6 +977,7 @@ export function SearchesPage() {
                       {!INTERVAL_OPTIONS.some((o) => o.days === (s.intervalDays ?? 1)) && (
                         <option value={s.intervalDays}>{intervalLabel(s.intervalDays)}</option>
                       )}
+                      <option value="once">One time</option>
                     </select>
                   </td>
                   <td className="row-actions">
@@ -879,6 +993,16 @@ export function SearchesPage() {
                         <TagIcon size={18} />
                         <span className="row-action__label">Open deals</span>
                       </Link>
+                      <button
+                        type="button"
+                        className="row-action"
+                        data-tip={s.runAt ? `Scan booked: ${runAtLabel(s.runAt)}` : 'Book a scan for later'}
+                        aria-label={`Book a scan of ${s.name} for later`}
+                        onClick={() => askBook(s)}
+                      >
+                        <ClockIcon size={18} />
+                        <span className="row-action__label">Run later</span>
+                      </button>
                       <button
                         type="button"
                         className="row-action row-action--edit"
@@ -907,6 +1031,15 @@ export function SearchesPage() {
           </table>
         </div>
       )}
+
+      <RunLaterDialog
+        search={bookTarget}
+        saving={setRunAt.isPending}
+        error={setRunAt.isError ? setRunAt.error.message : null}
+        onClose={() => setBookTarget(null)}
+        onSave={(runAt) => bookTarget && setRunAt.mutate({ id: bookTarget.id, runAt })}
+        onRemove={() => bookTarget && setRunAt.mutate({ id: bookTarget.id, runAt: null })}
+      />
 
       <DeleteSearchDialog
         search={deleteTarget}

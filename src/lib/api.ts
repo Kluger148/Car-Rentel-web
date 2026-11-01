@@ -385,6 +385,8 @@ export interface SavedSearch {
   active: boolean;
   /** Days between scheduled scans: 1 daily, 7 weekly, 15, 30. Missing on older backends. */
   intervalDays?: number;
+  /** A one-time scan booked for this time (ISO); null or missing = nothing booked. */
+  runAt?: string | null;
   /** Flexible pickup: also price pickup dates every 7 days up to this many days later. Missing on older backends. */
   pickupFlexDays?: number;
   /** Places this search scans, largest first; null = the server default. Missing on older backends. */
@@ -437,6 +439,10 @@ export interface SearchInput {
   pickupFlexDays?: number;
   /** Null or left out = every place in the area (up to the server limit). */
   maxPlaces?: number | null;
+  /** False = a one-time search the daily schedule never re-runs. Left out = it repeats. */
+  active?: boolean;
+  /** Books one scan: 'now', or an ISO time. Null cancels a booking (edits only). */
+  runAt?: 'now' | string | null;
   name?: string;
   notes?: string;
 }
@@ -754,8 +760,12 @@ export const api = {
     request<SearchDetail>(`/api/searches/${id}`, { method: 'PATCH', body: JSON.stringify({ active }) }),
   /** Deletes the search with all its scans, prices and favourites. Cannot be undone. */
   deleteSearch: (id: number) => request<{ deleted: boolean; id: number }>(`/api/searches/${id}`, { method: 'DELETE' }),
-  setSearchInterval: (id: number, intervalDays: number) =>
-    request<SearchDetail>(`/api/searches/${id}`, { method: 'PATCH', body: JSON.stringify({ intervalDays }) }),
+  /** 'once' switches the search off (one time only); a number of days switches it on with that repeat. */
+  setSearchRepeat: (id: number, days: number | 'once') =>
+    request<SearchDetail>(`/api/searches/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(days === 'once' ? { active: false } : { active: true, intervalDays: days }),
+    }),
   /** Changes any of a saved search's settings except its area (ZIP, distance, states). */
   updateSearch: (id: number, patch: Partial<SearchInput>) =>
     request<SearchDetail>(`/api/searches/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
@@ -782,6 +792,9 @@ export const api = {
     request<Scheduler>('/api/scheduler', { method: 'PUT', body: JSON.stringify({ enabled }) }),
   estimateRun: (id: number) => request<RunEstimate>(`/api/searches/${id}/estimate`),
   runSearch: (id: number) => post<{ started: boolean }>(`/api/searches/${id}/run`, {}),
+  /** Books a one-time scan for an ISO time (or 'now'); null cancels the booking. */
+  setSearchRunAt: (id: number, runAt: 'now' | string | null) =>
+    request<SearchDetail>(`/api/searches/${id}`, { method: 'PATCH', body: JSON.stringify({ runAt }) }),
   /** Stops a running scan: no new searches start, finished ones are kept. */
   stopScan: (id: number) => post<{ stopping: boolean; runId: number }>(`/api/searches/${id}/stop`, {}),
 
