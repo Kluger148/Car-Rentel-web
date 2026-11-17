@@ -17,6 +17,7 @@ import {
   intervalLabel,
   pickupFlexLabel,
   placesOptions,
+  rentalDurationsLabel,
   scanEstimate,
   type Deal,
   type DealsResponse,
@@ -60,6 +61,7 @@ export function DealsPage() {
       vehicleClass: search.class ?? DEFAULT_FILTERS.vehicleClass,
       carTypes: search.types ?? DEFAULT_FILTERS.carTypes,
       pickupDate: search.date ?? DEFAULT_FILTERS.pickupDate,
+      durationDays: search.days ?? DEFAULT_FILTERS.durationDays,
       states: search.states ?? DEFAULT_FILTERS.states,
       suppliers: search.suppliers ?? DEFAULT_FILTERS.suppliers,
       sources: search.sources ?? DEFAULT_FILTERS.sources,
@@ -82,6 +84,7 @@ export function DealsPage() {
         class: next.vehicleClass === 'ALL' ? undefined : next.vehicleClass,
         types: next.carTypes.length > 0 ? next.carTypes : undefined,
         date: next.pickupDate ?? undefined,
+        days: next.durationDays ?? undefined,
         states: next.states.length > 0 ? next.states : undefined,
         suppliers: next.suppliers.length > 0 ? next.suppliers : undefined,
         sources: next.sources.length > 0 ? next.sources : undefined,
@@ -448,6 +451,9 @@ export function DealsPage() {
                 Next scan: up to {placesSetting} places × {1 + flexDays / 7} {flexDays > 0 ? 'pickup dates' : 'pickup date'} ={' '}
                 {nextScan.searches} searches · about {nextScan.minutes} min
                 {s.dailyPickupDates && flexDays > 0 && s.sources?.includes('priceline') && ` · Priceline checks every day (${flexDays + 1} dates)`}
+                {(s.rentalDurations ?? []).length > 0 &&
+                  s.sources?.includes('priceline') &&
+                  ` · Priceline also prices ${rentalDurationsLabel(s.rentalDurations)} rentals`}
                 {nextScan.usd !== null && ` · about $${nextScan.usd.toFixed(2)}`}
               </div>
             )}

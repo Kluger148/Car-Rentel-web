@@ -18,6 +18,8 @@ export interface DealsSearch {
   types?: CarType[];
   /** One pickup date, YYYY-MM-DD. */
   date?: string;
+  /** One rental length, in days. */
+  days?: number;
   states?: string[];
   suppliers?: string[];
   /** Sites the offers came from ("Skyscanner", "Priceline"). */
@@ -94,6 +96,10 @@ const dealsRoute = createRoute({
       date: (() => {
         const d = asString(search.date);
         return d && /^\d{4}-\d{2}-\d{2}$/.test(d) ? d : undefined;
+      })(),
+      days: (() => {
+        const n = asNumber(search.days);
+        return n && n > 0 ? Math.floor(n) : undefined;
       })(),
       // `state` is the old single-state param; old bookmarks still open filtered.
       states: asStringArray(search.states ?? search.state)?.map((s) => s.toUpperCase()),

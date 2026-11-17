@@ -10,6 +10,8 @@ export interface DealFilters {
   carTypes: CarType[];
   /** One pickup date (YYYY-MM-DD): prices are that date's. Null = each car's cheapest date. */
   pickupDate: string | null;
+  /** One rental length in days (a search with a duration ladder prices several). Null = every length. */
+  durationDays: number | null;
   /** Empty means every state. */
   states: string[];
   suppliers: string[];
@@ -30,6 +32,7 @@ export const DEFAULT_FILTERS: DealFilters = {
   vehicleClass: 'ALL',
   carTypes: [],
   pickupDate: null,
+  durationDays: null,
   states: [],
   suppliers: [],
   sources: [],
@@ -82,6 +85,7 @@ export function applyFilters(deals: Deal[], filters: DealFilters): Deal[] {
   return deals
     .filter((d) => filters.vehicleClass === 'ALL' || d.vehicleClass === filters.vehicleClass)
     .filter((d) => typeSet.size === 0 || typeSet.has(carTypeOf(d)))
+    .filter((d) => filters.durationDays === null || d.durationDays === filters.durationDays)
     .filter((d) => stateSet.size === 0 || stateSet.has(d.locationState))
     .filter((d) => supplierSet.size === 0 || supplierSet.has(d.supplier))
     .filter((d) => sourceSet.size === 0 || dealSources(d).some((s) => sourceSet.has(s)))
@@ -119,6 +123,8 @@ export interface Facets {
   classes: Array<{ value: VehicleClass; count: number }>;
   /** Deals per car type, in the filter's own order. */
   carTypes: Array<{ value: CarType; count: number }>;
+  /** Deals per rental length, shortest first, with each length's cheapest 30-day average. */
+  durations: Array<{ value: number; count: number; cheapestMonthly: number }>;
   monthlyRange: { min: number; max: number } | null;
   distanceRange: { min: number; max: number } | null;
   /** Shortest and longest drive from the customer address, in minutes; null without drive times. */
@@ -133,10 +139,23 @@ function tally<T extends string>(values: T[]): Array<{ value: T; count: number }
     .sort((a, b) => b.count - a.count || a.value.localeCompare(b.value));
 }
 
+/** Deals per rental length, shortest first, each with its cheapest 30-day average. */
+export function durationFacets(deals: Deal[]): Facets['durations'] {
+  const byDays = new Map<number, { count: number; cheapestMonthly: number }>();
+  for (const d of deals) {
+    const cur = byDays.get(d.durationDays) ?? { count: 0, cheapestMonthly: Number.POSITIVE_INFINITY };
+    cur.count++;
+    const rate = num(d.monthlyRate);
+    if (Number.isFinite(rate)) cur.cheapestMonthly = Math.min(cur.cheapestMonthly, rate);
+    byDays.set(d.durationDays, cur);
+  }
+  return [...byDays.entries()].map(([value, v]) => ({ value, ...v })).sort((a, b) => a.value - b.value);
+}
+
 /** Facet counts for the sidebar, computed from the unfiltered result set. */
 export function buildFacets(deals: Deal[]): Facets {
   if (deals.length === 0) {
-    return { states: [], suppliers: [], sources: [], classes: [], carTypes: [], monthlyRange: null, distanceRange: null, driveRange: null };
+    return { states: [], suppliers: [], sources: [], classes: [], carTypes: [], durations: [], monthlyRange: null, distanceRange: null, driveRange: null };
   }
   const rates = deals.map((d) => num(d.monthlyRate)).filter(Number.isFinite);
   const miles = deals.map((d) => d.distanceMiles).filter((m): m is number => m !== null && Number.isFinite(m));
@@ -147,6 +166,7 @@ export function buildFacets(deals: Deal[]): Facets {
     sources: tally(deals.flatMap((d) => dealSources(d))),
     classes: tally(deals.map((d) => d.vehicleClass)),
     carTypes: tally(deals.map((d) => carTypeOf(d))).sort((a, b) => CAR_TYPES.indexOf(a.value) - CAR_TYPES.indexOf(b.value)),
+    durations: durationFacets(deals),
     monthlyRange: rates.length
       ? { min: Math.floor(Math.min(...rates)), max: Math.ceil(Math.max(...rates)) }
       : null,
@@ -162,6 +182,7 @@ export function countActiveFilters(filters: DealFilters): number {
   if (filters.vehicleClass !== 'ALL') n++;
   if (filters.carTypes.length > 0) n++;
   if (filters.pickupDate !== null) n++;
+  if (filters.durationDays !== null) n++;
   if (filters.states.length > 0) n++;
   if (filters.suppliers.length > 0) n++;
   if (filters.sources.length > 0) n++;

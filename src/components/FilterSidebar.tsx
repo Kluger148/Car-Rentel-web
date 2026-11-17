@@ -225,6 +225,36 @@ export function FilterSidebar({
             </div>
           )}
 
+          {/* Only when the search priced more than one rental length (a duration ladder on Priceline). */}
+          {facets.durations.length > 1 && (
+            <div className="filter-group">
+              <div className="filter-group__title">Rental length</div>
+              <label className="check">
+                <input
+                  type="radio"
+                  name="durationDays"
+                  checked={filters.durationDays === null}
+                  onChange={() => onChange({ durationDays: null })}
+                />
+                Every length
+              </label>
+              {facets.durations.map((d) => (
+                <label className="check" key={d.value}>
+                  <input
+                    type="radio"
+                    name="durationDays"
+                    checked={filters.durationDays === d.value}
+                    onChange={() => onChange({ durationDays: d.value })}
+                  />
+                  {d.value} days
+                  <span className="check__count" title={`${d.count} deals at this length`}>
+                    {Number.isFinite(d.cheapestMonthly) ? `from ${money(d.cheapestMonthly.toFixed(2))}` : d.count}
+                  </span>
+                </label>
+              ))}
+            </div>
+          )}
+
           {/* Only when the search priced more than one pickup date (a flexible pickup). */}
           {pickupDates.length > 1 && (
             <div className="filter-group">

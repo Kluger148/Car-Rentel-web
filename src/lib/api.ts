@@ -379,6 +379,8 @@ export interface SavedSearch {
   carTypes?: string[];
   /** Priceline prices every day of the flexible pickup window, not one day a week. Missing on older backends. */
   dailyPickupDates?: boolean;
+  /** Shorter rental lengths (days) Priceline also prices, each its own deal. Empty or missing = the search's length only. */
+  rentalDurations?: number[];
   pickupDate: string;
   returnDate: string;
   rentalDays: number;
@@ -434,6 +436,8 @@ export interface SearchInput {
   sources?: SearchSource[];
   carTypes?: string[];
   dailyPickupDates?: boolean;
+  /** Shorter rental lengths Priceline also prices (the duration ladder). Left out = none. */
+  rentalDurations?: number[];
   pickupDate: string;
   intervalDays?: number;
   pickupFlexDays?: number;
@@ -492,6 +496,21 @@ export const PICKUP_FLEX_OPTIONS = [
 
 export function pickupFlexLabel(days: number | undefined): string {
   return PICKUP_FLEX_OPTIONS.find((o) => o.days === (days ?? 0))?.label ?? `Up to ${days} days later`;
+}
+
+/**
+ * The duration ladder: shorter rental lengths Priceline can also price beside the search's own
+ * length. A company's per-30-day price moves with the length (a 30-day rental is often cheaper per
+ * month than a 28-day one; whole months cheapest of all). The server may send its own list.
+ */
+export const RENTAL_LADDER_DAYS: readonly number[] = [28, 30, 31, 59, 60, 90, 180];
+
+/** "30, 60 and 90-day" for a search's extra rental lengths. */
+export function rentalDurationsLabel(durations: readonly number[] | undefined): string {
+  const d = [...(durations ?? [])].sort((a, b) => a - b);
+  if (d.length === 0) return '';
+  if (d.length === 1) return `${d[0]}-day`;
+  return `${d.slice(0, -1).join(', ')} and ${d[d.length - 1]}-day`;
 }
 
 export function intervalLabel(days: number | undefined): string {
@@ -573,6 +592,8 @@ export interface ScannerConfig {
       perSearchUsd?: number;
       concurrency?: number;
       maxRentalDays?: number;
+      /** Shorter rental lengths a search can also price (the duration ladder). Missing on older backends. */
+      ladderDays?: number[];
     };
   };
   /** Customer addresses (search by address, drive times). Missing on older backends = not available. */

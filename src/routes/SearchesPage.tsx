@@ -12,10 +12,12 @@ import { ErrorState } from '../components/States';
 import {
   INTERVAL_OPTIONS,
   PICKUP_FLEX_OPTIONS,
+  RENTAL_LADDER_DAYS,
   api,
   intervalLabel,
   pickupFlexLabel,
   placesOptions,
+  rentalDurationsLabel,
   scanEstimate,
   type CustomerAddress,
   type SavedSearch,
@@ -87,6 +89,12 @@ export function SearchForm({
   const [suppliers, setSuppliers] = useState<string[]>(editing?.suppliers ?? []);
   const [carTypes, setCarTypes] = useState<string[]>(editing?.carTypes ?? []);
   const [dailyPickup, setDailyPickup] = useState(editing?.dailyPickupDates ?? false);
+  // The duration ladder: shorter rental lengths Priceline also prices, each its own deal.
+  const [rentalDurations, setRentalDurations] = useState<number[]>(editing?.rentalDurations ?? []);
+  const toggleDuration = (days: number) => {
+    setRentalDurations((cur) => (cur.includes(days) ? cur.filter((d) => d !== days) : [...cur, days].sort((a, b) => a - b)));
+    changed();
+  };
   const companiesQuery = useQuery({ queryKey: ['companies'], queryFn: () => api.companies(), staleTime: 300_000 });
   const companyOptions = (companiesQuery.data ?? []).map((c) => ({
     value: c.name,
@@ -137,8 +145,12 @@ export function SearchForm({
   // Priceline can price every day of the pickup window (one search per place and day).
   const pricelineDaily = usePriceline && pickupFlexDays > 0 && dailyPickup;
   const pricelineDates = pricelineDaily ? pickupFlexDays + 1 : pickupDates;
+  // Priceline also prices each extra rental length of the ladder (one search per place, date and length).
+  const ladderDays = sourcesCfg?.priceline?.ladderDays ?? RENTAL_LADDER_DAYS;
+  const pricelineLadder = usePriceline ? rentalDurations : [];
+  const pricelineLengths = 1 + pricelineLadder.length;
   const searchesOn = (s: 'priceline' | 'kayak') =>
-    s === 'priceline' ? (places ?? 0) * pricelineDates : Math.min(places ?? 0, kayakMaxPlaces) * pickupDates;
+    s === 'priceline' ? (places ?? 0) * pricelineDates * pricelineLengths : Math.min(places ?? 0, kayakMaxPlaces) * pickupDates;
   const extraMinutes = (s: 'priceline' | 'kayak') => {
     const c = sourcesCfg?.[s];
     return Math.max(1, Math.round((Math.ceil(searchesOn(s) / Math.max(1, c?.concurrency ?? 1)) * (c?.secondsPerSearch ?? 30)) / 60));
@@ -177,6 +189,8 @@ export function SearchForm({
     sources: chosen,
     carTypes,
     dailyPickupDates: pricelineDaily,
+    // Only sent when set, so an older backend without the duration ladder keeps working.
+    ...(pricelineLadder.length > 0 ? { rentalDurations: pricelineLadder } : {}),
     pickupDate: pickup,
     intervalDays,
     pickupFlexDays,
@@ -216,6 +230,8 @@ export function SearchForm({
         ...(carTypes.join() !== (editing.carTypes ?? []).join() ? { carTypes } : {}),
         // Only sent when changed, so an older backend without daily pickup dates keeps working.
         ...(pricelineDaily !== (editing.dailyPickupDates ?? false) ? { dailyPickupDates: pricelineDaily } : {}),
+        // Only sent when changed, so an older backend without the duration ladder keeps working.
+        ...(pricelineLadder.join() !== (editing.rentalDurations ?? []).join() ? { rentalDurations: pricelineLadder } : {}),
         // Only sent when changed, so an older backend without sources keeps working.
         ...(sourcePick !== null && sourcePick.join() !== sortSources(editing.sources ?? ['skyscanner']).join() ? { sources: sourcePick } : {}),
         pickupFlexDays,
@@ -511,6 +527,31 @@ export function SearchForm({
             </select>
           </label>
         )}
+        {usePriceline && (
+          <div
+            className="field"
+            title="A company's price per 30 days changes with the rental length: a 30-day rental is often cheaper per month than a 28-day one, and whole months cheapest of all. Each length is shown as its own deal. Skyscanner and KAYAK keep the full length."
+          >
+            <span className="field__label">Also price shorter rentals (Priceline)</span>
+            <div className="chips" style={{ marginTop: 0, gap: 6 }} role="group" aria-label="Rental lengths Priceline also prices">
+              {ladderDays.map((days) => {
+                const on = rentalDurations.includes(days);
+                return (
+                  <button
+                    key={days}
+                    type="button"
+                    className="btn btn--ghost btn--sm"
+                    aria-pressed={on}
+                    style={on ? { borderColor: 'var(--accent)', color: 'var(--accent)' } : undefined}
+                    onClick={() => toggleDuration(days)}
+                  >
+                    {days} days
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
         <label className="field">
           <span className="field__label">Places to search</span>
           <select
@@ -602,7 +643,8 @@ export function SearchForm({
         <p className="scan-estimate" aria-live="polite">
           Each scan: up to {places} places × {pickupDates} {pickupDates > 1 ? 'pickup dates' : 'pickup date'} ×{' '}
           {chosen.length} {chosen.length > 1 ? 'sites' : 'site'}
-          {pricelineDaily && ` (Priceline: every day, ${pricelineDates} dates)`} = <strong>{scanSearches} searches</strong> · about{' '}
+          {pricelineDaily && ` (Priceline: every day, ${pricelineDates} dates)`}
+          {pricelineLadder.length > 0 && ` (Priceline: ${pricelineLengths} rental lengths)`} = <strong>{scanSearches} searches</strong> · about{' '}
           <strong>{scanMinutes} min</strong>
           {useSky && live.usd !== null && (
             <>
@@ -626,6 +668,7 @@ export function SearchForm({
           {bigArea && ' Large area: a weekly repeat keeps the Apify bill down.'}
           {usePriceline &&
             ` Priceline offers are for ${directMaxDays}-day rentals (Priceline prices at most 310 days; whole months are cheapest) and are compared per 30 days.`}
+          {pricelineLadder.length > 0 && ` Priceline also prices ${rentalDurationsLabel(pricelineLadder)} rentals, each shown as its own deal.`}
         </p>
       )}
 
@@ -922,6 +965,9 @@ export function SearchesPage() {
                         {pickupFlexLabel(s.pickupFlexDays)}
                         {s.dailyPickupDates && s.sources?.includes('priceline') ? ' · every day on Priceline' : ''}
                       </div>
+                    )}
+                    {(s.rentalDurations ?? []).length > 0 && s.sources?.includes('priceline') && (
+                      <div className="muted">Also {rentalDurationsLabel(s.rentalDurations)} on Priceline</div>
                     )}
                   </td>
                   <td data-label="Last scan">
