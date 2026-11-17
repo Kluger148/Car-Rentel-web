@@ -744,7 +744,17 @@ export interface RunEstimate {
   /** False when the search does not use Skyscanner. Missing on older backends (Skyscanner only). */
   skyscanner?: boolean;
   /** The other sites the search uses: KAYAK at the full offer cap (an upper bound), Priceline per call. */
-  otherSources?: { source: 'kayak' | 'priceline'; searches: number; perSearchUsd: number; maxUsd: number; minutes: number }[];
+  otherSources?: {
+    source: 'kayak' | 'priceline';
+    searches: number;
+    perSearchUsd: number;
+    maxUsd: number;
+    minutes: number;
+    /** Places, pickup dates per place and rental lengths per date behind `searches`. Missing on older backends. */
+    places?: number;
+    pickupDates?: number;
+    rentalLengths?: number;
+  }[];
   /** Skyscanner's expected cost plus the most the other sites can cost. */
   totalUsd?: number | null;
   maxResultsPerPlace: number;

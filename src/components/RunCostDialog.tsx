@@ -134,9 +134,10 @@ export function RunCostDialog({ searchId, open, onClose, onConfirm }: Props) {
                 <div key={o.source}>
                   <dt>{SOURCE_NAME[o.source]} searches</dt>
                   <dd>
-                    {(e.pickupDates ?? 1) > 1 && (
+                    {((o.pickupDates ?? e.pickupDates ?? 1) > 1 || (o.rentalLengths ?? 1) > 1) && (
                       <span className="muted">
-                        {e.placesSearched} places × {e.pickupDates} pickup dates ={' '}
+                        {o.places ?? e.placesSearched} places × {o.pickupDates ?? e.pickupDates} pickup dates
+                        {(o.rentalLengths ?? 1) > 1 && ` × ${o.rentalLengths} rental lengths`} ={' '}
                       </span>
                     )}
                     {o.searches}
