@@ -1,6 +1,6 @@
 import { Link } from '@tanstack/react-router';
 import { useId, useLayoutEffect, useRef, useState } from 'react';
-import type { Deal } from '../lib/api';
+import { sourceClass, type Deal } from '../lib/api';
 import {
   CHANGE_LABEL,
   dateRange,
@@ -408,7 +408,7 @@ export function DealCard({
           {offers.map((o) => (
             <li key={`${o.source ?? ''}-${o.bookingProvider}-${o.place}-${o.deeplink}`} className="dc-offer">
               <div>
-                {showSources && <span className={`src-tag src-tag--${(o.source ?? 'Skyscanner').toLowerCase()}`}>{o.source ?? 'Skyscanner'}</span>}{' '}
+                {showSources && <span className={`src-tag src-tag--${sourceClass(o.source ?? 'Skyscanner')}`}>{o.source ?? 'Skyscanner'}</span>}{' '}
                 <strong>{o.bookingProvider ?? 'Unknown provider'}</strong> <Stars rating={o.rating} reviews={o.reviews} />
                 <div className="dc-muted">
                   {o.place}

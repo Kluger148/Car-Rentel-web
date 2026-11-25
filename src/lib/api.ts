@@ -8,9 +8,18 @@ export const VEHICLE_CLASSES = ['MINIVAN', 'PASSENGER_VAN', 'LARGE_SUV', 'OTHER'
 export type VehicleClass = (typeof VEHICLE_CLASSES)[number];
 
 /** Where a saved search looks for prices. */
-export type SearchSource = 'skyscanner' | 'kayak' | 'priceline';
+export type SearchSource = 'skyscanner' | 'kayak' | 'priceline' | 'enterprise';
 /** The site an offer was found on, as the API names it. */
-export type OfferSource = 'Skyscanner' | 'KAYAK' | 'Priceline';
+export type OfferSource = 'Skyscanner' | 'KAYAK' | 'Priceline' | 'Enterprise.com';
+
+/** A search's settings for the rental companies' own websites. Missing = the server's. */
+export interface DirectOptions {
+  branchesPerPlace?: number;
+  includeAirports?: boolean;
+}
+
+/** A class-name-safe form of a site's name: "Enterprise.com" -> "enterprise-com". */
+export const sourceClass = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-');
 
 export type DealChangeType = 'NEW' | 'PRICE_DOWN' | 'PRICE_UP' | 'GONE';
 /** 'stopped' = a user stopped it; 'interrupted' = the server restarted. Both keep the searches that finished. */
@@ -381,6 +390,8 @@ export interface SavedSearch {
   dailyPickupDates?: boolean;
   /** Shorter rental lengths (days) Priceline also prices, each its own deal. Empty or missing = the search's length only. */
   rentalDurations?: number[];
+  /** Enterprise.com settings. Missing on older backends. */
+  directOptions?: DirectOptions;
   pickupDate: string;
   returnDate: string;
   rentalDays: number;
@@ -438,6 +449,8 @@ export interface SearchInput {
   dailyPickupDates?: boolean;
   /** Shorter rental lengths Priceline also prices (the duration ladder). Left out = none. */
   rentalDurations?: number[];
+  /** Enterprise.com settings. Left out = the server's. */
+  directOptions?: DirectOptions;
   pickupDate: string;
   intervalDays?: number;
   pickupFlexDays?: number;
@@ -595,6 +608,17 @@ export interface ScannerConfig {
       /** Shorter rental lengths a search can also price (the duration ladder). Missing on older backends. */
       ladderDays?: number[];
     };
+    /** Enterprise.com itself. Missing on older backends. */
+    enterprise?: {
+      available: boolean;
+      pausedUntil: string | null;
+      perSearchUsd: number;
+      secondsPerSearch: number;
+      concurrency: number;
+      maxRentalDays: number;
+      branchesPerPlace: number;
+      includeAirports: boolean;
+    };
   };
   /** Customer addresses (search by address, drive times). Missing on older backends = not available. */
   googleMaps?: { available: boolean; provider?: 'geoapify' | 'google' | null };
@@ -745,7 +769,7 @@ export interface RunEstimate {
   skyscanner?: boolean;
   /** The other sites the search uses: KAYAK at the full offer cap (an upper bound), Priceline per call. */
   otherSources?: {
-    source: 'kayak' | 'priceline';
+    source: 'kayak' | 'priceline' | 'enterprise';
     searches: number;
     perSearchUsd: number;
     maxUsd: number;

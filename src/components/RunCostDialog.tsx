@@ -25,10 +25,11 @@ function basisText(e: RunEstimate): string {
   return 'No past scans or Apify price list to estimate from yet.';
 }
 
-const SOURCE_NAME = { kayak: 'KAYAK', priceline: 'Priceline' } as const;
+const SOURCE_NAME = { kayak: 'KAYAK', priceline: 'Priceline', enterprise: 'Enterprise.com' } as const;
 const SOURCE_BILLING = {
   kayak: 'KAYAK is a paid search on Apify, charged per offer it returns',
   priceline: 'Priceline is a RapidAPI call, free on the current plan',
+  enterprise: 'Enterprise.com is searched slowly in a hosted browser, billed per half-minute it is open',
 } as const;
 
 const resetDay = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });

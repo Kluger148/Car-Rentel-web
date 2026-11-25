@@ -34,7 +34,15 @@ const CAR_TYPE_OPTIONS = CAR_TYPES.filter((t) => t !== 'Other').map((t) => ({ va
 const carTypeName = (typed: string) => CAR_TYPES.find((t) => t.toLowerCase() === typed.trim().toLowerCase()) ?? typed.trim();
 
 /** The sites a search can look for prices on, in the order the form lists them. */
-const SOURCE_ORDER: SearchSource[] = ['skyscanner', 'priceline', 'kayak'];
+const SOURCE_ORDER: SearchSource[] = ['skyscanner', 'priceline', 'kayak', 'enterprise'];
+
+/** The rental companies' own websites: Enterprise.com first, the others still being built. */
+const COMPANY_SITES = [
+  { name: 'Enterprise.com', ready: true },
+  { name: 'Avis.com', ready: false },
+  { name: 'Hertz.com', ready: false },
+  { name: 'Sixt.com', ready: false },
+] as const;
 const sortSources = (sources: Iterable<SearchSource>): SearchSource[] => {
   const set = new Set(sources);
   return SOURCE_ORDER.filter((s) => set.has(s));
@@ -132,6 +140,16 @@ export function SearchForm({
   const useSky = chosen.includes('skyscanner');
   const usePriceline = chosen.includes('priceline');
   const useKayak = chosen.includes('kayak');
+  const useEnterprise = chosen.includes('enterprise');
+  // Enterprise.com settings: the search's own, else the server's defaults.
+  const [branchesPerPlace, setBranchesPerPlace] = useState<number | null>(editing?.directOptions?.branchesPerPlace ?? null);
+  const [includeAirports, setIncludeAirports] = useState<boolean | null>(editing?.directOptions?.includeAirports ?? null);
+  const branchesShown = branchesPerPlace ?? sourcesCfg?.enterprise?.branchesPerPlace ?? 3;
+  const airportsShown = includeAirports ?? sourcesCfg?.enterprise?.includeAirports ?? false;
+  const directOptions = {
+    ...(branchesPerPlace !== null ? { branchesPerPlace } : {}),
+    ...(includeAirports !== null ? { includeAirports } : {}),
+  };
   const pickupDates = 1 + pickupFlexDays / 7;
   const live = scanEstimate({
     places: places ?? 0,
@@ -149,9 +167,13 @@ export function SearchForm({
   const ladderDays = sourcesCfg?.priceline?.ladderDays ?? RENTAL_LADDER_DAYS;
   const pricelineLadder = usePriceline ? rentalDurations : [];
   const pricelineLengths = 1 + pricelineLadder.length;
-  const searchesOn = (s: 'priceline' | 'kayak') =>
-    s === 'priceline' ? (places ?? 0) * pricelineDates * pricelineLengths : Math.min(places ?? 0, kayakMaxPlaces) * pickupDates;
-  const extraMinutes = (s: 'priceline' | 'kayak') => {
+  const searchesOn = (s: 'priceline' | 'kayak' | 'enterprise') =>
+    s === 'priceline'
+      ? (places ?? 0) * pricelineDates * pricelineLengths
+      : s === 'enterprise'
+        ? (places ?? 0) * pickupDates
+        : Math.min(places ?? 0, kayakMaxPlaces) * pickupDates;
+  const extraMinutes = (s: 'priceline' | 'kayak' | 'enterprise') => {
     const c = sourcesCfg?.[s];
     return Math.max(1, Math.round((Math.ceil(searchesOn(s) / Math.max(1, c?.concurrency ?? 1)) * (c?.secondsPerSearch ?? 30)) / 60));
   };
@@ -162,13 +184,18 @@ export function SearchForm({
   const kayakUsd = extraUsd('kayak');
   const pricelineUsd = extraUsd('priceline');
   const directMaxDays = sourcesCfg?.priceline?.maxRentalDays ?? 300;
-  const scanSearches = (useSky ? live.searches : 0) + (useKayak ? searchesOn('kayak') : 0) + (usePriceline ? searchesOn('priceline') : 0);
+  const scanSearches =
+    (useSky ? live.searches : 0) +
+    (useKayak ? searchesOn('kayak') : 0) +
+    (usePriceline ? searchesOn('priceline') : 0) +
+    (useEnterprise ? searchesOn('enterprise') : 0);
   // A big area re-scanned every day adds up on Apify: suggest a weekly repeat.
   const bigArea = !oneTime && places !== null && places > 300 && intervalDays === 1 && (useSky || useKayak);
   const scanMinutes = Math.max(
     useSky ? live.minutes : 0,
     usePriceline ? extraMinutes('priceline') : 0,
     useKayak ? extraMinutes('kayak') : 0,
+    useEnterprise ? extraMinutes('enterprise') : 0,
   );
   const money2 = (usd: number) => `$${usd < 0.01 ? usd.toFixed(3) : usd.toFixed(2)}`;
   const [name, setName] = useState(editing?.name ?? '');
@@ -191,6 +218,8 @@ export function SearchForm({
     dailyPickupDates: pricelineDaily,
     // Only sent when set, so an older backend without the duration ladder keeps working.
     ...(pricelineLadder.length > 0 ? { rentalDurations: pricelineLadder } : {}),
+    // Only sent with Enterprise.com chosen and a setting picked, so other searches look as before.
+    ...(useEnterprise && Object.keys(directOptions).length > 0 ? { directOptions } : {}),
     pickupDate: pickup,
     intervalDays,
     pickupFlexDays,
@@ -232,6 +261,8 @@ export function SearchForm({
         ...(pricelineDaily !== (editing.dailyPickupDates ?? false) ? { dailyPickupDates: pricelineDaily } : {}),
         // Only sent when changed, so an older backend without the duration ladder keeps working.
         ...(pricelineLadder.join() !== (editing.rentalDurations ?? []).join() ? { rentalDurations: pricelineLadder } : {}),
+        // Only sent when changed, so an older backend without company websites keeps working.
+        ...(JSON.stringify(directOptions) !== JSON.stringify(editing.directOptions ?? {}) ? { directOptions } : {}),
         // Only sent when changed, so an older backend without sources keeps working.
         ...(sourcePick !== null && sourcePick.join() !== sortSources(editing.sources ?? ['skyscanner']).join() ? { sources: sourcePick } : {}),
         pickupFlexDays,
@@ -318,6 +349,13 @@ export function SearchForm({
                 meta: `Biggest ${kayakMaxPlaces} places only · charged per offer`,
                 badge: 'Direct',
               },
+              {
+                id: 'enterprise',
+                title: 'Company websites',
+                sub: "Prices straight from the rental company's own site, the way a customer sees them.",
+                meta: 'Searched slowly, about 1 min per place',
+                badge: 'New',
+              },
             ] as { id: SearchSource; title: string; sub: string; meta: string; badge: string | null }[]
           ).map((o) => {
             const disabled = !ready(o.id);
@@ -350,6 +388,61 @@ export function SearchForm({
             );
           })}
         </div>
+        {useEnterprise && (
+          <div className="direct-box">
+            <div className="direct-box__head">
+              <span className="direct-box__title">Company websites to search</span>
+              <span className="muted">One price list per branch, totals incl. taxes</span>
+            </div>
+            <div className="direct-box__sites" role="group" aria-label="Company websites">
+              {COMPANY_SITES.map((c) => (
+                <span key={c.name} className={`direct-site${c.ready ? ' is-on' : ' is-soon'}`} aria-disabled={!c.ready}>
+                  {c.name}
+                  <span className="direct-site__state">{c.ready ? 'Ready' : 'Coming soon'}</span>
+                </span>
+              ))}
+            </div>
+            <div className="direct-box__opts">
+              <label className="field">
+                <span className="field__label">Branches per place</span>
+                <select
+                  id="ns-branches"
+                  value={branchesShown}
+                  onChange={(e) => {
+                    setBranchesPerPlace(Number(e.target.value));
+                    changed();
+                  }}
+                >
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <option key={n} value={n}>
+                      Nearest {n} {n === 1 ? 'branch' : 'branches'}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="direct-box__check">
+                <input
+                  type="checkbox"
+                  checked={airportsShown}
+                  onChange={(e) => {
+                    setIncludeAirports(e.target.checked);
+                    changed();
+                  }}
+                />
+                <span>
+                  Include airport counters
+                  <span className="muted"> · dearer: airport taxes add about 47%</span>
+                </span>
+              </label>
+            </div>
+            <p className="muted direct-box__note">
+              Each place: the nearest {branchesShown} Enterprise {branchesShown === 1 ? 'branch' : 'branches'}
+              {airportsShown ? ' incl. airports' : ''}, {sourcesCfg?.enterprise?.maxRentalDays ?? 300}-day rentals. Neighbouring
+              towns share branches, so each branch is priced once per scan. Searches run one at a time, slowly; a refusal pauses
+              Enterprise.com until the next scan.
+            </p>
+          </div>
+        )}
       </fieldset>
       <div className="search-by">
         <span className="field__label" id="ns-search-by">
@@ -664,7 +757,15 @@ export function SearchForm({
               · Priceline <strong>{pricelineUsd ? money2(pricelineUsd) : 'free plan'}</strong>
             </>
           )}
+          {useEnterprise && (
+            <>
+              {' '}
+              · Enterprise.com about <strong>{extraMinutes('enterprise')} min</strong>
+            </>
+          )}
           .{useKayak && ` KAYAK searches only the ${kayakMaxPlaces} biggest places and is charged per offer it returns.`}
+          {useEnterprise &&
+            ` Enterprise.com is searched one place at a time in a hosted browser: no fee per search, a few browser units per scan.`}
           {bigArea && ' Large area: a weekly repeat keeps the Apify bill down.'}
           {usePriceline &&
             ` Priceline offers are for ${directMaxDays}-day rentals (Priceline prices at most 310 days; whole months are cheapest) and are compared per 30 days.`}
@@ -955,6 +1056,7 @@ export function SearchesPage() {
                         {s.sources.includes('skyscanner') && <span className="src-tag src-tag--skyscanner">Skyscanner</span>}
                         {s.sources.includes('kayak') && <span className="src-tag src-tag--kayak">KAYAK</span>}
                         {s.sources.includes('priceline') && <span className="src-tag src-tag--priceline">Priceline</span>}
+                        {s.sources.includes('enterprise') && <span className="src-tag src-tag--enterprise-com">Enterprise.com</span>}
                       </div>
                     )}
                   </td>
