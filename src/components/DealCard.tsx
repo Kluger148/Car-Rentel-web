@@ -37,6 +37,8 @@ function conditionList(c: Record<string, unknown>): string[] {
   if (c.thirdPartyCover === true) out.push('Third-party cover');
   if (c.breakdownAssistance === true) out.push('Breakdown assistance');
   if (c.fairFuel === true) out.push('Fair fuel policy');
+  if (c.payAtPickup === true) out.push('Pay at pickup');
+  if (typeof c.branchPhone === 'string' && c.branchPhone.trim()) out.push(`Branch phone ${c.branchPhone.trim()}`);
   return out;
 }
 
