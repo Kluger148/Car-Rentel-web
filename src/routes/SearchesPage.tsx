@@ -150,6 +150,10 @@ export function SearchForm({
   const [branchesPerPlace, setBranchesPerPlace] = useState<number | null>(editing?.directOptions?.branchesPerPlace ?? null);
   const [includeAirports, setIncludeAirports] = useState<boolean | null>(editing?.directOptions?.includeAirports ?? null);
   const [enterpriseMode, setEnterpriseMode] = useState<'nearby' | 'area'>(editing?.directOptions?.mode ?? 'nearby');
+  // New searches start their branches with the scan (paced); a saved search without the choice is night-only.
+  const [enterpriseSchedule, setEnterpriseSchedule] = useState<'paced' | 'night'>(
+    editing ? (editing.directOptions?.schedule ?? 'night') : 'paced',
+  );
   const night = sourcesCfg?.enterprise?.night;
   const [nightStart, setNightStart] = useState<string | null>(editing?.directOptions?.nightStart ?? null);
   const [nightEnd, setNightEnd] = useState<string | null>(editing?.directOptions?.nightEnd ?? null);
@@ -158,11 +162,11 @@ export function SearchForm({
   const branchesShown = branchesPerPlace ?? sourcesCfg?.enterprise?.branchesPerPlace ?? 3;
   const airportsShown = includeAirports ?? sourcesCfg?.enterprise?.includeAirports ?? false;
   const directOptions = {
-    ...(enterpriseMode === 'area' ? { mode: 'area' as const } : {}),
+    ...(enterpriseMode === 'area' ? { mode: 'area' as const, schedule: enterpriseSchedule } : {}),
     ...(enterpriseMode === 'nearby' && branchesPerPlace !== null ? { branchesPerPlace } : {}),
     ...(includeAirports !== null ? { includeAirports } : {}),
-    ...(enterpriseMode === 'area' && nightStart !== null ? { nightStart } : {}),
-    ...(enterpriseMode === 'area' && nightEnd !== null ? { nightEnd } : {}),
+    ...(enterpriseMode === 'area' && enterpriseSchedule === 'night' && nightStart !== null ? { nightStart } : {}),
+    ...(enterpriseMode === 'area' && enterpriseSchedule === 'night' && nightEnd !== null ? { nightEnd } : {}),
   };
   const pickupDates = 1 + pickupFlexDays / 7;
   const live = scanEstimate({
@@ -175,6 +179,8 @@ export function SearchForm({
   // Each other site searches the same places beside Skyscanner, so the slowest one sets the time.
   // KAYAK is charged per offer (the estimate assumes every search returns the full number); Priceline per call.
   // Priceline can price every day of the pickup window (one search per place and day).
+  // "Every branch in the area": Enterprise.com is priced on its own, slowly, not as part of the scan's searches.
+  const enterpriseInline = useEnterprise && enterpriseMode === 'nearby';
   const pricelineDaily = usePriceline && pickupFlexDays > 0 && dailyPickup;
   const pricelineDates = pricelineDaily ? pickupFlexDays + 1 : pickupDates;
   // Priceline also prices each extra rental length of the ladder (one search per place, date and length).
@@ -202,14 +208,14 @@ export function SearchForm({
     (useSky ? live.searches : 0) +
     (useKayak ? searchesOn('kayak') : 0) +
     (usePriceline ? searchesOn('priceline') : 0) +
-    (useEnterprise ? searchesOn('enterprise') : 0);
+    (enterpriseInline ? searchesOn('enterprise') : 0);
   // A big area re-scanned every day adds up on Apify: suggest a weekly repeat.
   const bigArea = !oneTime && places !== null && places > 300 && intervalDays === 1 && (useSky || useKayak);
   const scanMinutes = Math.max(
     useSky ? live.minutes : 0,
     usePriceline ? extraMinutes('priceline') : 0,
     useKayak ? extraMinutes('kayak') : 0,
-    useEnterprise ? extraMinutes('enterprise') : 0,
+    enterpriseInline ? extraMinutes('enterprise') : 0,
   );
   const money2 = (usd: number) => `$${usd < 0.01 ? usd.toFixed(3) : usd.toFixed(2)}`;
   const [name, setName] = useState(editing?.name ?? '');
@@ -426,8 +432,8 @@ export function SearchForm({
                   },
                   {
                     id: 'area',
-                    title: 'Every branch in the area, overnight',
-                    sub: 'Finds all Enterprise branches in the area, then prices each one slowly at night with breaks.',
+                    title: 'Every branch in the area',
+                    sub: 'Finds all Enterprise branches in the area, then prices each one slowly with breaks, like a person.',
                   },
                 ] as const
               ).map((m) => (
@@ -452,6 +458,22 @@ export function SearchForm({
             <div className="direct-box__opts">
               {enterpriseMode === 'area' ? (
                 <>
+                  <label className="field">
+                    <span className="field__label">When</span>
+                    <select
+                      id="ns-enterprise-when"
+                      value={enterpriseSchedule}
+                      onChange={(e) => {
+                        setEnterpriseSchedule(e.target.value as 'paced' | 'night');
+                        changed();
+                      }}
+                    >
+                      <option value="paced">With each scan, slowly</option>
+                      <option value="night">Only at night</option>
+                    </select>
+                  </label>
+                  {enterpriseSchedule === 'night' && (
+                  <>
                   <label className="field">
                     <span className="field__label">Night starts (US Eastern)</span>
                     <select
@@ -486,6 +508,8 @@ export function SearchForm({
                       ))}
                     </select>
                   </label>
+                  </>
+                  )}
                 </>
               ) : (
               <label className="field">
@@ -524,12 +548,20 @@ export function SearchForm({
             {enterpriseMode === 'area' ? (
               <p className="muted direct-box__note">
                 Every Enterprise branch in the area{airportsShown ? ', airports included' : ''}, {sourcesCfg?.enterprise?.maxRentalDays ?? 300}-day
-                rentals. The other sites are searched straight away; Enterprise.com runs only between {clockLabel(nightStartShown)} and{' '}
-                {clockLabel(nightEndShown)} US Eastern, like a person browsing: {night?.gapSecs[0] ?? 60}-{night?.gapSecs[1] ?? 120} s
-                between branches, a break of {night?.breakMins[0] ?? 5}-{night?.breakMins[1] ?? 15} min every {night?.sittingBranches[0] ?? 6}-
+                rentals. The other sites are searched straight away;{' '}
+                {enterpriseSchedule === 'paced' ? (
+                  <>Enterprise.com starts with each scan (daily, weekly or Run now) but never all at once,</>
+                ) : (
+                  <>
+                    Enterprise.com runs only between {clockLabel(nightStartShown)} and {clockLabel(nightEndShown)} US Eastern,
+                  </>
+                )}{' '}
+                like a person browsing: {night?.gapSecs[0] ?? 60}-{night?.gapSecs[1] ?? 120} s between branches, a break of{' '}
+                {night?.breakMins[0] ?? 5}-{night?.breakMins[1] ?? 15} min every {night?.sittingBranches[0] ?? 6}-
                 {night?.sittingBranches[1] ?? 10} branches with a fresh browser after it, branches in random order, at most{' '}
-                {night?.maxBranchesPerNight ?? 250} a night. If the site pushes back it waits, and anything left continues the next night. The
-                first scan of a state first lists its branches (kept for a month).
+                {night?.maxBranchesPerNight ?? 250} a {enterpriseSchedule === 'paced' ? 'day' : 'night'}. If the site pushes back it waits,
+                and anything left continues {enterpriseSchedule === 'paced' ? 'later' : 'the next night'}. The first scan of a state first lists
+                its branches (kept for a month).
               </p>
             ) : (
               <p className="muted direct-box__note">
@@ -833,7 +865,8 @@ export function SearchForm({
       ) : (
         <p className="scan-estimate" aria-live="polite">
           Each scan: up to {places} places × {pickupDates} {pickupDates > 1 ? 'pickup dates' : 'pickup date'} ×{' '}
-          {chosen.length} {chosen.length > 1 ? 'sites' : 'site'}
+          {chosen.length - (useEnterprise && !enterpriseInline ? 1 : 0)}{' '}
+          {chosen.length - (useEnterprise && !enterpriseInline ? 1 : 0) > 1 ? 'sites' : 'site'}
           {pricelineDaily && ` (Priceline: every day, ${pricelineDates} dates)`}
           {pricelineLadder.length > 0 && ` (Priceline: ${pricelineLengths} rental lengths)`} = <strong>{scanSearches} searches</strong> · about{' '}
           <strong>{scanMinutes} min</strong>
@@ -855,15 +888,26 @@ export function SearchForm({
               · Priceline <strong>{pricelineUsd ? money2(pricelineUsd) : 'free plan'}</strong>
             </>
           )}
-          {useEnterprise && (
+          {enterpriseInline && (
             <>
               {' '}
               · Enterprise.com about <strong>{extraMinutes('enterprise')} min</strong>
             </>
           )}
+          {useEnterprise && !enterpriseInline && (
+            <>
+              {' '}
+              · Enterprise.com <strong>every branch, separately and slowly</strong>
+            </>
+          )}
           .{useKayak && ` KAYAK searches only the ${kayakMaxPlaces} biggest places and is charged per offer it returns.`}
-          {useEnterprise &&
+          {enterpriseInline &&
             ` Enterprise.com is searched one place at a time in a hosted browser: no fee per search, a few browser units per scan.`}
+          {useEnterprise &&
+            !enterpriseInline &&
+            ` Enterprise.com prices every branch in the area on its own, ${
+              enterpriseSchedule === 'paced' ? 'starting with the scan' : 'at night'
+            }, 1-2 minutes apart with breaks: a few hours per state, no fee per search, a few browser units per branch.`}
           {bigArea && ' Large area: a weekly repeat keeps the Apify bill down.'}
           {usePriceline &&
             ` Priceline offers are for ${directMaxDays}-day rentals (Priceline prices at most 310 days; whole months are cheapest) and are compared per 30 days.`}

@@ -16,6 +16,8 @@ function whenLabel(iso: string): string {
 export function OvernightStatus({ meta, onStop, stopping = false }: { meta: unknown; onStop?: () => void; stopping?: boolean }) {
   const o = overnightOf(meta);
   const [confirming, setConfirming] = useState(false);
+  // The time the line was drawn: the list refreshes often enough for "on a break" to stay right.
+  const [now] = useState(() => Date.now());
   if (!o) return null;
   const window = o.window ? `${clockLabel(o.window.start)}-${clockLabel(o.window.end)} ET` : 'overnight';
   const total = (o.branchesDone ?? 0) + (o.branchesFailed ?? 0) + (o.branchesLeft ?? 0) || o.branchesQueued || 0;
@@ -35,9 +37,12 @@ export function OvernightStatus({ meta, onStop, stopping = false }: { meta: unkn
 
   let wait = '';
   if (!finished) {
-    if (o.waitingFor === 'night' && o.nextWindowAt) wait = `Runs ${window}; next start ${whenLabel(o.nextWindowAt)}`;
+    const paced = o.schedule === 'paced';
+    const onBreak = o.nextSittingAt && new Date(o.nextSittingAt).getTime() > now;
+    if (!paced && o.waitingFor === 'night' && o.nextWindowAt) wait = `Runs ${window}; next start ${whenLabel(o.nextWindowAt)}`;
     else if (o.waitingFor) wait = `Waiting: ${o.waitingFor}`;
-    else wait = `Working now, slowly with breaks (${window})`;
+    else if (onBreak) wait = `On a break; next few branches at ${whenLabel(o.nextSittingAt!)}`;
+    else wait = paced ? 'Working now, slowly with breaks' : `Working now, slowly with breaks (${window})`;
   }
 
   return (

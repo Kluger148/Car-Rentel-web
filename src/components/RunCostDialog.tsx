@@ -135,14 +135,23 @@ export function RunCostDialog({ searchId, open, onClose, onConfirm }: Props) {
               {others.map((o) =>
                 o.overnight ? (
                   <div key={o.source}>
-                    <dt>Enterprise.com overnight</dt>
+                    <dt>Enterprise.com, every branch</dt>
                     <dd>
                       {o.overnight.branchesKnown !== null ? `${o.overnight.branchesKnown} branches` : 'Every branch in the area'}
                       <span className="muted">
                         {' '}
-                        · {clockLabel(o.overnight.window.start)}-{clockLabel(o.overnight.window.end)} ET, up to{' '}
-                        {o.overnight.maxBranchesPerNight} a night
-                        {o.overnight.nights !== null && ` · about ${o.overnight.nights} ${o.overnight.nights === 1 ? 'night' : 'nights'}`}
+                        {o.overnight.schedule === 'paced' ? (
+                          <>
+                            · starts with the scan, slowly with breaks, up to {o.overnight.maxBranchesPerNight} a day
+                            {o.overnight.hours != null && ` · about ${o.overnight.hours} ${o.overnight.hours === 1 ? 'hour' : 'hours'}`}
+                          </>
+                        ) : (
+                          <>
+                            · {clockLabel(o.overnight.window.start)}-{clockLabel(o.overnight.window.end)} ET, up to{' '}
+                            {o.overnight.maxBranchesPerNight} a night
+                            {o.overnight.nights !== null && ` · about ${o.overnight.nights} ${o.overnight.nights === 1 ? 'night' : 'nights'}`}
+                          </>
+                        )}
                         {o.overnight.directoryToBuild.length > 0 && ` · first lists the branches of ${o.overnight.directoryToBuild.join(', ')}`}
                         {' '}· free (hosted browser time)
                       </span>

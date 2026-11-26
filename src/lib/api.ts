@@ -16,6 +16,8 @@ export type OfferSource = 'Skyscanner' | 'KAYAK' | 'Priceline' | 'Enterprise.com
 export interface DirectOptions {
   /** 'nearby' (default): nearest branches per place, with the scan. 'area': every branch, overnight. */
   mode?: 'nearby' | 'area';
+  /** 'area' mode: 'paced' = with each scan, slowly with breaks; 'night' (or missing) = only at night. */
+  schedule?: 'paced' | 'night';
   branchesPerPlace?: number;
   includeAirports?: boolean;
   /** 'area' mode night window, HH:MM US Eastern. Missing = the server's. */
@@ -26,6 +28,9 @@ export interface DirectOptions {
 /** A scan's overnight Enterprise.com work ("whole area" mode), from run.meta.enterprise. */
 export interface OvernightStatus {
   mode: 'area';
+  schedule?: 'paced' | 'night';
+  /** Paced: when the next sitting starts (after a break). */
+  nextSittingAt?: string | null;
   /** queued -> directory (finding branches) -> pricing / working -> done or ended. */
   phase: 'queued' | 'directory' | 'pricing' | 'working' | 'done' | 'ended';
   evaluated?: boolean;
@@ -832,6 +837,9 @@ export interface RunEstimate {
       branchesKnown: number | null;
       directoryToBuild: string[];
       nights: number | null;
+      /** Missing on older backends (= night). */
+      schedule?: 'paced' | 'night';
+      hours?: number | null;
       window: { start: string; end: string; timeZone: string };
       maxBranchesPerNight: number;
     };
