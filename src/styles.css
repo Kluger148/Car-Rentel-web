@@ -3036,3 +3036,11 @@ table.data tbody tr:last-child .switch[data-tip]::after { top: auto; bottom: cal
   .ask-deal__src { top: auto; bottom: 6px; left: 6px; }
   .ask-composer { bottom: calc(72px + env(safe-area-inset-bottom)); }
 }
+
+/* Tables in Ask AI answers (price comparisons): scroll sideways on phones instead of squeezing. */
+.ask-table { margin: 4px 0 12px; overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius-sm); }
+.ask-table table { width: 100%; border-collapse: collapse; font-size: 13.5px; line-height: 1.45; }
+.ask-table th, .ask-table td { padding: 8px 12px; text-align: left; white-space: nowrap; border-bottom: 1px solid var(--border); }
+.ask-table th { background: var(--surface-2); color: var(--text-muted); font-weight: 600; font-size: 12.5px; }
+.ask-table tbody tr:last-child td { border-bottom: 0; }
+.ask-table tbody tr:hover td { background: var(--surface-hover); }

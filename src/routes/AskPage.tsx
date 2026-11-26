@@ -82,8 +82,45 @@ function Answer({ text, streaming = false }: { text: string; streaming?: boolean
     blocks.push(list.ordered ? <ol key={blocks.length}>{items}</ol> : <ul key={blocks.length}>{items}</ul>);
     list = null;
   };
+  let table: string[][] | null = null;
+  const flushTable = () => {
+    if (!table) return;
+    const [head, ...body] = table;
+    const k = `t${blocks.length}`;
+    blocks.push(
+      <div key={k} className="ask-table">
+        <table>
+          <thead>
+            <tr>
+              {head.map((c, i) => (
+                <th key={i}>{inline(c, `${k}h${i}`)}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {body.map((row, r) => (
+              <tr key={r}>
+                {row.map((c, i) => (
+                  <td key={i}>{inline(c, `${k}r${r}c${i}`)}</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>,
+    );
+    table = null;
+  };
   for (const raw of text.split('\n')) {
     const line = raw.trim();
+    // Markdown table rows: | a | b |. The |---|---| line under the header is skipped.
+    if (/^\|.*\|$/.test(line)) {
+      flush();
+      if (/^\|[\s:|-]+\|$/.test(line)) continue;
+      (table ??= []).push(line.slice(1, -1).split('|').map((c) => c.trim()));
+      continue;
+    }
+    flushTable();
     const bullet = /^[-*•]\s+(.*)$/.exec(line);
     const numbered = /^\d+[.)]\s+(.*)$/.exec(line);
     if (bullet || numbered) {
@@ -105,6 +142,7 @@ function Answer({ text, streaming = false }: { text: string; streaming?: boolean
     );
   }
   flush();
+  flushTable();
   return <div className={`ask-answer${streaming ? ' is-streaming' : ''}`}>{blocks}</div>;
 }
 
