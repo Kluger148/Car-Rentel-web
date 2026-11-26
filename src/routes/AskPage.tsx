@@ -52,7 +52,8 @@ function inline(text: string, key: string): ReactNode[] {
   while ((m = re.exec(text))) {
     if (m.index > last) out.push(text.slice(last, m.index));
     const k = `${key}-${m.index}`;
-    if (m[1]) out.push(<strong key={k}>{m[1]}</strong>);
+    // Bold text can hold a deal link of its own.
+    if (m[1]) out.push(<strong key={k}>{inline(m[1], k)}</strong>);
     else if (m[3].startsWith('/deal/'))
       out.push(
         <Link key={k} to="/deal/$fingerprint" params={{ fingerprint: m[3].slice(6) }}>
