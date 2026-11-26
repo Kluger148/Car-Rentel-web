@@ -622,6 +622,8 @@ export interface ScannerConfig {
   };
   /** Customer addresses (search by address, drive times). Missing on older backends = not available. */
   googleMaps?: { available: boolean; provider?: 'geoapify' | 'google' | null };
+  /** Ask AI: offered once the server has an Anthropic key. Missing on older backends. */
+  chat?: { available: boolean; model: string };
   /** For the live scan estimate. Missing on older backends. */
   estimate?: { perSearchUsd: number | null; secondsPerSearch: number };
 }
@@ -787,10 +789,106 @@ export interface RunEstimate {
   scanRunning: boolean;
 }
 
+/** One message of an Ask AI conversation; the dashboard keeps the conversation, the API keeps none. */
+export interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+/** A deal an Ask AI answer links to, for the cards under it. */
+export interface ChatDeal {
+  fingerprint: string;
+  vehicleName: string;
+  vehicleClass: VehicleClass;
+  seats: number | null;
+  supplier: string;
+  source: string;
+  monthlyRate: string;
+  totalPrice: string;
+  durationDays: number;
+  pickupDate: string;
+  place: string;
+  state: string;
+  distanceMiles: number | null;
+  change: string | null;
+  previousPrice: string | null;
+  underTarget: boolean;
+  imageUrl: string | null;
+}
+
+export interface ChatReply {
+  reply: string;
+  deals: ChatDeal[];
+  usage: { inputTokens: number; outputTokens: number; toolCalls: number };
+}
+
+/** Progress while Ask AI answers: what it is looking up, and the answer as it is written. */
+export type ChatEvent = { type: 'status'; label: string } | { type: 'text'; delta: string } | { type: 'reset' };
+
+/**
+ * Asks a question and streams the answer (server-sent events over a POST). Resolves with the
+ * finished reply; `onEvent` gets each step on the way. Aborting the signal cancels the question.
+ */
+export async function chatStream(
+  messages: ChatMessage[],
+  searchId: number | undefined,
+  onEvent: (e: ChatEvent) => void,
+  signal?: AbortSignal,
+): Promise<ChatReply> {
+  let res: Response;
+  try {
+    res = await fetch(`${BASE}/api/chat/stream`, {
+      method: 'POST',
+      signal,
+      headers: {
+        accept: 'text/event-stream',
+        'content-type': 'application/json',
+        ...(session ? { authorization: `Bearer ${session.token}` } : {}),
+      },
+      body: JSON.stringify({ messages, searchId }),
+    });
+  } catch (err) {
+    if (signal?.aborted) throw err;
+    throw new ApiError('Cannot reach the scanner API.', 0);
+  }
+  if (res.status === 401 && session) auth.set(null);
+  if (!res.ok || !res.body) {
+    const body = (await res.json().catch(() => null)) as { message?: string | string[] } | null;
+    const msg = Array.isArray(body?.message) ? body.message.join('; ') : body?.message;
+    throw new ApiError(msg ?? `Request failed with ${res.status}`, res.status);
+  }
+  const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
+  let buffer = '';
+  for (;;) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buffer += value;
+    let cut: number;
+    while ((cut = buffer.indexOf('\n\n')) >= 0) {
+      const block = buffer.slice(0, cut);
+      buffer = buffer.slice(cut + 2);
+      let event = 'message';
+      let data = '';
+      for (const line of block.split('\n')) {
+        if (line.startsWith('event: ')) event = line.slice(7);
+        else if (line.startsWith('data: ')) data += line.slice(6);
+      }
+      if (!data) continue; // keep-alive comment
+      const payload = JSON.parse(data) as unknown;
+      if (event === 'done') return payload as ChatReply;
+      if (event === 'error') throw new ApiError((payload as { message: string }).message, 503);
+      onEvent(payload as ChatEvent);
+    }
+  }
+  throw new ApiError('The answer was cut off. Please try again.', 0);
+}
+
 const post = <T>(path: string, body: unknown) => request<T>(path, { method: 'POST', body: JSON.stringify(body) });
 
 export const api = {
   health: () => request<Health>('/api/health'),
+  /** Ask AI about the deals: the whole conversation goes each time. */
+  chat: (messages: ChatMessage[], searchId?: number) => post<ChatReply>('/api/chat', { messages, searchId }),
   login: (email: string, password: string) => post<LoginResponse>('/api/auth/login', { email, password }),
   me: () => request<User>('/api/auth/me'),
   config: () => request<ScannerConfig>('/api/config'),

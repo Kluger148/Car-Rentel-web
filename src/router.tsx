@@ -4,6 +4,7 @@ import { RUN_RANGES, RUN_STATUSES, VEHICLE_CLASSES, type RunRange, type RunStatu
 import { CAR_TYPES, type CarType } from './lib/carType';
 import type { SortKey } from './lib/filters';
 import { AccountPage } from './routes/AccountPage';
+import { AskPage } from './routes/AskPage';
 import { DealDetailPage } from './routes/DealDetailPage';
 import { DealsPage } from './routes/DealsPage';
 import { FavouritesPage } from './routes/FavouritesPage';
@@ -164,6 +165,12 @@ const accountRoute = createRoute({
   component: AccountPage,
 });
 
+const askRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/ask',
+  component: AskPage,
+});
+
 const routeTree = rootRoute.addChildren([
   searchesRoute,
   dealsRoute,
@@ -172,6 +179,7 @@ const routeTree = rootRoute.addChildren([
   dealDetailRoute,
   profileRoute,
   accountRoute,
+  askRoute,
 ]);
 
 export const router = createRouter({

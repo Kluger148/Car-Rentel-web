@@ -2100,7 +2100,7 @@ table.data tbody tr:last-child .row-action[data-tip]::after { top: auto; bottom:
     bottom: 0;
     z-index: 100;
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 4px;
     padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
     background: var(--header-bg);
@@ -2768,3 +2768,271 @@ td.cell-switch select.select--sm { min-width: 8.5em; }
 table.data tbody tr:last-child .switch[data-tip]::after { top: auto; bottom: calc(100% + 8px); }
 /* Touch screens have no hover: the label and the booking tag say enough there. */
 @media (hover: none) { .switch[data-tip]::after { display: none; } }
+
+/* ---------------------------------------------------------------------------
+   Ask AI: a chat about the deals, answered from the latest scans.
+--------------------------------------------------------------------------- */
+.ask-page {
+  --ai-grad: linear-gradient(135deg, #0ea5e9 0%, #6366f1 55%, #a855f7 100%);
+  max-width: 860px;
+  padding-bottom: 8px;
+}
+.ask-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin: 24px 0 8px; }
+.ask-head__title { display: flex; align-items: center; gap: 12px; }
+.ask-head__title h1 { margin: 0; font-size: 24px; letter-spacing: -0.02em; }
+.ask-head__title p { margin: 2px 0 0; color: var(--text-muted); font-size: 14px; }
+.ask-head__title .ask-avatar { width: 40px; height: 40px; }
+.ask-head__tools { display: flex; align-items: center; gap: 8px; }
+.ask-scope select {
+  appearance: none;
+  -webkit-appearance: none;
+  max-width: 260px;
+  padding: 8px 32px 8px 14px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 12px center;
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  text-overflow: ellipsis;
+}
+.ask-scope select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.ask-avatar {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--ai-grad);
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
+}
+
+.ask-chat { display: flex; flex-direction: column; min-height: calc(100vh - 210px); }
+.ask-thread { flex: 1; display: flex; flex-direction: column; gap: 22px; padding: 16px 0 8px; }
+.ask-end { height: 1px; }
+
+/* Empty state: a short welcome and four starting questions. */
+.ask-empty { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 40px 8px 12px; animation: ask-in 0.4s ease both; }
+.ask-empty__orb {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 20px;
+  background: var(--ai-grad);
+  color: #fff;
+  box-shadow: 0 12px 32px rgba(99, 102, 241, 0.35);
+  margin-bottom: 18px;
+}
+.ask-empty h2 { margin: 0 0 6px; font-size: 22px; letter-spacing: -0.02em; }
+.ask-empty p { margin: 0 0 24px; color: var(--text-muted); max-width: 460px; }
+.ask-suggestions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; width: 100%; max-width: 620px; }
+.ask-suggestion {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s, transform 0.15s, box-shadow 0.15s;
+}
+.ask-suggestion:hover { border-color: #818cf8; transform: translateY(-1px); box-shadow: var(--shadow); }
+.ask-suggestion:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.ask-suggestion__title { font-weight: 600; font-size: 14px; }
+.ask-suggestion__detail { color: var(--text-muted); font-size: 13px; }
+
+/* Messages: the user's on the right in a bubble, the assistant's on the left as plain text. */
+.ask-row { display: flex; gap: 12px; animation: ask-in 0.25s ease both; }
+.ask-row--user { justify-content: flex-end; }
+.ask-bubble {
+  max-width: min(80%, 560px);
+  padding: 10px 16px;
+  border-radius: 20px 20px 6px 20px;
+  background: var(--ai-grad);
+  color: #fff;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  box-shadow: 0 6px 18px rgba(79, 70, 229, 0.22);
+}
+.ask-row__body { flex: 1; min-width: 0; padding-top: 3px; }
+.ask-answer { line-height: 1.65; color: var(--text); overflow-wrap: anywhere; }
+.ask-answer p { margin: 0 0 10px; }
+.ask-answer > :last-child { margin-bottom: 0; }
+.ask-answer ul, .ask-answer ol { margin: 0 0 10px; padding-left: 22px; }
+.ask-answer li { margin: 4px 0; }
+.ask-answer li::marker { color: #818cf8; }
+.ask-answer h3 { margin: 14px 0 6px; font-size: 15px; }
+.ask-answer strong { font-weight: 650; }
+.ask-answer a { color: var(--accent-hover); font-weight: 600; text-decoration: none; border-bottom: 1px solid color-mix(in srgb, var(--accent) 35%, transparent); }
+.ask-answer a:hover { border-bottom-color: var(--accent); }
+.ask-answer.is-streaming > :last-child::after {
+  content: '';
+  display: inline-block;
+  width: 7px;
+  height: 15px;
+  margin-left: 3px;
+  vertical-align: -2px;
+  border-radius: 2px;
+  background: #818cf8;
+  animation: ask-caret 1s steps(2) infinite;
+}
+.ask-actions { display: flex; gap: 6px; margin-top: 10px; }
+.ask-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: none;
+  color: var(--text-faint);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.ask-action:hover { color: var(--text); background: var(--surface-2); }
+
+/* Working: dots and what is being looked up right now. */
+.ask-status { display: inline-flex; align-items: center; gap: 10px; padding: 8px 14px; border-radius: 999px; background: var(--surface-2); color: var(--text-muted); font-size: 14px; }
+.ask-status__label {
+  background: linear-gradient(90deg, var(--text-muted) 0%, var(--text) 50%, var(--text-muted) 100%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: ask-shimmer 1.8s linear infinite;
+}
+.ask-dots { display: inline-flex; gap: 4px; }
+.ask-dots i { width: 6px; height: 6px; border-radius: 50%; background: #818cf8; animation: ask-bounce 1.2s ease-in-out infinite; }
+.ask-dots i:nth-child(2) { animation-delay: 0.15s; }
+.ask-dots i:nth-child(3) { animation-delay: 0.3s; }
+
+.ask-error { display: inline-flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 14px; border-radius: var(--radius); background: var(--red-100); color: var(--red-600); font-size: 14px; }
+.ask-row.is-error .ask-avatar { background: var(--surface-2); color: var(--red-600); box-shadow: none; }
+
+/* Deal cards under an answer. */
+.ask-deals { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; margin-top: 14px; }
+.ask-deal {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  text-decoration: none;
+  transition: border-color 0.15s, transform 0.15s, box-shadow 0.15s;
+}
+.ask-deal:hover { text-decoration: none; border-color: #818cf8; transform: translateY(-2px); box-shadow: var(--shadow); }
+.ask-deal__media { position: relative; display: grid; place-items: center; height: 104px; background: #fff; color: #94a3b8; border-bottom: 1px solid var(--border); }
+.ask-deal__media img { max-width: 78%; max-height: 88px; object-fit: contain; }
+.ask-deal__src {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 11px;
+  font-weight: 600;
+  box-shadow: var(--shadow-sm);
+}
+.ask-deal__body { display: flex; flex-direction: column; gap: 3px; padding: 10px 12px 12px; font-size: 13px; min-width: 0; }
+.ask-deal__name { font-weight: 650; font-size: 14px; line-height: 1.3; }
+.ask-deal__meta { display: flex; align-items: center; gap: 4px; color: var(--text-muted); min-width: 0; }
+.ask-deal__meta svg { flex: none; }
+.ask-deal__place { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; min-width: 0; }
+.ask-deal__mi { flex: none; white-space: nowrap; }
+.ask-deal__foot { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-top: 6px; }
+.ask-deal__price { font-size: 18px; font-weight: 750; letter-spacing: -0.02em; }
+.ask-deal__price small { margin-left: 3px; font-size: 12px; font-weight: 500; color: var(--text-muted); letter-spacing: 0; }
+.ask-deal__badge { display: inline-flex; align-items: center; gap: 2px; padding: 2px 8px; border-radius: 999px; background: var(--sky-100); color: var(--sky-600); font-size: 11px; font-weight: 600; white-space: nowrap; }
+.ask-deal__badge--down { background: var(--green-100); color: var(--green-600); }
+.ask-deal__total { color: var(--text-faint); font-size: 12px; }
+
+/* The question box stays at the bottom of the screen. */
+.ask-composer {
+  position: sticky;
+  bottom: 14px;
+  z-index: 5;
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 8px 8px 8px 18px;
+  border: 1px solid var(--border);
+  border-radius: 26px;
+  background: var(--surface);
+  box-shadow: var(--shadow-lg);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.ask-composer:focus-within { border-color: #818cf8; box-shadow: var(--shadow-lg), 0 0 0 4px rgba(129, 140, 248, 0.18); }
+.ask-composer textarea {
+  flex: 1;
+  min-width: 0;
+  max-height: 180px;
+  padding: 9px 0;
+  border: 0;
+  outline: 0;
+  resize: none;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 15px;
+  line-height: 1.5;
+}
+.ask-composer textarea::placeholder { color: var(--text-faint); }
+.ask-send {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--ai-grad);
+  color: #fff;
+  cursor: pointer;
+  transition: transform 0.15s, opacity 0.15s;
+}
+.ask-send:hover:not(:disabled) { transform: scale(1.06); }
+.ask-send:disabled { opacity: 0.35; cursor: default; }
+.ask-send--stop { background: var(--text); color: var(--surface); }
+.ask-note { margin: 10px 0 0; text-align: center; color: var(--text-faint); font-size: 12px; }
+
+@keyframes ask-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@keyframes ask-bounce { 0%, 80%, 100% { transform: translateY(0); opacity: 0.5; } 40% { transform: translateY(-4px); opacity: 1; } }
+@keyframes ask-shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+@keyframes ask-caret { 50% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .ask-row, .ask-empty, .ask-dots i, .ask-status__label, .ask-answer.is-streaming > :last-child::after { animation: none; }
+}
+
+@media (max-width: 760px) {
+  .ask-head { margin-top: 16px; }
+  .ask-head__tools { width: 100%; }
+  .ask-scope { flex: 1; min-width: 0; }
+  .ask-scope select { width: 100%; max-width: none; }
+  .ask-chat { min-height: calc(100vh - 230px); }
+  .ask-suggestions { grid-template-columns: minmax(0, 1fr); }
+  .ask-bubble { max-width: 88%; }
+  .ask-row { gap: 10px; }
+  .ask-row--ai > .ask-avatar { display: none; }
+  .ask-deals { grid-template-columns: minmax(0, 1fr); }
+  .ask-deal { flex-direction: row; }
+  .ask-deal__media { flex: none; width: 104px; height: auto; min-height: 96px; }
+  .ask-deal__media img { max-width: 88%; }
+  .ask-deal__src { top: auto; bottom: 6px; left: 6px; }
+  .ask-composer { bottom: calc(72px + env(safe-area-inset-bottom)); }
+}

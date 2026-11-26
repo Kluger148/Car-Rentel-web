@@ -4,7 +4,7 @@ import { useEffect, useState, useSyncExternalStore } from 'react';
 import { auth } from '../lib/api';
 import { LoginPage } from '../routes/LoginPage';
 import { UserMenu } from './UserMenu';
-import { CalendarIcon, HeartIcon, MoonIcon, SearchIcon, SunIcon, VanIcon } from './icons';
+import { CalendarIcon, HeartIcon, MoonIcon, SearchIcon, SparklesIcon, SunIcon, VanIcon } from './icons';
 
 type Theme = 'light' | 'dark';
 
@@ -44,7 +44,7 @@ export function useSession() {
   return useSyncExternalStore(auth.subscribe, () => auth.session);
 }
 
-/** The three main pages. Rendered twice: in the top bar, and as a bottom tab bar on phones. */
+/** The main pages. Rendered twice: in the top bar, and as a bottom tab bar on phones. */
 function NavLinks({ pathname }: { pathname: string }) {
   return (
     <>
@@ -59,6 +59,10 @@ function NavLinks({ pathname }: { pathname: string }) {
       <Link to="/runs" data-active={pathname.startsWith('/runs')}>
         <CalendarIcon size={15} />
         <span>Scan history</span>
+      </Link>
+      <Link to="/ask" data-active={pathname.startsWith('/ask')}>
+        <SparklesIcon size={15} />
+        <span>Ask AI</span>
       </Link>
     </>
   );

@@ -195,3 +195,36 @@ export const ClockIcon = ({ size = 16, className }: IconProps) => (
     <path d="M12 7v5l3 2" />
   </svg>
 );
+
+/** Ask AI: the assistant's mark (three sparkles). */
+export const SparklesIcon = ({ size = 16, className }: IconProps) => (
+  <svg {...base(size)} className={className}>
+    <path d="M10 3.5 11.6 8a2 2 0 0 0 1.4 1.4l4.5 1.6-4.5 1.6a2 2 0 0 0-1.4 1.4L10 18.5 8.4 14a2 2 0 0 0-1.4-1.4L2.5 11 7 9.4A2 2 0 0 0 8.4 8Z" />
+    <path d="M18.5 2.5v4M16.5 4.5h4M19 16v3M17.5 17.5h3" />
+  </svg>
+);
+
+export const SendIcon = ({ size = 16, className }: IconProps) => (
+  <svg {...base(size)} className={className}>
+    <path d="M12 19V5M5 12l7-7 7 7" />
+  </svg>
+);
+
+export const StopIcon = ({ size = 16, className }: IconProps) => (
+  <svg {...base(size)} className={className}>
+    <rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor" />
+  </svg>
+);
+
+export const CopyIcon = ({ size = 16, className }: IconProps) => (
+  <svg {...base(size)} className={className}>
+    <rect x="9" y="9" width="11" height="11" rx="2" />
+    <path d="M5 15V5a2 2 0 0 1 2-2h10" />
+  </svg>
+);
+
+export const CheckIcon = ({ size = 16, className }: IconProps) => (
+  <svg {...base(size)} className={className}>
+    <path d="m5 12 5 5 9-10" />
+  </svg>
+);
