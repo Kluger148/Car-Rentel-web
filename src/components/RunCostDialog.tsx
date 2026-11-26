@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useRef } from 'react';
 import { api, type RunEstimate } from '../lib/api';
+import { clockLabel } from '../lib/format';
 import { AlertIcon } from './icons';
 
 /** Dollars with cents; sub-cent amounts keep enough digits to not read as $0.00. */
@@ -131,7 +132,23 @@ export function RunCostDialog({ searchId, open, onClose, onConfirm }: Props) {
                   </dd>
                 </div>
               )}
-              {others.map((o) => (
+              {others.map((o) =>
+                o.overnight ? (
+                  <div key={o.source}>
+                    <dt>Enterprise.com overnight</dt>
+                    <dd>
+                      {o.overnight.branchesKnown !== null ? `${o.overnight.branchesKnown} branches` : 'Every branch in the area'}
+                      <span className="muted">
+                        {' '}
+                        · {clockLabel(o.overnight.window.start)}-{clockLabel(o.overnight.window.end)} ET, up to{' '}
+                        {o.overnight.maxBranchesPerNight} a night
+                        {o.overnight.nights !== null && ` · about ${o.overnight.nights} ${o.overnight.nights === 1 ? 'night' : 'nights'}`}
+                        {o.overnight.directoryToBuild.length > 0 && ` · first lists the branches of ${o.overnight.directoryToBuild.join(', ')}`}
+                        {' '}· free (hosted browser time)
+                      </span>
+                    </dd>
+                  </div>
+                ) : (
                 <div key={o.source}>
                   <dt>{SOURCE_NAME[o.source]} searches</dt>
                   <dd>
@@ -147,7 +164,8 @@ export function RunCostDialog({ searchId, open, onClose, onConfirm }: Props) {
                     </span>
                   </dd>
                 </div>
-              ))}
+                ),
+              )}
               {useSky && e.nameChecks > 0 && (
                 <div>
                   <dt>

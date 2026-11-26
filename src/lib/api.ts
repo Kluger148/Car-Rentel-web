@@ -14,8 +14,43 @@ export type OfferSource = 'Skyscanner' | 'KAYAK' | 'Priceline' | 'Enterprise.com
 
 /** A search's settings for the rental companies' own websites. Missing = the server's. */
 export interface DirectOptions {
+  /** 'nearby' (default): nearest branches per place, with the scan. 'area': every branch, overnight. */
+  mode?: 'nearby' | 'area';
   branchesPerPlace?: number;
   includeAirports?: boolean;
+  /** 'area' mode night window, HH:MM US Eastern. Missing = the server's. */
+  nightStart?: string;
+  nightEnd?: string;
+}
+
+/** A scan's overnight Enterprise.com work ("whole area" mode), from run.meta.enterprise. */
+export interface OvernightStatus {
+  mode: 'area';
+  /** queued -> directory (finding branches) -> pricing / working -> done or ended. */
+  phase: 'queued' | 'directory' | 'pricing' | 'working' | 'done' | 'ended';
+  evaluated?: boolean;
+  window?: { start: string; end: string; timeZone: string };
+  states?: string[];
+  lookupsDone?: number;
+  lookupsLeft?: number;
+  branchesQueued?: number;
+  branchesDone?: number;
+  branchesFailed?: number;
+  branchesLeft?: number;
+  branchesPriced?: number;
+  branchesDropped?: number;
+  offers?: number;
+  /** Why it is not working right now (night not started, nightly limit, cool-down); null = working. */
+  waitingFor?: string | null;
+  nextWindowAt?: string;
+  note?: string | null;
+  finishedAt?: string;
+}
+
+/** The overnight status of a run, if it has one. */
+export function overnightOf(meta: unknown): OvernightStatus | null {
+  const e = (meta as { enterprise?: OvernightStatus } | null)?.enterprise;
+  return e && e.mode === 'area' ? e : null;
 }
 
 /** A class-name-safe form of a site's name: "Enterprise.com" -> "enterprise-com". */
@@ -225,6 +260,8 @@ export interface DealsResponse {
   jobsPlanned?: number;
   /** The last full scan, when the run shown ended early. */
   lastFullRun?: { id: number; startedAt: string } | null;
+  /** The scan's overnight Enterprise.com part ("whole area" mode); null/missing when it has none. */
+  enterprise?: OvernightStatus | null;
   targetMonthly: number;
   total: number;
   favouriteCount: number;
@@ -618,6 +655,16 @@ export interface ScannerConfig {
       maxRentalDays: number;
       branchesPerPlace: number;
       includeAirports: boolean;
+      /** "Whole area" overnight pace and window. Missing on older backends. */
+      night?: {
+        windowStart: string;
+        windowEnd: string;
+        timeZone: string;
+        maxBranchesPerNight: number;
+        gapSecs: [number, number];
+        sittingBranches: [number, number];
+        breakMins: [number, number];
+      };
     };
   };
   /** Customer addresses (search by address, drive times). Missing on older backends = not available. */
@@ -780,6 +827,14 @@ export interface RunEstimate {
     places?: number;
     pickupDates?: number;
     rentalLengths?: number;
+    /** Enterprise.com "whole area" mode: priced overnight after the scan. */
+    overnight?: {
+      branchesKnown: number | null;
+      directoryToBuild: string[];
+      nights: number | null;
+      window: { start: string; end: string; timeZone: string };
+      maxBranchesPerNight: number;
+    };
   }[];
   /** Skyscanner's expected cost plus the most the other sites can cost. */
   totalUsd?: number | null;
@@ -949,7 +1004,7 @@ export const api = {
   setSearchRunAt: (id: number, runAt: 'now' | string | null) =>
     request<SearchDetail>(`/api/searches/${id}`, { method: 'PATCH', body: JSON.stringify({ runAt }) }),
   /** Stops a running scan: no new searches start, finished ones are kept. */
-  stopScan: (id: number) => post<{ stopping: boolean; runId: number }>(`/api/searches/${id}/stop`, {}),
+  stopScan: (id: number) => post<{ stopping: boolean; runId: number | null; overnightStopped?: number }>(`/api/searches/${id}/stop`, {}),
 
   runs: (limit = 20, filters: RunFilters = {}, offset?: number) =>
     request<Run[]>(`/api/runs${toQuery({ limit, ...filters, offset: offset || undefined })}`),

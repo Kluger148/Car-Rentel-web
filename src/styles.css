@@ -3044,3 +3044,20 @@ table.data tbody tr:last-child .switch[data-tip]::after { top: auto; bottom: cal
 .ask-table th { background: var(--surface-2); color: var(--text-muted); font-weight: 600; font-size: 12.5px; }
 .ask-table tbody tr:last-child td { border-bottom: 0; }
 .ask-table tbody tr:hover td { background: var(--surface-hover); }
+
+/* Enterprise.com "whole area" choice in the search form, and the overnight status line. */
+.direct-mode { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 10px 0 4px; }
+.direct-mode__opt { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); cursor: pointer; }
+.direct-mode__opt.is-on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, var(--surface)); }
+.direct-mode__opt input { margin-top: 3px; accent-color: var(--accent); }
+.direct-mode__title { display: block; font-weight: 600; font-size: 14px; }
+.direct-mode__sub { display: block; color: var(--text-muted); font-size: 12.5px; line-height: 1.4; margin-top: 2px; }
+.overnight { display: flex; align-items: flex-start; gap: 8px; margin-top: 6px; padding: 8px 10px; border-radius: var(--radius-sm); background: var(--surface-2); font-size: 13px; line-height: 1.4; }
+.overnight__dot { flex: none; width: 8px; height: 8px; margin-top: 5px; border-radius: 50%; background: #6366f1; box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18); }
+.overnight.is-done .overnight__dot { background: var(--green-600); box-shadow: none; }
+.overnight__body { flex: 1; min-width: 0; }
+.overnight__stop { display: inline-flex; gap: 6px; flex-wrap: wrap; }
+@media (max-width: 760px) {
+  .direct-mode { grid-template-columns: minmax(0, 1fr); }
+  .overnight { flex-wrap: wrap; }
+}

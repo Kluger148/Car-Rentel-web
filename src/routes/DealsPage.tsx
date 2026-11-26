@@ -9,6 +9,7 @@ import { RunLaterDialog } from '../components/RunLaterDialog';
 import { ScanProgress } from '../components/ScanProgress';
 import { SearchPanel } from '../components/SearchPanel';
 import { DealSkeleton, ErrorState, NoMatchesState } from '../components/States';
+import { OvernightStatus } from '../components/OvernightStatus';
 import { AlertIcon, ClockIcon, CloseIcon, HeartIcon, PinIcon } from '../components/icons';
 import { useMobileSheet } from '../components/useMobileSheet';
 import {
@@ -565,6 +566,7 @@ export function DealsPage() {
         )}
         {/* The passive warnings. Tablets and desktop: one slim bar, a line each with "More" for the full
             explanation and the fix on the right. Phones: the full boxes below, opened from the amber status line. */}
+        {dealsQuery.data?.enterprise && <OvernightStatus meta={{ enterprise: dealsQuery.data.enterprise }} />}
         <div id={noticesId} className={`deal-notices${noticesOpen ? ' is-open' : ''}`}>
           {noticeCount > 0 && dealsQuery.data && (
             <div className="notice-bar" role="status">

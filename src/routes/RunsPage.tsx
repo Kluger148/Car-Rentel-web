@@ -2,6 +2,7 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { Link, getRouteApi } from '@tanstack/react-router';
 import { useMemo } from 'react';
 import { ErrorState } from '../components/States';
+import { OvernightStatus } from '../components/OvernightStatus';
 import { AlertIcon, CalendarIcon, ExternalIcon, PinIcon, SearchIcon } from '../components/icons';
 import { RUN_STATUSES, api, type DealChangeType, type Run, type RunFilters, type RunRange, type RunStatus } from '../lib/api';
 import type { RunsSearch } from '../router';
@@ -258,6 +259,7 @@ export function RunsPage() {
                 </div>
                 <ChangeBadges meta={run.meta} />
               </div>
+              <OvernightStatus meta={run.meta} />
 
               {warnings.length > 0 && (
                 <div className="run-card__warn">

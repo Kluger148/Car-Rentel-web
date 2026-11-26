@@ -176,3 +176,10 @@ export const isSearchOnlyLink = (url: string | null | undefined): boolean => url
 /** Google Maps for a branch address, as the old site links it. */
 export const mapsUrl = (address: string): string =>
   `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
+
+/** "23:00" -> "11 PM", "06:30" -> "6:30 AM". */
+export function clockLabel(hhmm: string): string {
+  const [h, m] = hhmm.split(':').map(Number);
+  const hour = h % 12 === 0 ? 12 : h % 12;
+  return `${hour}${m ? `:${String(m).padStart(2, '0')}` : ''} ${h < 12 ? 'AM' : 'PM'}`;
+}

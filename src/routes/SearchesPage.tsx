@@ -27,7 +27,8 @@ import {
   type SearchSource,
 } from '../lib/api';
 import { CAR_TYPES } from '../lib/carType';
-import { STATUS_LABEL, fullDate, nextNightRun, relativeTime, runAtLabel, toLocalInput } from '../lib/format';
+import { STATUS_LABEL, clockLabel, fullDate, nextNightRun, relativeTime, runAtLabel, toLocalInput } from '../lib/format';
+import { OvernightStatus } from '../components/OvernightStatus';
 
 const CAR_TYPE_OPTIONS = CAR_TYPES.filter((t) => t !== 'Other').map((t) => ({ value: t, label: t }));
 /** A typed car type matches the list whatever its case. */
@@ -43,6 +44,10 @@ const COMPANY_SITES = [
   { name: 'Hertz.com', ready: false },
   { name: 'Sixt.com', ready: false },
 ] as const;
+
+/** Night window choices for the overnight Enterprise.com scan (US Eastern, on the hour). */
+const NIGHT_STARTS = ['20:00', '21:00', '22:00', '23:00', '00:00', '01:00', '02:00'];
+const NIGHT_ENDS = ['04:00', '05:00', '06:00', '07:00', '08:00'];
 const sortSources = (sources: Iterable<SearchSource>): SearchSource[] => {
   const set = new Set(sources);
   return SOURCE_ORDER.filter((s) => set.has(s));
@@ -144,11 +149,20 @@ export function SearchForm({
   // Enterprise.com settings: the search's own, else the server's defaults.
   const [branchesPerPlace, setBranchesPerPlace] = useState<number | null>(editing?.directOptions?.branchesPerPlace ?? null);
   const [includeAirports, setIncludeAirports] = useState<boolean | null>(editing?.directOptions?.includeAirports ?? null);
+  const [enterpriseMode, setEnterpriseMode] = useState<'nearby' | 'area'>(editing?.directOptions?.mode ?? 'nearby');
+  const night = sourcesCfg?.enterprise?.night;
+  const [nightStart, setNightStart] = useState<string | null>(editing?.directOptions?.nightStart ?? null);
+  const [nightEnd, setNightEnd] = useState<string | null>(editing?.directOptions?.nightEnd ?? null);
+  const nightStartShown = nightStart ?? night?.windowStart ?? '23:00';
+  const nightEndShown = nightEnd ?? night?.windowEnd ?? '06:00';
   const branchesShown = branchesPerPlace ?? sourcesCfg?.enterprise?.branchesPerPlace ?? 3;
   const airportsShown = includeAirports ?? sourcesCfg?.enterprise?.includeAirports ?? false;
   const directOptions = {
-    ...(branchesPerPlace !== null ? { branchesPerPlace } : {}),
+    ...(enterpriseMode === 'area' ? { mode: 'area' as const } : {}),
+    ...(enterpriseMode === 'nearby' && branchesPerPlace !== null ? { branchesPerPlace } : {}),
     ...(includeAirports !== null ? { includeAirports } : {}),
+    ...(enterpriseMode === 'area' && nightStart !== null ? { nightStart } : {}),
+    ...(enterpriseMode === 'area' && nightEnd !== null ? { nightEnd } : {}),
   };
   const pickupDates = 1 + pickupFlexDays / 7;
   const live = scanEstimate({
@@ -402,7 +416,78 @@ export function SearchForm({
                 </span>
               ))}
             </div>
+            <div className="direct-mode" role="radiogroup" aria-label="Which Enterprise branches">
+              {(
+                [
+                  {
+                    id: 'nearby',
+                    title: 'Nearest branches per town',
+                    sub: 'Priced with the scan, in minutes. Can miss branches between towns.',
+                  },
+                  {
+                    id: 'area',
+                    title: 'Every branch in the area, overnight',
+                    sub: 'Finds all Enterprise branches in the area, then prices each one slowly at night with breaks.',
+                  },
+                ] as const
+              ).map((m) => (
+                <label key={m.id} className={`direct-mode__opt${enterpriseMode === m.id ? ' is-on' : ''}`}>
+                  <input
+                    type="radio"
+                    name="ns-enterprise-mode"
+                    value={m.id}
+                    checked={enterpriseMode === m.id}
+                    onChange={() => {
+                      setEnterpriseMode(m.id);
+                      changed();
+                    }}
+                  />
+                  <span>
+                    <span className="direct-mode__title">{m.title}</span>
+                    <span className="direct-mode__sub">{m.sub}</span>
+                  </span>
+                </label>
+              ))}
+            </div>
             <div className="direct-box__opts">
+              {enterpriseMode === 'area' ? (
+                <>
+                  <label className="field">
+                    <span className="field__label">Night starts (US Eastern)</span>
+                    <select
+                      id="ns-night-start"
+                      value={nightStartShown}
+                      onChange={(e) => {
+                        setNightStart(e.target.value);
+                        changed();
+                      }}
+                    >
+                      {NIGHT_STARTS.map((t) => (
+                        <option key={t} value={t}>
+                          {clockLabel(t)}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="field">
+                    <span className="field__label">Night ends (US Eastern)</span>
+                    <select
+                      id="ns-night-end"
+                      value={nightEndShown}
+                      onChange={(e) => {
+                        setNightEnd(e.target.value);
+                        changed();
+                      }}
+                    >
+                      {NIGHT_ENDS.map((t) => (
+                        <option key={t} value={t}>
+                          {clockLabel(t)}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </>
+              ) : (
               <label className="field">
                 <span className="field__label">Branches per place</span>
                 <select
@@ -420,6 +505,7 @@ export function SearchForm({
                   ))}
                 </select>
               </label>
+              )}
               <label className="direct-box__check">
                 <input
                   type="checkbox"
@@ -435,12 +521,24 @@ export function SearchForm({
                 </span>
               </label>
             </div>
-            <p className="muted direct-box__note">
-              Each place: the nearest {branchesShown} Enterprise {branchesShown === 1 ? 'branch' : 'branches'}
-              {airportsShown ? ' incl. airports' : ''}, {sourcesCfg?.enterprise?.maxRentalDays ?? 300}-day rentals. Neighbouring
-              towns share branches, so each branch is priced once per scan. Searches run one at a time, slowly; a refusal pauses
-              Enterprise.com until the next scan.
-            </p>
+            {enterpriseMode === 'area' ? (
+              <p className="muted direct-box__note">
+                Every Enterprise branch in the area{airportsShown ? ', airports included' : ''}, {sourcesCfg?.enterprise?.maxRentalDays ?? 300}-day
+                rentals. The other sites are searched straight away; Enterprise.com runs only between {clockLabel(nightStartShown)} and{' '}
+                {clockLabel(nightEndShown)} US Eastern, like a person browsing: {night?.gapSecs[0] ?? 60}-{night?.gapSecs[1] ?? 120} s
+                between branches, a break of {night?.breakMins[0] ?? 5}-{night?.breakMins[1] ?? 15} min every {night?.sittingBranches[0] ?? 6}-
+                {night?.sittingBranches[1] ?? 10} branches with a fresh browser after it, branches in random order, at most{' '}
+                {night?.maxBranchesPerNight ?? 250} a night. If the site pushes back it waits, and anything left continues the next night. The
+                first scan of a state first lists its branches (kept for a month).
+              </p>
+            ) : (
+              <p className="muted direct-box__note">
+                Each place: the nearest {branchesShown} Enterprise {branchesShown === 1 ? 'branch' : 'branches'}
+                {airportsShown ? ' incl. airports' : ''}, {sourcesCfg?.enterprise?.maxRentalDays ?? 300}-day rentals. Neighbouring
+                towns share branches, so each branch is priced once per scan. Searches run one at a time, slowly; a refusal pauses
+                Enterprise.com until the next scan.
+              </p>
+            )}
           </div>
         )}
       </fieldset>
@@ -886,6 +984,11 @@ export function SearchesPage() {
     // Switching a search or changing how often it repeats changes the scheduler's expected cost.
     void queryClient.invalidateQueries({ queryKey: ['scheduler'] });
   };
+  // Stops a search's overnight Enterprise.com work: what was priced is kept.
+  const stopOvernight = useMutation({
+    mutationFn: (id: number) => api.stopScan(id),
+    onSettled: (_d, _e, id) => refresh(id),
+  });
   const toggleActive = useMutation({
     mutationFn: ({ id, active }: { id: number; active: boolean }) => api.setSearchActive(id, active),
     onSuccess: (_d, { id, active }) => {
@@ -1077,6 +1180,11 @@ export function SearchesPage() {
                       <>
                         {STATUS_LABEL[s.lastRun.status]} · {relativeTime(s.lastRun.startedAt)}
                         <div className="muted">{s.lastRun.quotesCount} offers</div>
+                        <OvernightStatus
+                          meta={s.lastRun.meta}
+                          stopping={stopOvernight.isPending && stopOvernight.variables === s.id}
+                          onStop={() => stopOvernight.mutate(s.id)}
+                        />
                       </>
                     ) : (
                       <span className="muted">Not scanned yet</span>
