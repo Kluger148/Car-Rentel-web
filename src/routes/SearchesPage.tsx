@@ -1094,7 +1094,7 @@ export function SearchesPage() {
       <div className="page-head page-head--row">
         <div>
           <h1>Saved searches</h1>
-          <p>Each search looks for complete 330-day rentals on Skyscanner and re-runs on its own schedule.</p>
+          <p>Each search looks for long rentals on the sites you pick (Priceline, Enterprise.com and more) and re-runs on its own schedule.</p>
         </div>
         <button
           type="button"

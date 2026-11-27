@@ -4,9 +4,13 @@ import { clockLabel } from '../lib/format';
 
 const n = (v: number | undefined) => (v ?? 0).toLocaleString('en-US');
 
-/** "Fri 11:00 PM" in the viewer's own time. */
-function whenLabel(iso: string): string {
-  return new Date(iso).toLocaleString(undefined, { weekday: 'short', hour: 'numeric', minute: '2-digit' });
+/**
+ * "Fri 11:00 PM ET": in US Eastern like the night window beside it, not the viewer's own clock
+ * (a viewer far from the US would otherwise see a start time that does not match "11 PM-6 AM ET").
+ */
+function whenLabel(iso: string, timeZone = 'America/New_York'): string {
+  const time = new Date(iso).toLocaleString('en-US', { weekday: 'short', hour: 'numeric', minute: '2-digit', timeZone });
+  return timeZone === 'America/New_York' ? `${time} ET` : time;
 }
 
 /**
@@ -39,9 +43,9 @@ export function OvernightStatus({ meta, onStop, stopping = false }: { meta: unkn
   if (!finished) {
     const paced = o.schedule === 'paced';
     const onBreak = o.nextSittingAt && new Date(o.nextSittingAt).getTime() > now;
-    if (!paced && o.waitingFor === 'night' && o.nextWindowAt) wait = `Runs ${window}; next start ${whenLabel(o.nextWindowAt)}`;
+    if (!paced && o.waitingFor === 'night' && o.nextWindowAt) wait = `Runs ${window}; next start ${whenLabel(o.nextWindowAt, o.window?.timeZone)}`;
     else if (o.waitingFor) wait = `Waiting: ${o.waitingFor}`;
-    else if (onBreak) wait = `On a break; next few branches at ${whenLabel(o.nextSittingAt!)}`;
+    else if (onBreak) wait = `On a break; next few branches at ${whenLabel(o.nextSittingAt!, o.window?.timeZone)}`;
     else wait = paced ? 'Working now, slowly with breaks' : `Working now, slowly with breaks (${window})`;
   }
 
