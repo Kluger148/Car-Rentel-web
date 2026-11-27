@@ -8,9 +8,20 @@ export const VEHICLE_CLASSES = ['MINIVAN', 'PASSENGER_VAN', 'LARGE_SUV', 'OTHER'
 export type VehicleClass = (typeof VEHICLE_CLASSES)[number];
 
 /** Where a saved search looks for prices. */
-export type SearchSource = 'skyscanner' | 'kayak' | 'priceline' | 'enterprise';
+export type SearchSource = 'skyscanner' | 'kayak' | 'priceline' | 'enterprise' | 'avis';
+/** The rental companies' own websites, searched in a hosted browser. */
+export type DirectSource = 'enterprise' | 'avis';
+export const DIRECT_SOURCES: DirectSource[] = ['enterprise', 'avis'];
+export const isDirectSource = (s: string): s is DirectSource => s === 'enterprise' || s === 'avis';
+export const DIRECT_LABEL: Record<DirectSource, string> = { enterprise: 'Enterprise.com', avis: 'Avis.com' };
+/** "Enterprise.com and Avis.com" */
+export const directLabel = (companies: readonly string[]) =>
+  companies
+    .filter(isDirectSource)
+    .map((c) => DIRECT_LABEL[c])
+    .join(' and ') || 'Company websites';
 /** The site an offer was found on, as the API names it. */
-export type OfferSource = 'Skyscanner' | 'KAYAK' | 'Priceline' | 'Enterprise.com';
+export type OfferSource = 'Skyscanner' | 'KAYAK' | 'Priceline' | 'Enterprise.com' | 'Avis.com';
 
 /** A search's settings for the rental companies' own websites. Missing = the server's. */
 export interface DirectOptions {
@@ -25,9 +36,23 @@ export interface DirectOptions {
   nightEnd?: string;
 }
 
-/** A scan's overnight Enterprise.com work ("whole area" mode), from run.meta.enterprise. */
+/** One company's share of a scan's "every branch" work. */
+export interface OvernightCompanyCounts {
+  lookupsDone?: number;
+  lookupsLeft?: number;
+  branchesDone?: number;
+  branchesFailed?: number;
+  branchesLeft?: number;
+  offers?: number;
+}
+
+/** A scan's "every branch" company-website work (Enterprise.com, Avis.com), from run.meta.enterprise. */
 export interface OvernightStatus {
   mode: 'area';
+  /** The company websites it covers. Missing on scans before Avis.com (= Enterprise.com only). */
+  companies?: DirectSource[];
+  /** Counts per company. Missing until the first sitting ends. */
+  byCompany?: Partial<Record<DirectSource, OvernightCompanyCounts>>;
   schedule?: 'paced' | 'night';
   /** Paced: when the next sitting starts (after a break). */
   nextSittingAt?: string | null;
@@ -650,6 +675,17 @@ export interface ScannerConfig {
       /** Shorter rental lengths a search can also price (the duration ladder). Missing on older backends. */
       ladderDays?: number[];
     };
+    /** Avis.com itself, the same way as Enterprise.com. Missing on older backends. */
+    avis?: {
+      available: boolean;
+      pausedUntil: string | null;
+      perSearchUsd: number;
+      secondsPerSearch: number;
+      concurrency: number;
+      maxRentalDays: number;
+      branchesPerPlace: number;
+      includeAirports: boolean;
+    };
     /** Enterprise.com itself. Missing on older backends. */
     enterprise?: {
       available: boolean;
@@ -823,7 +859,7 @@ export interface RunEstimate {
   skyscanner?: boolean;
   /** The other sites the search uses: KAYAK at the full offer cap (an upper bound), Priceline per call. */
   otherSources?: {
-    source: 'kayak' | 'priceline' | 'enterprise';
+    source: 'kayak' | 'priceline' | 'enterprise' | 'avis';
     searches: number;
     perSearchUsd: number;
     maxUsd: number;

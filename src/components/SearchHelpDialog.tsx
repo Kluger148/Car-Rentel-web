@@ -10,7 +10,7 @@ interface FieldHelp {
 const FIELDS: FieldHelp[] = [
   {
     name: 'Search prices on',
-    what: 'The sites to search: Skyscanner (booking sites plus Hertz and Sixt direct), Priceline (the rental companies through Priceline, the same prices as priceline.com) KAYAK, and Company websites (Enterprise.com itself; Avis, Hertz and Sixt to follow). Tick one or more: the same car from several sites becomes one deal, cheapest first.',
+    what: 'The sites to search: Skyscanner (booking sites plus Hertz and Sixt direct), Priceline (the rental companies through Priceline, the same prices as priceline.com) KAYAK, and Company websites (Enterprise.com and Avis.com themselves; Hertz and Sixt to follow). Tick one or more: the same car from several sites becomes one deal, cheapest first.',
     tip: 'Priceline is free on the current plan and usually best for minivans and vans. KAYAK is slower and charged per offer.',
   },
   {

@@ -32,6 +32,7 @@ function suggestionsFor(s: SavedSearch | undefined): Record<TopicKey, string[]> 
     kayak: 'KAYAK',
     priceline: 'Priceline',
     enterprise: 'Enterprise.com',
+    avis: 'Avis.com',
   };
   const sources = (s?.sources ?? []).map((x) => SITE[x] ?? x);
   const twoSites = sources.length >= 2 ? `${sources[0]} and ${sources[1]}` : 'Priceline and Enterprise.com';

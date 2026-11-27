@@ -14,12 +14,17 @@ import {
   PICKUP_FLEX_OPTIONS,
   RENTAL_LADDER_DAYS,
   api,
+  DIRECT_LABEL,
+  DIRECT_SOURCES,
+  directLabel,
   intervalLabel,
+  isDirectSource,
   pickupFlexLabel,
   placesOptions,
   rentalDurationsLabel,
   scanEstimate,
   type CustomerAddress,
+  type DirectSource,
   type SavedSearch,
   type SearchBy,
   type SearchInput,
@@ -35,17 +40,19 @@ const CAR_TYPE_OPTIONS = CAR_TYPES.filter((t) => t !== 'Other').map((t) => ({ va
 const carTypeName = (typed: string) => CAR_TYPES.find((t) => t.toLowerCase() === typed.trim().toLowerCase()) ?? typed.trim();
 
 /** The sites a search can look for prices on, in the order the form lists them. */
-const SOURCE_ORDER: SearchSource[] = ['skyscanner', 'priceline', 'kayak', 'enterprise'];
+const SOURCE_ORDER: SearchSource[] = ['skyscanner', 'priceline', 'kayak', 'enterprise', 'avis'];
 
-/** The rental companies' own websites: Enterprise.com first, the others still being built. */
-const COMPANY_SITES = [
-  { name: 'Enterprise.com', ready: true },
-  { name: 'Avis.com', ready: false },
-  { name: 'Hertz.com', ready: false },
-  { name: 'Sixt.com', ready: false },
-] as const;
+/** The rental companies' own websites: Enterprise.com and Avis.com, the others still being built (id null). */
+const COMPANY_SITES: ReadonlyArray<{ id: DirectSource | null; name: string }> = [
+  { id: 'enterprise', name: 'Enterprise.com' },
+  { id: 'avis', name: 'Avis.com' },
+  { id: null, name: 'Hertz.com' },
+  { id: null, name: 'Sixt.com' },
+];
+/** "Enterprise and Avis" */
+const companyWord = (companies: readonly DirectSource[]) => companies.map((c) => (c === 'avis' ? 'Avis' : 'Enterprise')).join(' and ');
 
-/** Night window choices for the overnight Enterprise.com scan (US Eastern, on the hour). */
+/** Night window choices for the overnight company-website scan (US Eastern, on the hour). */
 const NIGHT_STARTS = ['20:00', '21:00', '22:00', '23:00', '00:00', '01:00', '02:00'];
 const NIGHT_ENDS = ['04:00', '05:00', '06:00', '07:00', '08:00'];
 const sortSources = (sources: Iterable<SearchSource>): SearchSource[] => {
@@ -145,8 +152,17 @@ export function SearchForm({
   const useSky = chosen.includes('skyscanner');
   const usePriceline = chosen.includes('priceline');
   const useKayak = chosen.includes('kayak');
-  const useEnterprise = chosen.includes('enterprise');
-  // Enterprise.com settings: the search's own, else the server's defaults.
+  // The company websites picked (Enterprise.com, Avis.com): one card, one set of settings for all of them.
+  const companies = chosen.filter(isDirectSource);
+  const useEnterprise = companies.length > 0;
+  const siteLabel = directLabel(companies);
+  const companyNames = companyWord(companies);
+  const directReady = DIRECT_SOURCES.filter((c) => ready(c));
+  // Longest rental each company prices, capped at the search's own 330 days.
+  const directDays = companies
+    .map((c) => `${companies.length > 1 ? `${DIRECT_LABEL[c]} ` : ''}${Math.min(sourcesCfg?.[c]?.maxRentalDays ?? (c === 'avis' ? 330 : 300), 330)}-day`)
+    .join(', ');
+  // Company-website settings: the search's own, else the server's defaults.
   const [branchesPerPlace, setBranchesPerPlace] = useState<number | null>(editing?.directOptions?.branchesPerPlace ?? null);
   const [includeAirports, setIncludeAirports] = useState<boolean | null>(editing?.directOptions?.includeAirports ?? null);
   const [enterpriseMode, setEnterpriseMode] = useState<'nearby' | 'area'>(editing?.directOptions?.mode ?? 'nearby');
@@ -179,7 +195,7 @@ export function SearchForm({
   // Each other site searches the same places beside Skyscanner, so the slowest one sets the time.
   // KAYAK is charged per offer (the estimate assumes every search returns the full number); Priceline per call.
   // Priceline can price every day of the pickup window (one search per place and day).
-  // "Every branch in the area": Enterprise.com is priced on its own, slowly, not as part of the scan's searches.
+  // "Every branch in the area": company websites are priced on their own, slowly, not as part of the scan's searches.
   const enterpriseInline = useEnterprise && enterpriseMode === 'nearby';
   const pricelineDaily = usePriceline && pickupFlexDays > 0 && dailyPickup;
   const pricelineDates = pricelineDaily ? pickupFlexDays + 1 : pickupDates;
@@ -187,13 +203,13 @@ export function SearchForm({
   const ladderDays = sourcesCfg?.priceline?.ladderDays ?? RENTAL_LADDER_DAYS;
   const pricelineLadder = usePriceline ? rentalDurations : [];
   const pricelineLengths = 1 + pricelineLadder.length;
-  const searchesOn = (s: 'priceline' | 'kayak' | 'enterprise') =>
+  const searchesOn = (s: 'priceline' | 'kayak' | DirectSource) =>
     s === 'priceline'
       ? (places ?? 0) * pricelineDates * pricelineLengths
-      : s === 'enterprise'
+      : s === 'enterprise' || s === 'avis'
         ? (places ?? 0) * pickupDates
         : Math.min(places ?? 0, kayakMaxPlaces) * pickupDates;
-  const extraMinutes = (s: 'priceline' | 'kayak' | 'enterprise') => {
+  const extraMinutes = (s: 'priceline' | 'kayak' | DirectSource) => {
     const c = sourcesCfg?.[s];
     return Math.max(1, Math.round((Math.ceil(searchesOn(s) / Math.max(1, c?.concurrency ?? 1)) * (c?.secondsPerSearch ?? 30)) / 60));
   };
@@ -208,14 +224,15 @@ export function SearchForm({
     (useSky ? live.searches : 0) +
     (useKayak ? searchesOn('kayak') : 0) +
     (usePriceline ? searchesOn('priceline') : 0) +
-    (enterpriseInline ? searchesOn('enterprise') : 0);
+    (enterpriseInline ? companies.reduce((a, c) => a + searchesOn(c), 0) : 0);
   // A big area re-scanned every day adds up on Apify: suggest a weekly repeat.
   const bigArea = !oneTime && places !== null && places > 300 && intervalDays === 1 && (useSky || useKayak);
   const scanMinutes = Math.max(
     useSky ? live.minutes : 0,
     usePriceline ? extraMinutes('priceline') : 0,
     useKayak ? extraMinutes('kayak') : 0,
-    enterpriseInline ? extraMinutes('enterprise') : 0,
+    // Each company website runs beside the others, at its own pace.
+    ...(enterpriseInline ? companies.map((c) => extraMinutes(c)) : [0]),
   );
   const money2 = (usd: number) => `$${usd < 0.01 ? usd.toFixed(3) : usd.toFixed(2)}`;
   const [name, setName] = useState(editing?.name ?? '');
@@ -238,7 +255,7 @@ export function SearchForm({
     dailyPickupDates: pricelineDaily,
     // Only sent when set, so an older backend without the duration ladder keeps working.
     ...(pricelineLadder.length > 0 ? { rentalDurations: pricelineLadder } : {}),
-    // Only sent with Enterprise.com chosen and a setting picked, so other searches look as before.
+    // Only sent with a company website chosen and a setting picked, so other searches look as before.
     ...(useEnterprise && Object.keys(directOptions).length > 0 ? { directOptions } : {}),
     pickupDate: pickup,
     intervalDays,
@@ -378,8 +395,10 @@ export function SearchForm({
               },
             ] as { id: SearchSource; title: string; sub: string; meta: string; badge: string | null }[]
           ).map((o) => {
-            const disabled = !ready(o.id);
-            const checked = chosen.includes(o.id);
+            // The "Company websites" card stands for all of them: ticking it picks the first one set up.
+            const group = o.id === 'enterprise';
+            const disabled = group ? directReady.length === 0 : !ready(o.id);
+            const checked = group ? useEnterprise : chosen.includes(o.id);
             return (
               <label key={o.id} className={`src-opt${disabled ? ' is-disabled' : ''}`}>
                 <input
@@ -389,7 +408,13 @@ export function SearchForm({
                   checked={checked}
                   disabled={disabled}
                   onChange={() => {
-                    const next = checked ? chosen.filter((s) => s !== o.id) : sortSources([...chosen, o.id]);
+                    const next = group
+                      ? checked
+                        ? chosen.filter((s) => !isDirectSource(s))
+                        : sortSources([...chosen, directReady[0]])
+                      : checked
+                        ? chosen.filter((s) => s !== o.id)
+                        : sortSources([...chosen, o.id]);
                     // At least one site: unticking the last one does nothing.
                     if (next.length === 0) return;
                     setSourcePick(next);
@@ -415,14 +440,38 @@ export function SearchForm({
               <span className="muted">One price list per branch, totals incl. taxes</span>
             </div>
             <div className="direct-box__sites" role="group" aria-label="Company websites">
-              {COMPANY_SITES.map((c) => (
-                <span key={c.name} className={`direct-site${c.ready ? ' is-on' : ' is-soon'}`} aria-disabled={!c.ready}>
-                  {c.name}
-                  <span className="direct-site__state">{c.ready ? 'Ready' : 'Coming soon'}</span>
-                </span>
-              ))}
+              {COMPANY_SITES.map((c) => {
+                const id = c.id;
+                if (id === null || !ready(id)) {
+                  return (
+                    <span key={c.name} className="direct-site is-soon" aria-disabled="true">
+                      {c.name}
+                      <span className="direct-site__state">{id === null ? 'Coming soon' : 'Not set up'}</span>
+                    </span>
+                  );
+                }
+                const on = companies.includes(id);
+                return (
+                  <button
+                    key={c.name}
+                    type="button"
+                    className={`direct-site${on ? ' is-on' : ''}`}
+                    aria-pressed={on}
+                    title={on ? `Stop searching ${c.name}` : `Search ${c.name} too`}
+                    onClick={() => {
+                      // At least one company while the card is ticked: untick the card to drop them all.
+                      if (on && companies.length === 1) return;
+                      setSourcePick(on ? chosen.filter((s) => s !== id) : sortSources([...chosen, id]));
+                      changed();
+                    }}
+                  >
+                    {c.name}
+                    <span className="direct-site__state">{on ? 'On' : 'Add'}</span>
+                  </button>
+                );
+              })}
             </div>
-            <div className="direct-mode" role="radiogroup" aria-label="Which Enterprise branches">
+            <div className="direct-mode" role="radiogroup" aria-label="Which branches">
               {(
                 [
                   {
@@ -433,7 +482,7 @@ export function SearchForm({
                   {
                     id: 'area',
                     title: 'Every branch in the area',
-                    sub: 'Finds all Enterprise branches in the area, then prices each one slowly with breaks, like a person.',
+                    sub: `Finds all ${companyNames} branches in the area, then prices each one slowly with breaks, like a person.`,
                   },
                 ] as const
               ).map((m) => (
@@ -547,28 +596,30 @@ export function SearchForm({
             </div>
             {enterpriseMode === 'area' ? (
               <p className="muted direct-box__note">
-                Every Enterprise branch in the area{airportsShown ? ', airports included' : ''}, {sourcesCfg?.enterprise?.maxRentalDays ?? 300}-day
+                Every {companyNames} branch in the area{airportsShown ? ', airports included' : ''}, {directDays}
                 rentals. The other sites are searched straight away;{' '}
                 {enterpriseSchedule === 'paced' ? (
-                  <>Enterprise.com starts with each scan (daily, weekly or Run now) but never all at once,</>
+                  <>{siteLabel} {companies.length > 1 ? 'start' : 'starts'} with each scan (daily, weekly or Run now) but never all at once,</>
                 ) : (
                   <>
-                    Enterprise.com runs only between {clockLabel(nightStartShown)} and {clockLabel(nightEndShown)} US Eastern,
+                    {siteLabel} {companies.length > 1 ? 'run' : 'runs'} only between {clockLabel(nightStartShown)} and {clockLabel(nightEndShown)} US Eastern,
                   </>
                 )}{' '}
                 like a person browsing: {night?.gapSecs[0] ?? 60}-{night?.gapSecs[1] ?? 120} s between branches, a break of{' '}
                 {night?.breakMins[0] ?? 5}-{night?.breakMins[1] ?? 15} min every {night?.sittingBranches[0] ?? 6}-
                 {night?.sittingBranches[1] ?? 10} branches with a fresh browser after it, branches in random order, at most{' '}
-                {night?.maxBranchesPerNight ?? 250} a {enterpriseSchedule === 'paced' ? 'day' : 'night'}. If the site pushes back it waits,
+                {night?.maxBranchesPerNight ?? 250} a {enterpriseSchedule === 'paced' ? 'day' : 'night'}
+                {companies.length > 1 ? ' per company (they take turns: one rests while the other works)' : ''}. If a site pushes back it waits,
                 and anything left continues {enterpriseSchedule === 'paced' ? 'later' : 'the next night'}. The first scan of a state first lists
                 its branches (kept for a month).
               </p>
             ) : (
               <p className="muted direct-box__note">
-                Each place: the nearest {branchesShown} Enterprise {branchesShown === 1 ? 'branch' : 'branches'}
-                {airportsShown ? ' incl. airports' : ''}, {sourcesCfg?.enterprise?.maxRentalDays ?? 300}-day rentals. Neighbouring
-                towns share branches, so each branch is priced once per scan. Searches run one at a time, slowly; a refusal pauses
-                Enterprise.com until the next scan.
+                Each place: the nearest {branchesShown} {companyNames} {branchesShown === 1 ? 'branch' : 'branches'}
+                {companies.length > 1 ? ' of each' : ''}
+                {airportsShown ? ' incl. airports' : ''}, {directDays} rentals. Neighbouring
+                towns share branches, so each branch is priced once per scan. Searches run one at a time per site, slowly; a refusal
+                pauses that site until the next scan.
               </p>
             )}
           </div>
@@ -865,8 +916,8 @@ export function SearchForm({
       ) : (
         <p className="scan-estimate" aria-live="polite">
           Each scan: up to {places} places × {pickupDates} {pickupDates > 1 ? 'pickup dates' : 'pickup date'} ×{' '}
-          {chosen.length - (useEnterprise && !enterpriseInline ? 1 : 0)}{' '}
-          {chosen.length - (useEnterprise && !enterpriseInline ? 1 : 0) > 1 ? 'sites' : 'site'}
+          {chosen.length - (useEnterprise && !enterpriseInline ? companies.length : 0)}{' '}
+          {chosen.length - (useEnterprise && !enterpriseInline ? companies.length : 0) > 1 ? 'sites' : 'site'}
           {pricelineDaily && ` (Priceline: every day, ${pricelineDates} dates)`}
           {pricelineLadder.length > 0 && ` (Priceline: ${pricelineLengths} rental lengths)`} = <strong>{scanSearches} searches</strong> · about{' '}
           <strong>{scanMinutes} min</strong>
@@ -888,24 +939,25 @@ export function SearchForm({
               · Priceline <strong>{pricelineUsd ? money2(pricelineUsd) : 'free plan'}</strong>
             </>
           )}
-          {enterpriseInline && (
-            <>
-              {' '}
-              · Enterprise.com about <strong>{extraMinutes('enterprise')} min</strong>
-            </>
-          )}
+          {enterpriseInline &&
+            companies.map((c) => (
+              <span key={c}>
+                {' '}
+                · {DIRECT_LABEL[c]} about <strong>{extraMinutes(c)} min</strong>
+              </span>
+            ))}
           {useEnterprise && !enterpriseInline && (
             <>
               {' '}
-              · Enterprise.com <strong>every branch, separately and slowly</strong>
+              · {siteLabel} <strong>every branch, separately and slowly</strong>
             </>
           )}
           .{useKayak && ` KAYAK searches only the ${kayakMaxPlaces} biggest places and is charged per offer it returns.`}
           {enterpriseInline &&
-            ` Enterprise.com is searched one place at a time in a hosted browser: no fee per search, a few browser units per scan.`}
+            ` ${siteLabel} ${companies.length > 1 ? 'are' : 'is'} searched one place at a time in a hosted browser: no fee per search, a few browser units per scan.`}
           {useEnterprise &&
             !enterpriseInline &&
-            ` Enterprise.com prices every branch in the area on its own, ${
+            ` ${siteLabel} ${companies.length > 1 ? 'price' : 'prices'} every branch in the area on ${companies.length > 1 ? 'their' : 'its'} own, ${
               enterpriseSchedule === 'paced' ? 'starting with the scan' : 'at night'
             }, 1-2 minutes apart with breaks: a few hours per state, no fee per search, a few browser units per branch.`}
           {bigArea && ' Large area: a weekly repeat keeps the Apify bill down.'}
@@ -1028,7 +1080,7 @@ export function SearchesPage() {
     // Switching a search or changing how often it repeats changes the scheduler's expected cost.
     void queryClient.invalidateQueries({ queryKey: ['scheduler'] });
   };
-  // Stops a search's overnight Enterprise.com work: what was priced is kept.
+  // Stops a search's "every branch" company-website work: what was priced is kept.
   const stopOvernight = useMutation({
     mutationFn: (id: number) => api.stopScan(id),
     onSettled: (_d, _e, id) => refresh(id),
@@ -1204,6 +1256,7 @@ export function SearchesPage() {
                         {s.sources.includes('kayak') && <span className="src-tag src-tag--kayak">KAYAK</span>}
                         {s.sources.includes('priceline') && <span className="src-tag src-tag--priceline">Priceline</span>}
                         {s.sources.includes('enterprise') && <span className="src-tag src-tag--enterprise-com">Enterprise.com</span>}
+                        {s.sources.includes('avis') && <span className="src-tag src-tag--avis-com">Avis.com</span>}
                       </div>
                     )}
                   </td>

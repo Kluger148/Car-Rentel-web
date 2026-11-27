@@ -26,11 +26,12 @@ function basisText(e: RunEstimate): string {
   return 'No past scans or Apify price list to estimate from yet.';
 }
 
-const SOURCE_NAME = { kayak: 'KAYAK', priceline: 'Priceline', enterprise: 'Enterprise.com' } as const;
+const SOURCE_NAME = { kayak: 'KAYAK', priceline: 'Priceline', enterprise: 'Enterprise.com', avis: 'Avis.com' } as const;
 const SOURCE_BILLING = {
   kayak: 'KAYAK is a paid search on Apify, charged per offer it returns',
   priceline: 'Priceline is a RapidAPI call, free on the current plan',
   enterprise: 'Enterprise.com is searched slowly in a hosted browser, billed per half-minute it is open',
+  avis: 'Avis.com is searched slowly in a hosted browser, billed per half-minute it is open',
 } as const;
 
 const resetDay = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
@@ -135,7 +136,7 @@ export function RunCostDialog({ searchId, open, onClose, onConfirm }: Props) {
               {others.map((o) =>
                 o.overnight ? (
                   <div key={o.source}>
-                    <dt>Enterprise.com, every branch</dt>
+                    <dt>{SOURCE_NAME[o.source]}, every branch</dt>
                     <dd>
                       {o.overnight.branchesKnown !== null ? `${o.overnight.branchesKnown} branches` : 'Every branch in the area'}
                       <span className="muted">

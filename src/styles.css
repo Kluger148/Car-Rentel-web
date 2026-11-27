@@ -1809,6 +1809,12 @@ table.data .num {
 .direct-site.is-soon { border: 1px dashed var(--border-strong); color: var(--text-muted); font-weight: 500; }
 .direct-site__state { font-size: 11.5px; font-weight: 600; }
 .direct-site.is-on .direct-site__state { color: var(--green-600, #16a34a); }
+/* A company that is set up is a toggle: off = plain outline, "Add". */
+button.direct-site { font: inherit; font-weight: 600; font-size: 13.5px; cursor: pointer; border: 1px solid var(--border-strong); background: var(--surface); color: var(--text); }
+button.direct-site:not(.is-on) .direct-site__state { color: var(--accent); }
+button.direct-site:hover:not(.is-on) { border-color: var(--accent); }
+button.direct-site:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button.direct-site.is-on { border: 2px solid var(--accent); background: var(--sky-100); }
 .direct-box__opts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; align-items: end; }
 .direct-box__check { display: flex; align-items: center; gap: 10px; min-height: 44px; font-size: 13.5px; color: var(--text); }
 .direct-box__check input { width: 18px; height: 18px; accent-color: var(--accent); }
@@ -1847,6 +1853,7 @@ table.data .num {
 .src-tag--priceline { background: var(--sky-100); color: var(--text); }
 .src-tag--kayak { background: var(--amber-100); color: var(--text); }
 .src-tag--enterprise-com { background: var(--green-100); color: var(--text); }
+.src-tag--avis-com { background: var(--red-100); color: var(--text); }
 
 @media (max-width: 760px) {
   .src-choice__grid { grid-template-columns: minmax(0, 1fr); gap: 8px; }

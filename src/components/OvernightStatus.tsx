@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { overnightOf } from '../lib/api';
+import { directLabel, overnightOf } from '../lib/api';
 import { clockLabel } from '../lib/format';
 
 const n = (v: number | undefined) => (v ?? 0).toLocaleString('en-US');
@@ -24,19 +24,35 @@ export function OvernightStatus({ meta, onStop, stopping = false }: { meta: unkn
   const [now] = useState(() => Date.now());
   if (!o) return null;
   const window = o.window ? `${clockLabel(o.window.start)}-${clockLabel(o.window.end)} ET` : 'overnight';
+  // Scans before Avis.com covered Enterprise.com only.
+  const companies = o.companies && o.companies.length > 0 ? o.companies : ['enterprise' as const];
+  const site = directLabel(companies);
+  // With two companies, each one's own count: "Enterprise.com 87 of 164 · Avis.com 12 of 40".
+  const split =
+    companies.length > 1 && o.byCompany
+      ? companies
+          .map((c) => {
+            const x = o.byCompany?.[c];
+            if (!x) return null;
+            const all = (x.branchesDone ?? 0) + (x.branchesFailed ?? 0) + (x.branchesLeft ?? 0);
+            return all > 0 ? `${directLabel([c])} ${n(x.branchesDone)} of ${n(all)}` : null;
+          })
+          .filter(Boolean)
+          .join(' · ')
+      : '';
   const total = (o.branchesDone ?? 0) + (o.branchesFailed ?? 0) + (o.branchesLeft ?? 0) || o.branchesQueued || 0;
   const finished = o.phase === 'done' || o.phase === 'ended' || o.evaluated === true;
 
   let text: string;
   if (finished) {
     const priced = o.branchesPriced ?? o.branchesDone ?? 0;
-    text = `Enterprise.com: ${n(priced)} branches priced, ${n(o.offers)} offers`;
+    text = `${site}: ${n(priced)} branches priced, ${n(o.offers)} offers`;
     if ((o.branchesDropped ?? 0) > 0) text += `, ${n(o.branchesDropped)} left out`;
   } else if (o.phase === 'queued' || o.phase === 'directory' || (total === 0 && (o.lookupsDone ?? 0) + (o.lookupsLeft ?? 0) > 0)) {
-    text = `Enterprise.com: finding every branch in ${o.states?.join(', ') || 'the area'}`;
+    text = `${site}: finding every branch in ${o.states?.join(', ') || 'the area'}`;
     if (o.lookupsDone) text += ` (${n(o.lookupsDone)} lookups done)`;
   } else {
-    text = `Enterprise.com: ${n(o.branchesDone)} of ${n(total)} branches priced · ${n(o.offers)} offers`;
+    text = `${site}: ${n(o.branchesDone)} of ${n(total)} branches priced · ${n(o.offers)} offers`;
   }
 
   let wait = '';
@@ -54,6 +70,7 @@ export function OvernightStatus({ meta, onStop, stopping = false }: { meta: unkn
       <span className="overnight__dot" aria-hidden="true" />
       <div className="overnight__body">
         <div>{text}</div>
+        {split && !finished && <div className="muted">{split}</div>}
         {wait && <div className="muted">{wait}</div>}
         {finished && o.note && <div className="muted">{o.note}</div>}
       </div>

@@ -19,7 +19,7 @@ export const HELP_ANSWER = [
   '- **Best deals**: the cheapest minivan, SUV or passenger van, deals under your target, a top pick to quote a customer.',
   '- **Places**: deals near a ZIP, town or customer address, the closest branch, airport vs neighbourhood branches.',
   '- **Prices over time**: price drops, new deals, whether prices are rising, one car’s price history.',
-  '- **Sites and companies**: Priceline vs Enterprise.com vs Skyscanner vs KAYAK, which company is cheapest.',
+  '- **Sites and companies**: Priceline vs Enterprise.com vs Avis.com vs Skyscanner vs KAYAK, which company is cheapest.',
   '- **Scans and favourites**: why a scan found nothing, what it cost, which favourite is cheapest now.',
   '- **Rental basics**: mileage limits, fees, insurance, deposits and cancellation on long rentals.',
   'Open Ask AI from any page and I know what you are looking at: on a deal, just ask “Is this a good deal?”.',
