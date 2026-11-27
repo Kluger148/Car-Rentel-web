@@ -228,3 +228,10 @@ export const CheckIcon = ({ size = 16, className }: IconProps) => (
     <path d="m5 12 5 5 9-10" />
   </svg>
 );
+
+export const ReplyArrowIcon = ({ size = 16, className }: IconProps) => (
+  <svg {...base(size)} className={className}>
+    <path d="M5 4v7a3 3 0 0 0 3 3h11" />
+    <path d="m15 10 4 4-4 4" />
+  </svg>
+);

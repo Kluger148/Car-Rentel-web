@@ -1,12 +1,47 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { Link, getRouteApi } from '@tanstack/react-router';
-import { useMemo } from 'react';
+import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { ErrorState } from '../components/States';
 import { OvernightStatus } from '../components/OvernightStatus';
 import { AlertIcon, CalendarIcon, ExternalIcon, PinIcon, SearchIcon } from '../components/icons';
 import { RUN_STATUSES, api, type DealChangeType, type Run, type RunFilters, type RunRange, type RunStatus } from '../lib/api';
 import type { RunsSearch } from '../router';
 import { CHANGE_LABEL, STATUS_LABEL, dateTime, money, relativeTime } from '../lib/format';
+
+/** A scan's warnings: two lines at first, the rest one per line on "Show all". */
+function RunWarnings({ warnings }: { warnings: string[] }) {
+  const [open, setOpen] = useState(false);
+  const [overflows, setOverflows] = useState(false);
+  const textRef = useRef<HTMLSpanElement>(null);
+  // The toggle only appears when the warnings do not fit in two lines.
+  useLayoutEffect(() => {
+    const el = textRef.current;
+    if (el && !open) setOverflows(el.scrollHeight > el.clientHeight + 1);
+  }, [warnings, open]);
+  return (
+    <div className={`run-card__warn${open ? ' is-open' : ''}`}>
+      <AlertIcon size={15} />
+      <div className="run-card__warn-body">
+        {open ? (
+          <ul className="run-card__warn-list">
+            {warnings.map((w, i) => (
+              <li key={i}>{w}</li>
+            ))}
+          </ul>
+        ) : (
+          <span ref={textRef} className="run-card__warn-text">
+            {warnings.join(' · ')}
+          </span>
+        )}
+        {(overflows || open) && (
+          <button type="button" className="run-card__warn-toggle" aria-expanded={open} onClick={() => setOpen((v) => !v)}>
+            {open ? 'Show less' : `Show all${warnings.length > 1 ? ` (${warnings.length})` : ''}`}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
 
 const STATUS_TONE: Record<Run['status'], string> = {
   succeeded: 'ok',
@@ -261,12 +296,7 @@ export function RunsPage() {
               </div>
               <OvernightStatus meta={run.meta} />
 
-              {warnings.length > 0 && (
-                <div className="run-card__warn">
-                  <AlertIcon size={15} />
-                  <span>{warnings.join(' · ')}</span>
-                </div>
-              )}
+              {warnings.length > 0 && <RunWarnings warnings={warnings} />}
               {errors.length > 0 && (
                 <details className="run-card__errors">
                   <summary>{errors.length} provider error{errors.length === 1 ? '' : 's'}</summary>

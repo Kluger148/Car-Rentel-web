@@ -885,6 +885,15 @@ export interface ChatReply {
   usage: { inputTokens: number; outputTokens: number; toolCalls: number };
 }
 
+/** The page a question is asked from, so Ask AI knows what "this deal" or "these deals" are. */
+export interface ChatContext {
+  page: 'searches' | 'deals' | 'deal' | 'runs' | 'favourites' | 'other';
+  searchId?: number;
+  fingerprint?: string;
+  /** The deals page's filters, as in its URL. */
+  filters?: Record<string, string>;
+}
+
 /** Progress while Ask AI answers: what it is looking up, and the answer as it is written. */
 export type ChatEvent = { type: 'status'; label: string } | { type: 'text'; delta: string } | { type: 'reset' };
 
@@ -897,6 +906,7 @@ export async function chatStream(
   searchId: number | undefined,
   onEvent: (e: ChatEvent) => void,
   signal?: AbortSignal,
+  context?: ChatContext,
 ): Promise<ChatReply> {
   let res: Response;
   try {
@@ -908,7 +918,7 @@ export async function chatStream(
         'content-type': 'application/json',
         ...(session ? { authorization: `Bearer ${session.token}` } : {}),
       },
-      body: JSON.stringify({ messages, searchId }),
+      body: JSON.stringify({ messages, searchId, context }),
     });
   } catch (err) {
     if (signal?.aborted) throw err;

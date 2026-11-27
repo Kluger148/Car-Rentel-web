@@ -2,6 +2,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Link, Outlet, useRouterState } from '@tanstack/react-router';
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { auth } from '../lib/api';
+import { AskChatProvider } from '../lib/askChat';
+import { AskPanel } from './AskPanel';
 import { LoginPage } from '../routes/LoginPage';
 import { UserMenu } from './UserMenu';
 import { CalendarIcon, HeartIcon, MoonIcon, SearchIcon, SparklesIcon, SunIcon, VanIcon } from './icons';
@@ -32,8 +34,7 @@ function useTheme() {
   }, [theme]);
 
   const toggle = () => {
-    const current =
-      theme ?? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    const current = theme ?? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
     setTheme(current === 'dark' ? 'light' : 'dark');
   };
 
@@ -93,47 +94,50 @@ export function Layout() {
   };
 
   return (
-    <div className="shell">
-      <header className="topbar">
-        <div className="container topbar__inner">
-          <Link to="/" className="brand">
-            <span className="brand__mark">
-              <VanIcon size={17} />
-            </span>
-            <span className="brand__name">
-              Van<span>Scan</span>
-            </span>
-          </Link>
-          <nav className="topnav" aria-label="Main">
-            <NavLinks pathname={pathname} />
-          </nav>
-          <div className="topbar__meta">
-            <UserMenu
-              user={session.user}
-              active={pathname.startsWith('/profile') || pathname.startsWith('/account')}
-              onSignOut={signOut}
-            />
+    <AskChatProvider>
+      <div className="shell">
+        <header className="topbar">
+          <div className="container topbar__inner">
+            <Link to="/" className="brand">
+              <span className="brand__mark">
+                <VanIcon size={17} />
+              </span>
+              <span className="brand__name">
+                Van<span>Scan</span>
+              </span>
+            </Link>
+            <nav className="topnav" aria-label="Main">
+              <NavLinks pathname={pathname} />
+            </nav>
+            <div className="topbar__meta">
+              <UserMenu
+                user={session.user}
+                active={pathname.startsWith('/profile') || pathname.startsWith('/account')}
+                onSignOut={signOut}
+              />
+            </div>
+            {themeButton}
           </div>
-          {themeButton}
-        </div>
-      </header>
+        </header>
 
-      <main className="main">
-        <Outlet />
-      </main>
+        <main className="main">
+          <Outlet />
+        </main>
 
-      <footer className="footer">
-        <div className="container">
-          Car-hire quotes from Skyscanner, Priceline and KAYAK for complete long-term rentals, collected on each
-          scan. Quotes are not reservations: review price, mileage and conditions on the booking site before
-          presenting a deal to a customer.
-        </div>
-      </footer>
+        <footer className="footer">
+          <div className="container">
+            Car-hire quotes from Skyscanner, Priceline and KAYAK for complete long-term rentals, collected on each scan. Quotes are not
+            reservations: review price, mileage and conditions on the booking site before presenting a deal to a customer.
+          </div>
+        </footer>
 
-      {/* Phones only (CSS). Outside the header: its backdrop-filter would pin a fixed child to the header. */}
-      <nav className="tabbar" aria-label="Main">
-        <NavLinks pathname={pathname} />
-      </nav>
-    </div>
+        {/* Phones only (CSS). Outside the header: its backdrop-filter would pin a fixed child to the header. */}
+        <nav className="tabbar" aria-label="Main">
+          <NavLinks pathname={pathname} />
+        </nav>
+
+        <AskPanel />
+      </div>
+    </AskChatProvider>
   );
 }
