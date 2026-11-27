@@ -1181,6 +1181,9 @@ table.data tbody tr.is-off td:not(.cell-switch):not(.row-actions) { opacity: 0.5
 table.data tbody tr.is-off .row-action:not(:hover):not(:focus-visible) { opacity: 0.55; }
 /* Long names and areas wrap, so the table fits without a horizontal scrollbar. */
 table.data td.cell-wrap { white-space: normal; min-width: 140px; }
+/* The last-scan cell holds the overnight Enterprise.com line: it wraps inside a set width
+   instead of pushing the Scheduled and Repeat columns off the side. */
+table.data td.cell-scan { min-width: 200px; max-width: 290px; }
 
 .switch {
   display: inline-flex;
@@ -1988,6 +1991,7 @@ table.data tbody tr:last-child .row-action[data-tip]::after { top: auto; bottom:
     color: var(--text-muted);
   }
   table.data.data--stack td.cell-title { grid-column: 1 / -1; }
+  table.data.data--stack td.cell-scan { max-width: none; }
   table.data--stack td.cell-title { font-size: 15.5px; font-weight: 700; }
   table.data--stack .cell-title__prefix { display: inline; }
   /* Edit sits as an icon at the right of the card's title, so the bottom row keeps only Open deals. */
@@ -3097,8 +3101,10 @@ table.data tbody tr:last-child .switch[data-tip]::after { top: auto; bottom: cal
 .overnight { display: flex; align-items: flex-start; gap: 8px; margin-top: 6px; padding: 8px 10px; border-radius: var(--radius-sm); background: var(--surface-2); font-size: 13px; line-height: 1.4; }
 .overnight__dot { flex: none; width: 8px; height: 8px; margin-top: 5px; border-radius: 50%; background: #6366f1; box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18); }
 .overnight.is-done .overnight__dot { background: var(--green-600); box-shadow: none; }
-.overnight__body { flex: 1; min-width: 0; }
-.overnight__stop { display: inline-flex; gap: 6px; flex-wrap: wrap; }
+.overnight { flex-wrap: wrap; }
+/* The text keeps at least ~170px; in a narrow cell the Stop button drops below it. */
+.overnight__body { flex: 1 1 170px; min-width: 0; }
+.overnight__stop { display: inline-flex; gap: 6px; flex-wrap: wrap; margin-left: auto; }
 @media (max-width: 760px) {
   .direct-mode { grid-template-columns: minmax(0, 1fr); }
   .overnight { flex-wrap: wrap; }

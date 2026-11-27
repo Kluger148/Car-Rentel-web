@@ -1219,7 +1219,7 @@ export function SearchesPage() {
                       <div className="muted">Also {rentalDurationsLabel(s.rentalDurations)} on Priceline</div>
                     )}
                   </td>
-                  <td data-label="Last scan">
+                  <td className="cell-wrap cell-scan" data-label="Last scan">
                     {s.lastRun ? (
                       <>
                         {STATUS_LABEL[s.lastRun.status]} · {relativeTime(s.lastRun.startedAt)}
